@@ -19,6 +19,9 @@ export function setupPtyWebSocket(server: Server): void {
   wss.on("connection", (ws: WebSocket) => {
     console.log("Terminal WebSocket connected");
 
+    // Send initial message to confirm connection
+    ws.send("\x1b[36mConnection established. Starting game...\x1b[0m\r\n");
+
     const gamePath = path.join(process.cwd(), "game", "game.py");
     
     const ptyProcess = pty.spawn("python", [gamePath], {
