@@ -1,5 +1,5 @@
 """
-Time Hopper - Scoring Module
+Anachron - Scoring Module
 
 Tracks player score invisibly during gameplay, calculates final score,
 and manages the leaderboard.
@@ -80,18 +80,18 @@ class Score:
         lines.append("           FINAL SCORE")
         lines.append("═" * 40)
         lines.append("")
-        lines.append(f"  Survival ({self.turns_survived} turns × 10)    {self.survival_points:>6}")
-        lines.append(f"  Exploration ({self.eras_visited} eras × 50)   {self.exploration_points:>6}")
+        lines.append(f"  Survival ({self.turns_survived} turns × 10)".ljust(32) + f"{self.survival_points:>6}")
+        lines.append(f"  Exploration ({self.eras_visited} eras × 50)".ljust(32) + f"{self.exploration_points:>6}")
         lines.append("")
         lines.append("  Fulfillment:")
-        lines.append(f"    Belonging                    {self.belonging_score:>6}")
-        lines.append(f"    Legacy                       {self.legacy_score:>6}")
-        lines.append(f"    Freedom                      {self.freedom_score:>6}")
+        lines.append(f"    Belonging".ljust(32) + f"{self.belonging_score:>6}")
+        lines.append(f"    Legacy".ljust(32) + f"{self.legacy_score:>6}")
+        lines.append(f"    Freedom".ljust(32) + f"{self.freedom_score:>6}")
         lines.append("")
-        lines.append(f"  Ending Bonus ({self.ending_type})".ljust(33) + f"{self.ending_bonus:>6}")
+        lines.append(f"  Ending Bonus ({self.ending_type})".ljust(32) + f"{self.ending_bonus:>6}")
         lines.append("")
         lines.append("─" * 40)
-        lines.append(f"  TOTAL                          {self.total:>6}")
+        lines.append(f"  TOTAL".ljust(32) + f"{self.total:>6}")
         lines.append("═" * 40)
         return "\n".join(lines)
     

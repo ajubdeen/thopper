@@ -1,5 +1,5 @@
 """
-Time Hopper - Game State Module
+Anachron - Game State Module
 
 Central game state that coordinates all systems:
 - Time machine

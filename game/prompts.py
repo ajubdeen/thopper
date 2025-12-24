@@ -1,5 +1,5 @@
 """
-Time Hopper - Prompts Module
+Anachron - Prompts Module
 
 AI prompts for the narrative system, updated for:
 - Fulfillment anchors (invisible tracking)
@@ -94,7 +94,7 @@ PLAYER'S FULFILLMENT STATE (inform narrative, never state directly):
 - Can meaningfully stay: {fs['can_stay']}
 - Dominant drive: {fs['dominant_anchor'] or 'none yet'}"""
 
-    return f"""You are the narrator for "Time Hopper," a time-travel survival game.
+    return f"""You are the narrator for "Anachron," a time-travel survival game.
 
 GAME MODE: {game_state.mode.value.upper()}
 

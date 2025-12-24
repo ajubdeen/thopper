@@ -1,5 +1,5 @@
 """
-Time Hopper - Configuration Module
+Anachron - Configuration Module
 
 All tunable game parameters live here. Adjust these to change game feel
 without touching game logic.

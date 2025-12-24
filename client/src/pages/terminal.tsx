@@ -221,7 +221,7 @@ export default function TerminalPage() {
       <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a1a] border-b border-[#2a2a2a] gap-4">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-sm font-semibold text-gray-200 font-mono tracking-wide" data-testid="text-title">
-            TIME HOPPER
+            ANACHRON
           </h1>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />

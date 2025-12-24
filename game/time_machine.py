@@ -1,5 +1,5 @@
 """
-Time Hopper - Time Machine Module
+Anachron - Time Machine Module
 
 Handles all time machine mechanics:
 - Device state and indicator

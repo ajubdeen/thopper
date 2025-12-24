@@ -1,5 +1,5 @@
 """
-Time Hopper - Items Module
+Anachron - Items Module
 
 Manages the player's items:
 - Fixed starting items (modern tech from the future)

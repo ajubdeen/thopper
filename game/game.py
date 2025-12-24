@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Time Hopper - Main Game Module
+Anachron - Main Game Module
 
 A time-travel survival game where you carry three modern items through
 random historical eras, building toward happiness until you choose to stay.
@@ -321,25 +321,16 @@ class Game:
         # Main loop
         while self.state.phase != GamePhase.ENDED:
             self._play_turn()
-        
-        # Ending
-        self._show_ending()
     
     def _show_title(self):
         """Display title screen"""
         title = """
     ╔══════════════════════════════════════════════════════════════════╗
     ║                                                                  ║
-    ║                      ▀█▀ █ █▀▄▀█ █▀▀                             ║
-    ║                       █  █ █ ▀ █ █▀▀                             ║
-    ║                       ▀  ▀ ▀   ▀ ▀▀▀                             ║
+    ║            ▄▀█ █▄ █ ▄▀█ █▀▀ █ █ █▀█ █▀█ █▄ █                     ║
+    ║            █▀█ █ ▀█ █▀█ █▄▄ █▀█ █▀▄ █▄█ █ ▀█                     ║
     ║                                                                  ║
-    ║               █ █ █▀█ █▀█ █▀█ █▀▀ █▀█                            ║
-    ║               █▀█ █ █ █▀▀ █▀▀ █▀▀ █▀▄                            ║
-    ║               ▀ ▀ ▀▀▀ ▀   ▀   ▀▀▀ ▀ ▀                            ║
-    ║                                                                  ║
-    ║          "The machine broke. Now you're lost in time.            ║
-    ║           Find happiness, or keep jumping forever."              ║
+    ║              "How will you fare in another era?"                 ║
     ║                                                                  ║
     ╚══════════════════════════════════════════════════════════════════╝
         """
@@ -371,19 +362,9 @@ class Game:
         self._selected_region = RegionPreference.EUROPEAN if choice == '1' else RegionPreference.WORLDWIDE
     
     def _select_mode(self):
-        """Select game mode"""
-        clear_screen()
-        print_header("SELECT MODE")
-        
-        print(f"  {Colors.CYAN}[1]{Colors.END} Kid Mode (ages 11+)")
-        print(f"      Educational, age-appropriate content")
-        print()
-        print(f"  {Colors.CYAN}[2]{Colors.END} Mature Mode (ages 18+)")
-        print(f"      Unflinching historical realism")
-        print()
-        
-        choice = get_input("Your choice:", ['1', '2'])
-        mode = GameMode.KID if choice == '1' else GameMode.MATURE
+        """Set game mode (currently defaulting to mature)"""
+        # Default to mature mode for all players
+        mode = GameMode.MATURE
         
         self.state.start_game(self.state.player_name, mode, self._selected_region)
         self.narrator = NarrativeEngine(self.state)
@@ -392,17 +373,21 @@ class Game:
         self.current_game = self.history.start_new_game(self.state.player_name)
     
     def _show_items(self):
-        """Show starting items"""
+        """Show starting items and backstory"""
         clear_screen()
-        print_header("YOUR ITEMS")
+        print_header("READY OR NOT, YOUR JOURNEY BEGINS")
         
-        slow_print("You were testing an experimental time machine in the Bay Area.")
-        slow_print("A short trip back—just a few days. What could go wrong?")
+        slow_print("Twenty-four. Stanford. Six figures. A life that looks perfect")
+        slow_print("and feels like nothing.")
         time.sleep(0.5)
-        slow_print("\nThe controls failed. You're not in the Bay Area anymore.")
-        slow_print("You're not even in your century anymore.")
+        slow_print("\nSo when the lab needed a volunteer for the time machine's first")
+        slow_print("human trial, you stepped up without thinking.")
+        slow_print("Thirty seconds into the past. What could go wrong?")
         time.sleep(0.5)
-        slow_print("\nAll you have is what was in your pockets:")
+        slow_print("\nEverything, it turns out.")
+        time.sleep(0.3)
+        slow_print("\nThe machine is broken. You can't go home.")
+        slow_print("All you have is what was in your pockets:")
         print()
         
         for item in self.state.inventory.modern_items:
@@ -422,24 +407,9 @@ class Game:
         
         slow_print("The time machine is small—about the size of a chunky wristwatch.")
         slow_print("You wear it on your wrist, hidden under your sleeve.")
-        slow_print("The technology is obviously not from any known era.")
         time.sleep(0.5)
         
-        print(f"\n{Colors.CYAN}THE DISPLAY:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}•{Colors.END} Shows the current date and location")
-        print(f"  {Colors.YELLOW}•{Colors.END} Useful for figuring out when and where you are")
-        print(f"  {Colors.YELLOW}•{Colors.END} The destination controls are broken—that's how you got here")
-        print()
-        
-        print(f"{Colors.CYAN}THE INDICATOR:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}•{Colors.END} A small light that pulses when a travel window approaches")
-        print(f"  {Colors.YELLOW}•{Colors.END} Dark = window is far off")
-        print(f"  {Colors.YELLOW}•{Colors.END} Faint pulse = something stirring")
-        print(f"  {Colors.YELLOW}•{Colors.END} Steady glow = window approaching")
-        print(f"  {Colors.YELLOW}•{Colors.END} Bright pulse = window is OPEN, you can travel")
-        print()
-        
-        print(f"{Colors.CYAN}HOW IT WORKS:{Colors.END}\n")
+        print(f"\n{Colors.CYAN}HOW IT WORKS:{Colors.END}\n")
         print(f"  {Colors.YELLOW}•{Colors.END} The window won't open immediately when you arrive somewhere new")
         print(f"  {Colors.YELLOW}•{Colors.END} You'll have time to settle in first—typically most of a year")
         print(f"  {Colors.YELLOW}•{Colors.END} When the window opens, you have a short time to decide")
@@ -712,7 +682,7 @@ class Game:
         self._show_final_score()
     
     def _show_final_score(self, ending_type_override: str = None):
-        """Display final score and leaderboard"""
+        """Display final score"""
         # Calculate score
         score = calculate_score(self.state, ending_type_override=ending_type_override)
         
@@ -720,30 +690,19 @@ class Game:
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
+        # Add to leaderboard (silently)
+        leaderboard = Leaderboard()
+        leaderboard.add_score(score)
+        
         input(f"\n{Colors.DIM}Press Enter to see your journey's score...{Colors.END}")
         
         clear_screen()
         print_header("YOUR JOURNEY")
         
-        # Show narrative summary
-        print(f"{Colors.CYAN}{score.get_narrative_summary()}{Colors.END}")
-        print()
-        
         # Show score breakdown
         print(score.get_breakdown_display())
-        print()
         
-        # Add to leaderboard
-        leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score)
-        
-        print(f"\n{Colors.GREEN}You ranked #{rank} on the leaderboard!{Colors.END}")
-        print()
-        
-        # Show leaderboard
-        print(leaderboard.get_display(highlight_score=score))
-        
-        input(f"\n{Colors.DIM}Press Enter to continue...{Colors.END}")
+        print(f"\n{Colors.DIM}Thank you for playing Anachron.{Colors.END}")
     
     def _handle_quit(self):
         """Handle player choosing to quit the game"""
@@ -821,31 +780,6 @@ class Game:
                 if choice_text and len(choice_text) > 3:
                     choices.append({'id': match.group(1).upper(), 'text': choice_text})
         return choices[:3]
-    
-    def _show_ending(self):
-        """Show final ending screen"""
-        clear_screen()
-        print_header("YOUR JOURNEY ENDS")
-        
-        ending_type = self.state.ending_type or "searching"
-        
-        endings = {
-            "complete": "You found it all—belonging, legacy, and freedom. A complete life.",
-            "balanced": "You found balance between what matters most.",
-            "belonging": "You found your people. In the end, that was enough.",
-            "legacy": "You built something that will outlast you. You mattered.",
-            "freedom": "You found freedom. On your own terms. At peace.",
-            "searching": "You chose to stay. Perhaps happiness will find you yet."
-        }
-        
-        print(f"\n{Colors.GREEN}{endings.get(ending_type, endings['searching'])}{Colors.END}\n")
-        
-        # Summary
-        print(f"Eras visited: {self.state.eras_count}")
-        print(f"Total turns: {self.state.total_turns}")
-        print(f"Final era: {self.state.final_era or 'Unknown'}")
-        
-        print(f"\n{Colors.DIM}Thank you for playing Time Hopper.{Colors.END}")
 
 
 def main():

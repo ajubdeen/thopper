@@ -1,5 +1,5 @@
 """
-Era definitions for Time Hopper
+Era definitions for Anachron
 Full version: 13 eras spanning 3,000+ years of human history
 
 Each era includes:

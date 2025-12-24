@@ -1,8 +1,8 @@
-# Time Hopper - Web Terminal Game
+# Anachron - Web Terminal Game
 
 ## Overview
 
-Time Hopper is a time-travel survival text adventure game presented through a web-based terminal emulator. The application wraps a Python-based interactive fiction game in a React frontend, connecting them via WebSocket PTY sessions. Players travel through historical eras with modern items, building fulfillment until they choose to stay in a time period.
+Anachron is a time-travel survival text adventure game presented through a web-based terminal emulator. The application wraps a Python-based interactive fiction game in a React frontend, connecting them via WebSocket PTY sessions. Players travel through historical eras with modern items, building fulfillment until they choose to stay in a time period.
 
 The web interface is a **faithful terminal wrapper** - the Python game runs unchanged and displays its exact text-based UI through xterm.js. All game logic, narrative generation, and state management lives in Python.
 
