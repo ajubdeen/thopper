@@ -16,6 +16,8 @@ export default function TerminalPage() {
 
   useEffect(() => {
     if (!terminalRef.current || terminalInstance.current) return;
+    
+    let isCleanedUp = false;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -68,28 +70,49 @@ export default function TerminalPage() {
     fitAddon.current = fit;
 
     const connectWebSocket = () => {
+      if (isCleanedUp) return;
+      
       setStatus("connecting");
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws/terminal`);
+      const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
+      console.log("Connecting to WebSocket:", wsUrl);
+      
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        if (isCleanedUp) {
+          ws.close();
+          return;
+        }
+        console.log("WebSocket connected");
         setStatus("connected");
         const dims = { cols: term.cols, rows: term.rows };
         ws.send(JSON.stringify({ type: "resize", ...dims }));
       };
 
       ws.onmessage = (event) => {
-        term.write(event.data);
+        if (!isCleanedUp) {
+          term.write(event.data);
+        }
       };
 
-      ws.onclose = () => {
-        setStatus("disconnected");
-        setTimeout(connectWebSocket, 3000);
+      ws.onclose = (event) => {
+        console.log("WebSocket closed:", event.code, event.reason);
+        if (!isCleanedUp) {
+          setStatus("disconnected");
+          // Only reconnect if we didn't close intentionally
+          if (event.code !== 1000) {
+            setTimeout(connectWebSocket, 2000);
+          }
+        }
       };
 
-      ws.onerror = () => {
-        setStatus("error");
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        if (!isCleanedUp) {
+          setStatus("error");
+        }
       };
 
       wsRef.current = ws;
@@ -118,9 +141,11 @@ export default function TerminalPage() {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      isCleanedUp = true;
       window.removeEventListener("resize", handleResize);
       if (wsRef.current) {
-        wsRef.current.close();
+        wsRef.current.close(1000, "Component unmounted");
+        wsRef.current = null;
       }
       if (terminalInstance.current) {
         terminalInstance.current.dispose();
@@ -247,14 +272,13 @@ export default function TerminalPage() {
         </div>
       )}
 
-      <div className="flex-1 p-2 md:p-4 overflow-hidden">
-        <div className="h-full max-w-5xl mx-auto">
-          <div
-            ref={terminalRef}
-            className="h-full w-full rounded-md border border-[#2a2a2a] overflow-hidden shadow-lg shadow-black/50"
-            data-testid="terminal-container"
-          />
-        </div>
+      <div className="flex-1 overflow-hidden">
+        <div 
+          ref={terminalRef}
+          className="h-full w-full"
+          style={{ minHeight: '400px' }}
+          data-testid="terminal-container"
+        />
       </div>
     </div>
   );
