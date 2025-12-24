@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -11,11 +11,57 @@ export default function TerminalPage() {
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const mountedRef = useRef(true);
+  const initializingRef = useRef(false);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const connectWebSocket = useCallback((term: Terminal) => {
+    if (!mountedRef.current) return null;
+    
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      if (!mountedRef.current) {
+        ws.close(1000);
+        return;
+      }
+      setStatus("connected");
+      ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+      term.focus();
+    };
+
+    ws.onmessage = (e) => {
+      if (mountedRef.current) {
+        term.write(e.data);
+      }
+    };
+
+    ws.onclose = (e) => {
+      if (!mountedRef.current) return;
+      if (e.code === 1000) {
+        setStatus("ended");
+      } else {
+        setStatus("disconnected");
+      }
+    };
+
+    ws.onerror = () => {
+      if (mountedRef.current) {
+        setStatus("error");
+      }
+    };
+
+    return ws;
+  }, []);
+
   useEffect(() => {
-    if (!terminalRef.current || termRef.current) return;
+    mountedRef.current = true;
+    
+    if (!terminalRef.current || initializingRef.current) return;
+    initializingRef.current = true;
 
     const term = new Terminal({
       cursorBlink: true,
@@ -59,82 +105,69 @@ export default function TerminalPage() {
     term.open(terminalRef.current);
     
     requestAnimationFrame(() => {
-      fitAddon.fit();
-      term.focus();
+      if (mountedRef.current) {
+        fitAddon.fit();
+        term.focus();
+      }
     });
 
     termRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Connect WebSocket
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+    const ws = connectWebSocket(term);
+    if (ws) {
+      wsRef.current = ws;
+    }
 
-    ws.onopen = () => {
-      setStatus("connected");
-      ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-      term.focus();
-    };
-
-    ws.onmessage = (e) => {
-      term.write(e.data);
-    };
-
-    ws.onclose = (e) => {
-      if (e.code === 1000) {
-        setStatus("ended");
-      } else {
-        setStatus("disconnected");
-      }
-    };
-
-    ws.onerror = () => {
-      setStatus("error");
-    };
-
-    // Handle terminal input - send to WebSocket
     term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "input", data }));
+      const currentWs = wsRef.current;
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({ type: "input", data }));
       }
     });
 
-    // Handle terminal resize
     term.onResize(({ cols, rows }) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "resize", cols, rows }));
+      const currentWs = wsRef.current;
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({ type: "resize", cols, rows }));
       }
     });
 
-    // Window resize handler
     const handleResize = () => {
-      if (fitAddonRef.current) {
+      if (fitAddonRef.current && mountedRef.current) {
         fitAddonRef.current.fit();
       }
     };
     window.addEventListener("resize", handleResize);
 
-    // Click handler to ensure focus
+    const containerEl = terminalRef.current;
     const handleClick = () => {
-      term.focus();
+      if (termRef.current) {
+        termRef.current.focus();
+      }
     };
-    terminalRef.current.addEventListener("click", handleClick);
+    containerEl?.addEventListener("click", handleClick);
 
     return () => {
+      mountedRef.current = false;
+      initializingRef.current = false;
       window.removeEventListener("resize", handleResize);
-      if (terminalRef.current) {
-        terminalRef.current.removeEventListener("click", handleClick);
+      containerEl?.removeEventListener("click", handleClick);
+      
+      const currentWs = wsRef.current;
+      if (currentWs) {
+        if (currentWs.readyState === WebSocket.OPEN || currentWs.readyState === WebSocket.CONNECTING) {
+          currentWs.close(1000);
+        }
+        wsRef.current = null;
       }
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close(1000);
+      
+      if (termRef.current) {
+        termRef.current.dispose();
+        termRef.current = null;
       }
-      term.dispose();
-      termRef.current = null;
-      wsRef.current = null;
     };
-  }, []);
+  }, [connectWebSocket]);
 
   // Fullscreen handling
   useEffect(() => {
