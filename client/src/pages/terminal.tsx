@@ -3,7 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
-import heroImage from "@assets/ana-wide_1766620482851.png";
+import heroImage from "@assets/ChatGPT_Image_Dec_24,_2025,_03_00_08_PM_1766617226950.png";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error" | "ended";
 
@@ -222,7 +222,7 @@ export default function TerminalPage() {
         <img 
           src={heroImage} 
           alt="Anachron - Time Travel Adventure" 
-          className="w-full h-full object-cover object-bottom"
+          className="w-full h-full object-cover object-top"
           data-testid="img-hero"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
