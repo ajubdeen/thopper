@@ -3,6 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
+import heroImage from "@assets/ChatGPT_Image_Dec_24,_2025,_03_00_08_PM_1766617226950.png";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error" | "ended";
 
@@ -169,7 +170,6 @@ export default function TerminalPage() {
     };
   }, [connectWebSocket]);
 
-  // Fullscreen handling
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -218,21 +218,31 @@ export default function TerminalPage() {
 
   return (
     <div className="h-screen w-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a1a] border-b border-[#2a2a2a] gap-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-sm font-semibold text-gray-200 font-mono tracking-wide" data-testid="text-title">
-            ANACHRON
-          </h1>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+      <div className="relative w-full h-[200px] sm:h-[240px] md:h-[280px] flex-shrink-0">
+        <img 
+          src={heroImage} 
+          alt="Anachron - Time Travel Adventure" 
+          className="w-full h-full object-cover object-top"
+          data-testid="img-hero"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
+        
+        <h1 
+          className="absolute top-3 left-3 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md text-lg font-bold text-amber-200 tracking-widest font-serif"
+          data-testid="text-title"
+        >
+          ANACHRON
+        </h1>
+        
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md">
             <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />
-            <span data-testid="text-status">{getStatusText()}</span>
+            <span className="text-xs text-gray-300" data-testid="text-status">{getStatusText()}</span>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
           {(status === "ended" || status === "disconnected" || status === "error") && (
             <button
               onClick={restartGame}
-              className="px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 rounded-md hover:bg-cyan-500/10 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-cyan-400 bg-black/60 backdrop-blur-sm border border-cyan-500/30 rounded-md hover:bg-cyan-500/20 transition-colors"
               data-testid="button-restart"
             >
               New Game
@@ -240,7 +250,7 @@ export default function TerminalPage() {
           )}
           <button
             onClick={toggleFullscreen}
-            className="p-2 text-gray-400 hover:text-gray-200 transition-colors rounded-md hover:bg-[#2a2a2a]"
+            className="p-2 text-gray-300 bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors rounded-md"
             data-testid="button-fullscreen"
             title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
           >
