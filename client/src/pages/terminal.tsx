@@ -227,13 +227,6 @@ export default function TerminalPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
         
-        <h1 
-          className="absolute top-3 left-3 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md text-lg font-bold text-amber-200 tracking-widest font-serif"
-          data-testid="text-title"
-        >
-          ANACHRON
-        </h1>
-        
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md">
             <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />
