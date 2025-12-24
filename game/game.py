@@ -324,18 +324,8 @@ class Game:
     
     def _show_title(self):
         """Display title screen"""
-        title = """
-    ╔══════════════════════════════════════════════════════════════════╗
-    ║                                                                  ║
-    ║            ▄▀█ █▄ █ ▄▀█ █▀▀ █ █ █▀█ █▀█ █▄ █                     ║
-    ║            █▀█ █ ▀█ █▀█ █▄▄ █▀█ █▀▄ █▄█ █ ▀█                     ║
-    ║                                                                  ║
-    ║              "How will you fare in another era?"                 ║
-    ║                                                                  ║
-    ╚══════════════════════════════════════════════════════════════════╝
-        """
-        print(f"{Colors.CYAN}{title}{Colors.END}")
-        input(f"\n{Colors.DIM}Press Enter to begin...{Colors.END}")
+        print(f"\n{Colors.CYAN}ANACHRON{Colors.END}\n")
+        input(f"{Colors.DIM}Press Enter to begin...{Colors.END}")
     
     def _get_player_info(self):
         """Get player name"""
