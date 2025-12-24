@@ -1,0 +1,15 @@
+[
+  {
+    "player_name": "ab",
+    "total": 115,
+    "turns_survived": 2,
+    "eras_visited": 1,
+    "belonging_score": 15,
+    "legacy_score": 5,
+    "freedom_score": 0,
+    "ending_type": "abandoned",
+    "final_era": "Viking Age Scandinavia",
+    "timestamp": "2025-12-24T22:53:51.627884",
+    "blurb": "Quit in Viking Age Scandinavia"
+  }
+]
