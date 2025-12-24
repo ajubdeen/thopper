@@ -6,6 +6,7 @@ import path from "path";
 interface TerminalSession {
   ptyProcess: pty.IPty;
   ws: WebSocket;
+  isAlive: boolean;
 }
 
 const sessions = new Map<WebSocket, TerminalSession>();
@@ -16,11 +17,28 @@ export function setupPtyWebSocket(server: Server): void {
     path: "/ws/terminal",
   });
 
+  // Ping/pong to keep connections alive
+  const interval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      const session = sessions.get(ws);
+      if (session) {
+        if (!session.isAlive) {
+          console.log("Terminating inactive WebSocket");
+          ws.terminate();
+          return;
+        }
+        session.isAlive = false;
+        ws.ping();
+      }
+    });
+  }, 30000);
+
+  wss.on("close", () => {
+    clearInterval(interval);
+  });
+
   wss.on("connection", (ws: WebSocket) => {
     console.log("Terminal WebSocket connected");
-
-    // Send initial message to confirm connection
-    ws.send("\x1b[36mConnection established. Starting game...\x1b[0m\r\n");
 
     const gamePath = path.join(process.cwd(), "game", "game.py");
     
@@ -37,7 +55,15 @@ export function setupPtyWebSocket(server: Server): void {
       },
     });
 
-    sessions.set(ws, { ptyProcess, ws });
+    sessions.set(ws, { ptyProcess, ws, isAlive: true });
+
+    // Handle pong to mark connection as alive
+    ws.on("pong", () => {
+      const session = sessions.get(ws);
+      if (session) {
+        session.isAlive = true;
+      }
+    });
 
     ptyProcess.onData((data: string) => {
       if (ws.readyState === WebSocket.OPEN) {
