@@ -324,7 +324,6 @@ class Game:
     
     def _show_title(self):
         """Display title screen"""
-        print(f"\n{Colors.CYAN}ANACHRON{Colors.END}\n")
         input(f"{Colors.DIM}Press Enter to begin...{Colors.END}")
     
     def _get_player_info(self):
