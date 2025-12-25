@@ -86,6 +86,12 @@ export function setupPtyWebSocket(server: Server): void {
           ptyProcess.write(msg.data);
         } else if (msg.type === "resize") {
           ptyProcess.resize(msg.cols || 80, msg.rows || 24);
+        } else if (msg.type === "ping") {
+          // Client heartbeat - mark connection as alive
+          const session = sessions.get(ws);
+          if (session) {
+            session.isAlive = true;
+          }
         }
       } catch (e) {
         console.error("Failed to parse WebSocket message:", e);

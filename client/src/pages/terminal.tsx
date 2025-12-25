@@ -121,6 +121,14 @@ export default function TerminalPage() {
       wsRef.current = ws;
     }
 
+    // Client-side heartbeat to keep connection alive
+    const heartbeatInterval = setInterval(() => {
+      const currentWs = wsRef.current;
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 20000);
+
     term.onData((data) => {
       const currentWs = wsRef.current;
       if (currentWs && currentWs.readyState === WebSocket.OPEN) {
@@ -153,6 +161,7 @@ export default function TerminalPage() {
     return () => {
       mountedRef.current = false;
       initializingRef.current = false;
+      clearInterval(heartbeatInterval);
       window.removeEventListener("resize", handleResize);
       containerEl?.removeEventListener("click", handleClick);
       
