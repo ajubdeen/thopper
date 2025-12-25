@@ -1,127 +1,130 @@
-import * as pty from "node-pty";
-import { WebSocket, WebSocketServer } from "ws";
+import { spawn, ChildProcess } from "child_process";
 import type { Server } from "http";
+import { Server as SocketIOServer } from "socket.io";
+import { io as SocketIOClient, Socket as ClientSocket } from "socket.io-client";
 import path from "path";
 
-interface TerminalSession {
-  ptyProcess: pty.IPty;
-  ws: WebSocket;
-  isAlive: boolean;
-}
+let pythonServer: ChildProcess | null = null;
+const clientSockets = new Map<string, ClientSocket>();
 
-const sessions = new Map<WebSocket, TerminalSession>();
+export function setupPtyWebSocket(httpServer: Server): void {
+  const gameDir = path.join(process.cwd(), "game");
+  const serverPath = path.join(gameDir, "server.py");
 
-export function setupPtyWebSocket(server: Server): void {
-  const wss = new WebSocketServer({
-    server,
-    path: "/ws/terminal",
+  console.log("Starting Python game server...");
+  
+  pythonServer = spawn("python", [serverPath], {
+    cwd: gameDir,
+    env: {
+      ...process.env,
+      GAME_SERVER_PORT: "5001",
+      PYTHONUNBUFFERED: "1",
+    },
+    stdio: ["pipe", "pipe", "pipe"],
   });
 
-  // Ping/pong to keep connections alive - check every 15 seconds
-  const interval = setInterval(() => {
-    const now = new Date().toISOString();
-    wss.clients.forEach((ws) => {
-      const session = sessions.get(ws);
-      if (session) {
-        if (!session.isAlive) {
-          console.log(`[${now}] Terminating inactive WebSocket - no pong received in 15s`);
-          ws.terminate();
-          return;
-        }
-        session.isAlive = false;
-        console.log(`[${now}] Sending server ping, marking isAlive=false`);
-        ws.ping();
-      }
-    });
-  }, 15000);
-
-  wss.on("close", () => {
-    clearInterval(interval);
+  pythonServer.stdout?.on("data", (data) => {
+    console.log(`[Python] ${data.toString().trim()}`);
   });
 
-  wss.on("connection", (ws: WebSocket) => {
-    console.log("Terminal WebSocket connected");
+  pythonServer.stderr?.on("data", (data) => {
+    console.error(`[Python Error] ${data.toString().trim()}`);
+  });
 
-    const gamePath = path.join(process.cwd(), "game", "game.py");
-    
-    const ptyProcess = pty.spawn("python", [gamePath], {
-      name: "xterm-256color",
-      cols: 80,
-      rows: 24,
-      cwd: path.join(process.cwd(), "game"),
-      env: {
-        ...process.env,
-        TERM: "xterm-256color",
-        COLORTERM: "truecolor",
-        PYTHONUNBUFFERED: "1",
-      },
+  pythonServer.on("error", (err) => {
+    console.error("Failed to start Python game server:", err);
+  });
+
+  pythonServer.on("exit", (code, signal) => {
+    console.log(`Python game server exited with code ${code}, signal ${signal}`);
+    pythonServer = null;
+  });
+
+  const io = new SocketIOServer(httpServer, {
+    path: "/socket.io/",
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+  });
+
+  io.on("connection", (browserSocket) => {
+    console.log(`Browser connected: ${browserSocket.id}`);
+
+    const pythonSocket = SocketIOClient("http://127.0.0.1:5001", {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
-    sessions.set(ws, { ptyProcess, ws, isAlive: true });
+    clientSockets.set(browserSocket.id, pythonSocket);
 
-    // Handle pong to mark connection as alive
-    ws.on("pong", () => {
-      const now = new Date().toISOString();
-      console.log(`[${now}] Received pong from browser, marking isAlive=true`);
-      const session = sessions.get(ws);
-      if (session) {
-        session.isAlive = true;
-      }
+    pythonSocket.on("connect", () => {
+      console.log(`Proxy connected to Python server for ${browserSocket.id}`);
     });
 
-    ptyProcess.onData((data: string) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
+    pythonSocket.on("output", (data: { data: string }) => {
+      browserSocket.emit("output", data);
     });
 
-    ptyProcess.onExit(({ exitCode }) => {
-      console.log(`Game process exited with code ${exitCode}`);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("\r\n\x1b[33mGame session ended. Refresh to start a new game.\x1b[0m\r\n");
-      }
+    pythonSocket.on("disconnected", (data: { reason: string }) => {
+      browserSocket.emit("disconnected", data);
     });
 
-    ws.on("message", (message: Buffer | string) => {
-      try {
-        const msg = JSON.parse(message.toString());
-        
-        if (msg.type === "input") {
-          ptyProcess.write(msg.data);
-        } else if (msg.type === "resize") {
-          ptyProcess.resize(msg.cols || 80, msg.rows || 24);
-        } else if (msg.type === "ping") {
-          // Client heartbeat - mark connection as alive
-          const now = new Date().toISOString();
-          console.log(`[${now}] Received client ping message, marking isAlive=true`);
-          const session = sessions.get(ws);
-          if (session) {
-            session.isAlive = true;
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse WebSocket message:", e);
-      }
+    pythonSocket.on("error", (data: { message: string }) => {
+      browserSocket.emit("error", data);
     });
 
-    ws.on("close", () => {
-      console.log("Terminal WebSocket disconnected");
-      const session = sessions.get(ws);
-      if (session) {
-        session.ptyProcess.kill();
-        sessions.delete(ws);
-      }
+    pythonSocket.on("disconnect", (reason) => {
+      console.log(`Proxy disconnected from Python: ${reason}`);
     });
 
-    ws.on("error", (error) => {
-      console.error("WebSocket error:", error);
-      const session = sessions.get(ws);
-      if (session) {
-        session.ptyProcess.kill();
-        sessions.delete(ws);
-      }
+    pythonSocket.on("connect_error", (error) => {
+      console.error(`Proxy connection error: ${error.message}`);
+      browserSocket.emit("error", { message: "Failed to connect to game server" });
+    });
+
+    browserSocket.on("input", (data: { data: string }) => {
+      pythonSocket.emit("input", data);
+    });
+
+    browserSocket.on("resize", (data: { cols: number; rows: number }) => {
+      pythonSocket.emit("resize", data);
+    });
+
+    browserSocket.on("restart", () => {
+      pythonSocket.emit("restart");
+    });
+
+    browserSocket.on("disconnect", () => {
+      console.log(`Browser disconnected: ${browserSocket.id}`);
+      pythonSocket.disconnect();
+      clientSockets.delete(browserSocket.id);
     });
   });
 
-  console.log("PTY WebSocket server ready on /ws/terminal");
+  process.on("exit", () => {
+    if (pythonServer) {
+      pythonServer.kill();
+    }
+  });
+
+  process.on("SIGTERM", () => {
+    if (pythonServer) {
+      pythonServer.kill();
+    }
+    process.exit(0);
+  });
+
+  process.on("SIGINT", () => {
+    if (pythonServer) {
+      pythonServer.kill();
+    }
+    process.exit(0);
+  });
+
+  console.log("Socket.IO proxy ready, Python game server spawned on port 5001");
 }

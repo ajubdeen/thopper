@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { io, Socket } from "socket.io-client";
 import "@xterm/xterm/css/xterm.css";
 import heroImage from "@assets/ChatGPT_Image_Dec_24,_2025,_03_00_08_PM_1766617226950.png";
 
@@ -11,51 +12,73 @@ export default function TerminalPage() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const mountedRef = useRef(true);
   const initializingRef = useRef(false);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const connectWebSocket = useCallback((term: Terminal) => {
+  const connectSocket = useCallback((term: Terminal) => {
     if (!mountedRef.current) return null;
     
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws/terminal`;
-    const ws = new WebSocket(wsUrl);
+    const socket = io({
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+    });
     
-    ws.onopen = () => {
+    socket.on('connect', () => {
       if (!mountedRef.current) {
-        ws.close(1000);
+        socket.disconnect();
         return;
       }
+      console.log('Connected to game server');
       setStatus("connected");
-      ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+      socket.emit('resize', { cols: term.cols, rows: term.rows });
       term.focus();
-    };
+    });
 
-    ws.onmessage = (e) => {
+    socket.on('output', (data: { data: string }) => {
       if (mountedRef.current) {
-        term.write(e.data);
+        term.write(data.data);
       }
-    };
+    });
 
-    ws.onclose = (e) => {
+    socket.on('disconnected', (data: { reason: string }) => {
+      console.log('Game session ended:', data.reason);
+      if (mountedRef.current) {
+        setStatus("ended");
+      }
+    });
+
+    socket.on('error', (data: { message: string }) => {
+      console.error('Game error:', data.message);
+      if (mountedRef.current) {
+        setStatus("error");
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('Disconnected:', reason);
       if (!mountedRef.current) return;
-      if (e.code === 1000) {
+      if (reason === 'io client disconnect') {
         setStatus("ended");
       } else {
         setStatus("disconnected");
       }
-    };
+    });
 
-    ws.onerror = () => {
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
       if (mountedRef.current) {
         setStatus("error");
       }
-    };
+    });
 
-    return ws;
+    return socket;
   }, []);
 
   useEffect(() => {
@@ -116,30 +139,22 @@ export default function TerminalPage() {
     termRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    const ws = connectWebSocket(term);
-    if (ws) {
-      wsRef.current = ws;
+    const socket = connectSocket(term);
+    if (socket) {
+      socketRef.current = socket;
     }
 
-    // Client-side heartbeat to keep connection alive - every 5 seconds
-    const heartbeatInterval = setInterval(() => {
-      const currentWs = wsRef.current;
-      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-        currentWs.send(JSON.stringify({ type: "ping" }));
-      }
-    }, 5000);
-
     term.onData((data) => {
-      const currentWs = wsRef.current;
-      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-        currentWs.send(JSON.stringify({ type: "input", data }));
+      const currentSocket = socketRef.current;
+      if (currentSocket && currentSocket.connected) {
+        currentSocket.emit('input', { data });
       }
     });
 
     term.onResize(({ cols, rows }) => {
-      const currentWs = wsRef.current;
-      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
-        currentWs.send(JSON.stringify({ type: "resize", cols, rows }));
+      const currentSocket = socketRef.current;
+      if (currentSocket && currentSocket.connected) {
+        currentSocket.emit('resize', { cols, rows });
       }
     });
 
@@ -161,16 +176,13 @@ export default function TerminalPage() {
     return () => {
       mountedRef.current = false;
       initializingRef.current = false;
-      clearInterval(heartbeatInterval);
       window.removeEventListener("resize", handleResize);
       containerEl?.removeEventListener("click", handleClick);
       
-      const currentWs = wsRef.current;
-      if (currentWs) {
-        if (currentWs.readyState === WebSocket.OPEN || currentWs.readyState === WebSocket.CONNECTING) {
-          currentWs.close(1000);
-        }
-        wsRef.current = null;
+      const currentSocket = socketRef.current;
+      if (currentSocket) {
+        currentSocket.disconnect();
+        socketRef.current = null;
       }
       
       if (termRef.current) {
@@ -178,7 +190,7 @@ export default function TerminalPage() {
         termRef.current = null;
       }
     };
-  }, [connectWebSocket]);
+  }, [connectSocket]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -201,7 +213,14 @@ export default function TerminalPage() {
   };
 
   const restartGame = () => {
-    window.location.reload();
+    const currentSocket = socketRef.current;
+    if (currentSocket && currentSocket.connected) {
+      termRef.current?.clear();
+      currentSocket.emit('restart');
+      setStatus("connected");
+    } else {
+      window.location.reload();
+    }
   };
 
   const getStatusColor = () => {
