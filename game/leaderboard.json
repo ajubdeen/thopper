@@ -1,6 +1,19 @@
 [
   {
     "player_name": "ab",
+    "total": 535,
+    "turns_survived": 11,
+    "eras_visited": 1,
+    "belonging_score": 100,
+    "legacy_score": 100,
+    "freedom_score": 25,
+    "ending_type": "balanced",
+    "final_era": "Classical Athens - The Golden Age",
+    "timestamp": "2025-12-25T01:41:00.798385",
+    "blurb": "Found balance in Classical Athens - The Golden Age"
+  },
+  {
+    "player_name": "ab",
     "total": 115,
     "turns_survived": 2,
     "eras_visited": 1,
