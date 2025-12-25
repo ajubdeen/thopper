@@ -96,6 +96,7 @@ export default function TerminalPage() {
       },
       scrollback: 5000,
       convertEol: true,
+      scrollSensitivity: 3,
     });
 
     const fitAddon = new FitAddon();
