@@ -23,9 +23,18 @@ import re
 import textwrap
 import threading
 import sys
+import logging
 from typing import List
 from datetime import datetime
 from pathlib import Path
+
+# Set up logging to file for debugging disconnection issues
+logging.basicConfig(
+    filename='/tmp/anachron_game.log',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Try to import anthropic
 try:
@@ -132,11 +141,23 @@ def slow_print(text, delay=TEXT_SPEED):
 
 def get_input(prompt, valid_options=None):
     """Get validated input"""
+    logger.debug(f"get_input called with prompt='{prompt}', valid_options={valid_options}")
     while True:
-        response = input(f"{Colors.YELLOW}{prompt}{Colors.END} ").strip().upper()
-        if valid_options is None or response in valid_options:
-            return response
-        print(f"{Colors.RED}Please enter one of: {', '.join(valid_options)}{Colors.END}")
+        try:
+            response = input(f"{Colors.YELLOW}{prompt}{Colors.END} ").strip().upper()
+            logger.debug(f"get_input received response='{response}'")
+            if valid_options is None or response in valid_options:
+                return response
+            print(f"{Colors.RED}Please enter one of: {', '.join(valid_options)}{Colors.END}")
+        except EOFError as e:
+            logger.error(f"EOFError in get_input: {e}")
+            raise
+        except KeyboardInterrupt as e:
+            logger.error(f"KeyboardInterrupt in get_input: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected exception in get_input: {type(e).__name__}: {e}")
+            raise
 
 
 def roll_dice(sides=20, show=True):
@@ -772,8 +793,22 @@ class Game:
 
 
 def main():
-    game = Game()
-    game.run()
+    logger.info("=== Game starting ===")
+    try:
+        game = Game()
+        game.run()
+        logger.info("=== Game ended normally ===")
+    except EOFError as e:
+        logger.error(f"Game crashed with EOFError: {e}")
+        print(f"\n{Colors.RED}Connection lost. Please refresh to restart.{Colors.END}")
+    except KeyboardInterrupt:
+        logger.info("Game interrupted by user (Ctrl+C)")
+        print(f"\n{Colors.YELLOW}Game interrupted.{Colors.END}")
+    except Exception as e:
+        logger.error(f"Game crashed with unexpected exception: {type(e).__name__}: {e}", exc_info=True)
+        print(f"\n{Colors.RED}An error occurred: {e}{Colors.END}")
+    finally:
+        logger.info("=== Game process exiting ===")
 
 
 if __name__ == "__main__":
