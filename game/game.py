@@ -29,12 +29,19 @@ from datetime import datetime
 from pathlib import Path
 
 # Set up logging to file for debugging disconnection issues
-logging.basicConfig(
-    filename='/tmp/anachron_game.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+# Use unbuffered file handler to ensure logs are written immediately
+log_handler = logging.FileHandler('/tmp/anachron_game.log', mode='a')
+log_handler.setLevel(logging.DEBUG)
+log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(log_handler)
+
+# Also log to stderr for immediate visibility
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.DEBUG)
+stderr_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(stderr_handler)
 
 # Try to import anthropic
 try:
