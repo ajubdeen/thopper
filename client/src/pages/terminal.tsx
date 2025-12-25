@@ -227,11 +227,12 @@ export default function TerminalPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]" />
         
+        <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md">
+          <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />
+          <span className="text-xs text-gray-300" data-testid="text-status">{getStatusText()}</span>
+        </div>
+        
         <div className="absolute top-3 right-3 flex items-center gap-2">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-md">
-            <span className={`w-2 h-2 rounded-full ${getStatusColor()}`} data-testid="status-indicator" />
-            <span className="text-xs text-gray-300" data-testid="text-status">{getStatusText()}</span>
-          </div>
           {(status === "ended" || status === "disconnected" || status === "error") && (
             <button
               onClick={restartGame}
