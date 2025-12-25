@@ -121,13 +121,13 @@ export default function TerminalPage() {
       wsRef.current = ws;
     }
 
-    // Client-side heartbeat to keep connection alive
+    // Client-side heartbeat to keep connection alive - every 5 seconds
     const heartbeatInterval = setInterval(() => {
       const currentWs = wsRef.current;
       if (currentWs && currentWs.readyState === WebSocket.OPEN) {
         currentWs.send(JSON.stringify({ type: "ping" }));
       }
-    }, 20000);
+    }, 5000);
 
     term.onData((data) => {
       const currentWs = wsRef.current;

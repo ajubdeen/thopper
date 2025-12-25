@@ -17,21 +17,23 @@ export function setupPtyWebSocket(server: Server): void {
     path: "/ws/terminal",
   });
 
-  // Ping/pong to keep connections alive
+  // Ping/pong to keep connections alive - check every 15 seconds
   const interval = setInterval(() => {
+    const now = new Date().toISOString();
     wss.clients.forEach((ws) => {
       const session = sessions.get(ws);
       if (session) {
         if (!session.isAlive) {
-          console.log("Terminating inactive WebSocket");
+          console.log(`[${now}] Terminating inactive WebSocket - no pong received in 15s`);
           ws.terminate();
           return;
         }
         session.isAlive = false;
+        console.log(`[${now}] Sending server ping, marking isAlive=false`);
         ws.ping();
       }
     });
-  }, 30000);
+  }, 15000);
 
   wss.on("close", () => {
     clearInterval(interval);
@@ -59,6 +61,8 @@ export function setupPtyWebSocket(server: Server): void {
 
     // Handle pong to mark connection as alive
     ws.on("pong", () => {
+      const now = new Date().toISOString();
+      console.log(`[${now}] Received pong from browser, marking isAlive=true`);
       const session = sessions.get(ws);
       if (session) {
         session.isAlive = true;
@@ -88,6 +92,8 @@ export function setupPtyWebSocket(server: Server): void {
           ptyProcess.resize(msg.cols || 80, msg.rows || 24);
         } else if (msg.type === "ping") {
           // Client heartbeat - mark connection as alive
+          const now = new Date().toISOString();
+          console.log(`[${now}] Received client ping message, marking isAlive=true`);
           const session = sessions.get(ws);
           if (session) {
             session.isAlive = true;
