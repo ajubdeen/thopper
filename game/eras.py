@@ -8,9 +8,9 @@ Each era includes:
 """
 
 ERAS = [
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 1: ANCIENT EGYPT - REIGN OF RAMESSES II
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "ancient_egypt",
         "name": "Ancient Egypt - Reign of Ramesses II",
@@ -45,7 +45,7 @@ no horses with saddles, no glass.""",
         
         "hard_rules": {
             "Lower": [
-                "Corvée labor required - must work on Pharaoh's projects during flood season",
+                "CorvÃ©e labor required - must work on Pharaoh's projects during flood season",
                 "Cannot leave your village without permission",
                 "Must give portion of harvest as taxes to temple and state",
                 "Literacy is rare and powerful - scribes are a privileged class",
@@ -123,16 +123,16 @@ no horses with saddles, no glass.""",
         ],
         
         "resources": [
-            "📖 'The Egyptian' by Mika Waltari (historical fiction)",
-            "📖 'Red Land, Black Land' by Barbara Mertz (accessible history)",
-            "🎬 'Egypt's Golden Empire' - PBS documentary",
-            "🌐 britishmuseum.org/collection (search 'ancient egypt')"
+            "ðŸ“– 'The Egyptian' by Mika Waltari (historical fiction)",
+            "ðŸ“– 'Red Land, Black Land' by Barbara Mertz (accessible history)",
+            "ðŸŽ¬ 'Egypt's Golden Empire' - PBS documentary",
+            "ðŸŒ britishmuseum.org/collection (search 'ancient egypt')"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 2: CLASSICAL ATHENS - THE GOLDEN AGE
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "classical_athens",
         "name": "Classical Athens - The Golden Age",
@@ -242,16 +242,16 @@ everywhere.""",
         ],
         
         "resources": [
-            "📖 'The Histories' by Herodotus (ancient source, surprisingly readable)",
-            "📖 'The Last Days of Socrates' by Plato",
-            "🎬 'The Greeks' - PBS documentary series",
-            "🌐 perseus.tufts.edu (ancient texts and images)"
+            "ðŸ“– 'The Histories' by Herodotus (ancient source, surprisingly readable)",
+            "ðŸ“– 'The Last Days of Socrates' by Plato",
+            "ðŸŽ¬ 'The Greeks' - PBS documentary series",
+            "ðŸŒ perseus.tufts.edu (ancient texts and images)"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 3: HAN DYNASTY CHINA - THE SILK ROAD
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "han_dynasty",
         "name": "Han Dynasty China - The Silk Road",
@@ -287,7 +287,7 @@ No gunpowder weapons, no printing press (yet), distinctive Han dynasty aesthetic
         "hard_rules": {
             "Lower": [
                 "Peasants are tied to the land and owe taxes and labor",
-                "Corvée labor required for state projects (walls, canals)",
+                "CorvÃ©e labor required for state projects (walls, canals)",
                 "Cannot change social class without education or military service",
                 "Famines are common - government granaries sometimes help"
             ],
@@ -364,16 +364,16 @@ No gunpowder weapons, no printing press (yet), distinctive Han dynasty aesthetic
         ],
         
         "resources": [
-            "📖 'The Silk Roads' by Peter Frankopan (accessible history)",
-            "📖 'Chronicle of the Chinese Emperors' by Ann Paludan",
-            "🎬 'China: A Century of Revolution' - PBS documentary",
-            "🌐 depts.washington.edu/silkroad"
+            "ðŸ“– 'The Silk Roads' by Peter Frankopan (accessible history)",
+            "ðŸ“– 'Chronicle of the Chinese Emperors' by Ann Paludan",
+            "ðŸŽ¬ 'China: A Century of Revolution' - PBS documentary",
+            "ðŸŒ depts.washington.edu/silkroad"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 4: VIKING AGE SCANDINAVIA
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "viking_age",
         "name": "Viking Age Scandinavia",
@@ -400,7 +400,7 @@ dominant yet, iron age technology.""",
         
         "figures": [
             "The Jarl - Local lord, leads raids, dispenses justice",
-            "The Völva - Seeress and spiritual leader, speaks with the gods",
+            "The VÃ¶lva - Seeress and spiritual leader, speaks with the gods",
             "Shield-Maidens - Women warriors (rare but attested in sagas)",
             "Thralls - Enslaved people, often captured in raids",
             "Skalds - Poets who preserve history and praise heroes"
@@ -481,21 +481,21 @@ dominant yet, iron age technology.""",
             },
             {
                 "name": "The Oseberg Women (buried c. 834 CE)",
-                "description": "Two women buried in the richest Viking ship burial ever found. One may have been a völva (seeress). Their identities remain mysterious but show women could hold great status."
+                "description": "Two women buried in the richest Viking ship burial ever found. One may have been a vÃ¶lva (seeress). Their identities remain mysterious but show women could hold great status."
             }
         ],
         
         "resources": [
-            "📖 'The Viking World' edited by Stefan Brink (comprehensive)",
-            "📖 'Norse Mythology' by Neil Gaiman (accessible myths)",
-            "🎬 'Vikings' TV series (dramatized but atmospheric)",
-            "🌐 hurstwic.org (Viking combat and daily life)"
+            "ðŸ“– 'The Viking World' edited by Stefan Brink (comprehensive)",
+            "ðŸ“– 'Norse Mythology' by Neil Gaiman (accessible myths)",
+            "ðŸŽ¬ 'Vikings' TV series (dramatized but atmospheric)",
+            "ðŸŒ hurstwic.org (Viking combat and daily life)"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 5: MEDIEVAL EUROPE - THE BLACK DEATH
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "medieval_plague",
         "name": "Medieval Europe - The Black Death",
@@ -605,16 +605,16 @@ No modern elements visible - no glass windows, no printed signs, no metal fixtur
         ],
         
         "resources": [
-            "📖 'The Decameron' by Giovanni Boccaccio (excerpts online)",
-            "📖 'A Distant Mirror' by Barbara Tuchman (ages 12+)",
-            "🎬 'The Black Death' - BBC Documentary (YouTube)",
-            "🌐 medievalchronicles.com/black-death"
+            "ðŸ“– 'The Decameron' by Giovanni Boccaccio (excerpts online)",
+            "ðŸ“– 'A Distant Mirror' by Barbara Tuchman (ages 12+)",
+            "ðŸŽ¬ 'The Black Death' - BBC Documentary (YouTube)",
+            "ðŸŒ medievalchronicles.com/black-death"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 6: AZTEC EMPIRE - EVE OF CONQUEST
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "aztec_empire",
         "name": "Aztec Empire - Eve of Conquest",
@@ -718,7 +718,7 @@ frame the valley. No horses, no iron, no wheat - distinctly Mesoamerican.""",
             },
             {
                 "name": "Malintzin/La Malinche (c. 1500-1529)",
-                "description": "An indigenous woman who became Cortés' interpreter and advisor. Born noble, sold into slavery, she used her linguistic skills to survive. Mexicans still debate whether she was a traitor or a survivor."
+                "description": "An indigenous woman who became CortÃ©s' interpreter and advisor. Born noble, sold into slavery, she used her linguistic skills to survive. Mexicans still debate whether she was a traitor or a survivor."
             },
             {
                 "name": "Nezahualcoyotl (1402-1472)",
@@ -727,16 +727,16 @@ frame the valley. No horses, no iron, no wheat - distinctly Mesoamerican.""",
         ],
         
         "resources": [
-            "📖 'The Fifth Sun' by Camilla Townsend (modern history)",
-            "📖 'Aztec' by Gary Jennings (epic historical fiction, mature)",
-            "🎬 'Engineering an Empire: The Aztecs' - History Channel",
-            "🌐 mexicolore.co.uk (educational resource)"
+            "ðŸ“– 'The Fifth Sun' by Camilla Townsend (modern history)",
+            "ðŸ“– 'Aztec' by Gary Jennings (epic historical fiction, mature)",
+            "ðŸŽ¬ 'Engineering an Empire: The Aztecs' - History Channel",
+            "ðŸŒ mexicolore.co.uk (educational resource)"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 7: MUGHAL INDIA - AKBAR'S REIGN
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "mughal_india",
         "name": "Mughal India - Akbar's Court",
@@ -850,16 +850,16 @@ Minarets and Hindu temple spires both visible. Distinctive Mughal architecture."
         ],
         
         "resources": [
-            "📖 'The Mughal World' by Abraham Eraly",
-            "📖 'Akbar and the Rise of the Mughal Empire' by G.B. Malleson",
-            "🎬 'Jodhaa Akbar' (2008 film - dramatized but beautiful)",
-            "🌐 metmuseum.org (search 'Mughal miniatures')"
+            "ðŸ“– 'The Mughal World' by Abraham Eraly",
+            "ðŸ“– 'Akbar and the Rise of the Mughal Empire' by G.B. Malleson",
+            "ðŸŽ¬ 'Jodhaa Akbar' (2008 film - dramatized but beautiful)",
+            "ðŸŒ metmuseum.org (search 'Mughal miniatures')"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 8: COLONIAL AMERICA - THE REVOLUTION
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "american_revolution",
         "name": "Colonial America - The Revolution",
@@ -976,16 +976,16 @@ electricity or modern elements.""",
         ],
         
         "resources": [
-            "📖 'Chains' by Laurie Halse Anderson (historical fiction, ages 10+)",
-            "📖 'George vs. George' by Rosalyn Schanzer (accessible comparison)",
-            "🎬 'Liberty's Kids' animated series (PBS, free online)",
-            "🌐 americanrevolution.org"
+            "ðŸ“– 'Chains' by Laurie Halse Anderson (historical fiction, ages 10+)",
+            "ðŸ“– 'George vs. George' by Rosalyn Schanzer (accessible comparison)",
+            "ðŸŽ¬ 'Liberty's Kids' animated series (PBS, free online)",
+            "ðŸŒ americanrevolution.org"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 9: INDUSTRIAL BRITAIN - FACTORY AGE
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "industrial_britain",
         "name": "Industrial Britain - The Factory Age",
@@ -1098,16 +1098,16 @@ windows crowd together. No cars, no electricity lines, Victorian industrial aest
         ],
         
         "resources": [
-            "📖 'Oliver Twist' by Charles Dickens",
-            "📖 'Street Child' by Berlie Doherty (ages 9+)",
-            "🎬 'The Mill' (Channel 4 series)",
-            "🌐 spartacus-educational.com/industrial-revolution"
+            "ðŸ“– 'Oliver Twist' by Charles Dickens",
+            "ðŸ“– 'Street Child' by Berlie Doherty (ages 9+)",
+            "ðŸŽ¬ 'The Mill' (Channel 4 series)",
+            "ðŸŒ spartacus-educational.com/industrial-revolution"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 10: AMERICAN CIVIL WAR
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "civil_war",
         "name": "American Civil War",
@@ -1224,16 +1224,16 @@ visible - this is the first photographed war. No modern military equipment.""",
         ],
         
         "resources": [
-            "📖 'Lincoln: A Photobiography' by Russell Freedman (Newbery winner)",
-            "📖 'Soldier's Heart' by Gary Paulsen",
-            "🎬 'Glory' (1989 film about the 54th Massachusetts)",
-            "🌐 civilwar.org"
+            "ðŸ“– 'Lincoln: A Photobiography' by Russell Freedman (Newbery winner)",
+            "ðŸ“– 'Soldier's Heart' by Gary Paulsen",
+            "ðŸŽ¬ 'Glory' (1989 film about the 54th Massachusetts)",
+            "ðŸŒ civilwar.org"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 11: WORLD WAR II - OCCUPIED EUROPE
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "ww2_europe",
         "name": "World War II - Occupied Europe",
@@ -1352,16 +1352,16 @@ A German soldier visible in the distance.""",
         ],
         
         "resources": [
-            "📖 'The Diary of Anne Frank' - Anne Frank (essential reading)",
-            "📖 'Number the Stars' by Lois Lowry (fiction, ages 9+)",
-            "🎬 'Anne Frank: Parallel Stories' documentary (2019)",
-            "🌐 annefrank.org - Virtual tour of the hiding place"
+            "ðŸ“– 'The Diary of Anne Frank' - Anne Frank (essential reading)",
+            "ðŸ“– 'Number the Stars' by Lois Lowry (fiction, ages 9+)",
+            "ðŸŽ¬ 'Anne Frank: Parallel Stories' documentary (2019)",
+            "ðŸŒ annefrank.org - Virtual tour of the hiding place"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 12: WORLD WAR II - AMERICAN HOME FRONT
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "ww2_pacific",
         "name": "World War II - American Home Front",
@@ -1479,16 +1479,16 @@ Rationing posters visible. Sense of wartime urgency and purpose.""",
         ],
         
         "resources": [
-            "📖 'Farewell to Manzanar' by Jeanne Wakatsuki Houston (ages 11+)",
-            "📖 'The War That Saved My Life' by Kimberly Brubaker Bradley",
-            "🎬 'Come See the Paradise' (1990 film about internment)",
-            "🌐 Densho.org - Japanese American WWII history"
+            "ðŸ“– 'Farewell to Manzanar' by Jeanne Wakatsuki Houston (ages 11+)",
+            "ðŸ“– 'The War That Saved My Life' by Kimberly Brubaker Bradley",
+            "ðŸŽ¬ 'Come See the Paradise' (1990 film about internment)",
+            "ðŸŒ Densho.org - Japanese American WWII history"
         ]
     },
     
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     # ERA 13: INDIAN INDEPENDENCE - PARTITION
-    # ═══════════════════════════════════════════════════════════════════
+    # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     {
         "id": "indian_partition",
         "name": "Indian Independence - Partition",
@@ -1602,11 +1602,11 @@ aesthetic - no modern vehicles.""",
         ],
         
         "resources": [
-            "📖 'The Night Diary' by Veera Hiranandani (ages 10+)",
-            "📖 'Tamas' by Bhisham Sahni (for older readers)",
-            "🎬 'Partition: 1947' (2017 film)",
-            "🎬 'Train to Pakistan' (1998 film)",
-            "🌐 1947partitionarchive.org - Oral histories"
+            "ðŸ“– 'The Night Diary' by Veera Hiranandani (ages 10+)",
+            "ðŸ“– 'Tamas' by Bhisham Sahni (for older readers)",
+            "ðŸŽ¬ 'Partition: 1947' (2017 film)",
+            "ðŸŽ¬ 'Train to Pakistan' (1998 film)",
+            "ðŸŒ 1947partitionarchive.org - Oral histories"
         ]
     }
 ]

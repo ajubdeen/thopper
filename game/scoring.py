@@ -76,12 +76,12 @@ class Score:
     def get_breakdown_display(self) -> str:
         """Get formatted score breakdown for display"""
         lines = []
-        lines.append("═" * 40)
+        lines.append("â•" * 40)
         lines.append("           FINAL SCORE")
-        lines.append("═" * 40)
+        lines.append("â•" * 40)
         lines.append("")
-        lines.append(f"  Survival ({self.turns_survived} turns × 10)".ljust(32) + f"{self.survival_points:>6}")
-        lines.append(f"  Exploration ({self.eras_visited} eras × 50)".ljust(32) + f"{self.exploration_points:>6}")
+        lines.append(f"  Survival ({self.turns_survived} turns Ã— 10)".ljust(32) + f"{self.survival_points:>6}")
+        lines.append(f"  Exploration ({self.eras_visited} eras Ã— 50)".ljust(32) + f"{self.exploration_points:>6}")
         lines.append("")
         lines.append("  Fulfillment:")
         lines.append(f"    Belonging".ljust(32) + f"{self.belonging_score:>6}")
@@ -90,9 +90,9 @@ class Score:
         lines.append("")
         lines.append(f"  Ending Bonus ({self.ending_type})".ljust(32) + f"{self.ending_bonus:>6}")
         lines.append("")
-        lines.append("─" * 40)
+        lines.append("â”€" * 40)
         lines.append(f"  TOTAL".ljust(32) + f"{self.total:>6}")
-        lines.append("═" * 40)
+        lines.append("â•" * 40)
         return "\n".join(lines)
     
     def get_narrative_summary(self) -> str:
@@ -127,7 +127,7 @@ class Score:
         
         # For abandoned games, skip the fulfillment text
         if self.ending_type == "abandoned":
-            fulfillment_text = "The search continues elsewhere—or perhaps it doesn't."
+            fulfillment_text = "The search continues elsewhereâ€”or perhaps it doesn't."
         elif len(high_anchors) == 3:
             fulfillment_text = "You achieved the rare trifecta: belonging, legacy, and freedom."
         elif len(high_anchors) == 2:
@@ -139,7 +139,7 @@ class Score:
         
         # Ending narrative
         ending_texts = {
-            "complete": "Your journey ended in completeness—a full life, fully lived.",
+            "complete": "Your journey ended in completenessâ€”a full life, fully lived.",
             "balanced": "You found balance, if not perfection. A life well-chosen.",
             "belonging": "In the end, it was people who made a place worth staying.",
             "legacy": "You built something that would outlast you. That was enough.",
@@ -256,9 +256,9 @@ class Leaderboard:
     def get_display(self, highlight_score: Optional[Score] = None) -> str:
         """Get formatted leaderboard display"""
         lines = []
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         lines.append("                    LEADERBOARD")
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         lines.append("")
         
         top_scores = self.get_top_scores(10)
@@ -275,14 +275,14 @@ class Leaderboard:
                 # Highlight current score if provided
                 marker = ""
                 if highlight_score and s.get("timestamp") == highlight_score.timestamp:
-                    marker = " ◀"
+                    marker = " â—€"
                 
                 lines.append(f"  {rank:>2}. {name}   {total:>5} pts{marker}")
                 if blurb:
                     lines.append(f"      {blurb}")
                 lines.append("")
         
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         return "\n".join(lines)
 
 
@@ -409,7 +409,7 @@ class GameHistory:
     def get_game_summary(self, game: dict) -> str:
         """Get a readable summary of a game"""
         lines = []
-        lines.append(f"═══ {game['player_name']}'s Journey ═══")
+        lines.append(f"â•â•â• {game['player_name']}'s Journey â•â•â•")
         lines.append(f"Started: {game['started_at'][:10]}")
         
         if game['final_score']:
@@ -421,7 +421,7 @@ class GameHistory:
         for era in game.get('eras', []):
             year = era.get('era_year', 0)
             year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
-            lines.append(f"  • {era.get('era_name', 'Unknown')} ({year_str})")
+            lines.append(f"  â€¢ {era.get('era_name', 'Unknown')} ({year_str})")
         
         return "\n".join(lines)
     
@@ -430,26 +430,26 @@ class GameHistory:
         for game in self.games:
             if game.get('id') == game_id:
                 lines = []
-                lines.append("═" * 60)
+                lines.append("â•" * 60)
                 lines.append(f"  THE JOURNEY OF {game['player_name'].upper()}")
-                lines.append("═" * 60)
+                lines.append("â•" * 60)
                 lines.append("")
                 
                 for era in game.get('eras', []):
                     year = era.get('era_year', 0)
                     year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
                     
-                    lines.append(f"━━━ {era.get('era_name', 'Unknown')} ({year_str}) ━━━")
+                    lines.append(f"â”â”â” {era.get('era_name', 'Unknown')} ({year_str}) â”â”â”")
                     lines.append("")
                     lines.append(era.get('narrative', '[No narrative recorded]'))
                     lines.append("")
                     lines.append("")
                 
                 if game.get('final_score'):
-                    lines.append("═" * 60)
+                    lines.append("â•" * 60)
                     lines.append(f"  Final Score: {game['final_score'].get('total', 0)}")
                     lines.append(f"  {game.get('blurb', '')}")
-                    lines.append("═" * 60)
+                    lines.append("â•" * 60)
                 
                 return "\n".join(lines)
         
@@ -461,9 +461,9 @@ class GameHistory:
             return "No saved games yet."
         
         lines = []
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         lines.append("               SAVED JOURNEYS")
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         lines.append("")
         
         for i, game in enumerate(reversed(self.games[-20:])):  # Last 20 games, newest first
@@ -477,8 +477,8 @@ class GameHistory:
             lines.append(f"      {date} | {blurb}")
             lines.append("")
         
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         lines.append("  To read a story, open game_history.json")
-        lines.append("═" * 60)
+        lines.append("â•" * 60)
         
         return "\n".join(lines)

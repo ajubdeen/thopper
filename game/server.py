@@ -2,25 +2,18 @@
 """
 Anachron Game Server
 
-A Flask-SocketIO server that runs the game as a persistent service.
-Uses Python's pty module to spawn game processes and stream I/O via WebSocket.
-This approach keeps the game process alive independently of individual browser connections.
+Flask-SocketIO server that wraps the GameSession API.
+Emits structured JSON messages to connected clients.
 """
 
 import os
 import sys
-import pty
-import select
-import subprocess
-import threading
-import signal
-import time
 import logging
-from flask import Flask
+from flask import Flask, request
 from flask_socketio import SocketIO, emit
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -36,147 +29,9 @@ socketio = SocketIO(
     ping_interval=25
 )
 
-sessions = {}
+from game_api import GameSession
 
-class GameSession:
-    """Manages a single game session with PTY"""
-    
-    def __init__(self, sid):
-        self.sid = sid
-        self.master_fd = None
-        self.slave_fd = None
-        self.pid = None
-        self.running = False
-        self.reader_thread = None
-        
-    def start(self):
-        """Start a new game process"""
-        try:
-            self.master_fd, self.slave_fd = pty.openpty()
-            
-            self.pid = os.fork()
-            
-            if self.pid == 0:
-                os.close(self.master_fd)
-                
-                os.setsid()
-                
-                os.dup2(self.slave_fd, 0)
-                os.dup2(self.slave_fd, 1)
-                os.dup2(self.slave_fd, 2)
-                
-                if self.slave_fd > 2:
-                    os.close(self.slave_fd)
-                
-                env = os.environ.copy()
-                env['TERM'] = 'xterm-256color'
-                env['PYTHONUNBUFFERED'] = '1'
-                
-                game_dir = os.path.dirname(os.path.abspath(__file__))
-                os.chdir(game_dir)
-                
-                os.execve(
-                    sys.executable,
-                    [sys.executable, 'game.py'],
-                    env
-                )
-            else:
-                os.close(self.slave_fd)
-                self.slave_fd = None
-                self.running = True
-                
-                self.reader_thread = threading.Thread(target=self._read_output, daemon=True)
-                self.reader_thread.start()
-                
-                logger.info(f"Game process started for session {self.sid}, pid={self.pid}")
-                
-        except Exception as e:
-            logger.error(f"Failed to start game: {e}")
-            self.cleanup()
-            raise
-    
-    def _read_output(self):
-        """Read output from game process and send to client"""
-        try:
-            while self.running and self.master_fd is not None:
-                try:
-                    readable, _, _ = select.select([self.master_fd], [], [], 0.1)
-                    if readable:
-                        try:
-                            data = os.read(self.master_fd, 4096)
-                            if data:
-                                socketio.emit('output', {'data': data.decode('utf-8', errors='replace')}, room=self.sid)
-                            else:
-                                logger.info(f"Game process closed output for session {self.sid}")
-                                break
-                        except OSError as e:
-                            if e.errno == 5:
-                                logger.info(f"PTY closed for session {self.sid}")
-                            else:
-                                logger.error(f"Read error: {e}")
-                            break
-                except Exception as e:
-                    logger.error(f"Select error: {e}")
-                    break
-        finally:
-            self.running = False
-            logger.info(f"Reader thread ended for session {self.sid}")
-            socketio.emit('disconnected', {'reason': 'Game session ended'}, room=self.sid)
-    
-    def send_input(self, data):
-        """Send input to game process"""
-        if self.running and self.master_fd is not None:
-            try:
-                os.write(self.master_fd, data.encode('utf-8'))
-            except OSError as e:
-                logger.error(f"Write error: {e}")
-                self.cleanup()
-    
-    def resize(self, rows, cols):
-        """Resize the PTY"""
-        if self.master_fd is not None:
-            try:
-                import fcntl
-                import struct
-                import termios
-                winsize = struct.pack('HHHH', rows, cols, 0, 0)
-                fcntl.ioctl(self.master_fd, termios.TIOCSWINSZ, winsize)
-            except Exception as e:
-                logger.error(f"Resize error: {e}")
-    
-    def cleanup(self):
-        """Clean up resources"""
-        self.running = False
-        
-        if self.pid:
-            try:
-                os.kill(self.pid, signal.SIGTERM)
-                time.sleep(0.1)
-                try:
-                    os.waitpid(self.pid, os.WNOHANG)
-                except:
-                    pass
-            except ProcessLookupError:
-                pass
-            except Exception as e:
-                logger.error(f"Error killing process: {e}")
-            self.pid = None
-        
-        if self.master_fd is not None:
-            try:
-                os.close(self.master_fd)
-            except:
-                pass
-            self.master_fd = None
-        
-        if self.slave_fd is not None:
-            try:
-                os.close(self.slave_fd)
-            except:
-                pass
-            self.slave_fd = None
-        
-        logger.info(f"Session {self.sid} cleaned up")
+sessions = {}
 
 
 @socketio.on('connect')
@@ -185,14 +40,12 @@ def handle_connect():
     sid = request.sid
     logger.info(f"Client connected: {sid}")
     
-    session = GameSession(sid)
+    session = GameSession()
     sessions[sid] = session
     
-    try:
-        session.start()
-    except Exception as e:
-        logger.error(f"Failed to start game for {sid}: {e}")
-        emit('error', {'message': 'Failed to start game'})
+    messages = session.start()
+    for msg in messages:
+        emit('message', msg)
 
 
 @socketio.on('disconnect')
@@ -202,59 +55,101 @@ def handle_disconnect():
     logger.info(f"Client disconnected: {sid}")
     
     if sid in sessions:
-        sessions[sid].cleanup()
         del sessions[sid]
 
 
-@socketio.on('input')
-def handle_input(data):
-    """Handle input from client"""
+@socketio.on('set_name')
+def handle_set_name(data):
+    """Set player name"""
     sid = request.sid
-    if sid in sessions:
-        sessions[sid].send_input(data.get('data', ''))
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    name = data.get('name', 'Traveler')
+    messages = sessions[sid].set_name(name)
+    for msg in messages:
+        emit('message', msg)
 
 
-@socketio.on('resize')
-def handle_resize(data):
-    """Handle terminal resize"""
+@socketio.on('set_region')
+def handle_set_region(data):
+    """Set region preference"""
     sid = request.sid
-    if sid in sessions:
-        rows = data.get('rows', 24)
-        cols = data.get('cols', 80)
-        sessions[sid].resize(rows, cols)
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    region = data.get('region', 'worldwide')
+    messages = sessions[sid].set_region(region)
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('enter_first_era')
+def handle_enter_first_era():
+    """Enter the first era"""
+    sid = request.sid
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    messages = sessions[sid].enter_first_era()
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('choose')
+def handle_choose(data):
+    """Make a choice"""
+    sid = request.sid
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    choice = data.get('choice', 'A')
+    messages = sessions[sid].choose(choice)
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('continue_to_next_era')
+def handle_continue_to_next_era():
+    """Continue to next era after departure"""
+    sid = request.sid
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    messages = sessions[sid].continue_to_next_era()
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('get_state')
+def handle_get_state():
+    """Get current game state"""
+    sid = request.sid
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    state = sessions[sid].get_state()
+    emit('message', {'type': 'state', 'data': state})
 
 
 @socketio.on('restart')
 def handle_restart():
-    """Handle game restart request"""
+    """Restart the game"""
     sid = request.sid
     logger.info(f"Restart requested for {sid}")
     
-    if sid in sessions:
-        sessions[sid].cleanup()
-        del sessions[sid]
-    
-    session = GameSession(sid)
+    session = GameSession()
     sessions[sid] = session
     
-    try:
-        session.start()
-    except Exception as e:
-        logger.error(f"Failed to restart game for {sid}: {e}")
-        emit('error', {'message': 'Failed to restart game'})
-
-
-from flask import request
-
-def cleanup_all():
-    """Clean up all sessions on shutdown"""
-    logger.info("Cleaning up all sessions...")
-    for sid, session in list(sessions.items()):
-        session.cleanup()
-    sessions.clear()
-
-import atexit
-atexit.register(cleanup_all)
+    messages = session.start()
+    for msg in messages:
+        emit('message', msg)
 
 
 if __name__ == '__main__':

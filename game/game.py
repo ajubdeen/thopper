@@ -23,25 +23,9 @@ import re
 import textwrap
 import threading
 import sys
-import logging
 from typing import List
 from datetime import datetime
 from pathlib import Path
-
-# Set up logging to file for debugging disconnection issues
-# Use unbuffered file handler to ensure logs are written immediately
-log_handler = logging.FileHandler('/tmp/anachron_game.log', mode='a')
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(log_handler)
-
-# Also log to stderr for immediate visibility
-stderr_handler = logging.StreamHandler(sys.stderr)
-stderr_handler.setLevel(logging.DEBUG)
-stderr_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logger.addHandler(stderr_handler)
 
 # Try to import anthropic
 try:
@@ -89,7 +73,7 @@ class Spinner:
         self.message = message
         self.spinning = False
         self.thread = None
-        self.frames = ['—', '\\', '|', '/']
+        self.frames = ['â€”', '\\', '|', '/']
         
     def _spin(self):
         idx = 0
@@ -118,24 +102,24 @@ def clear_screen():
 def print_box(lines, color=Colors.CYAN, width=70):
     """Print text in a box"""
     content_width = width - 2
-    print(f"{color}╔{'═' * width}╗{Colors.END}")
+    print(f"{color}â•”{'â•' * width}â•—{Colors.END}")
     for line in lines:
         for subline in str(line).split('\n'):
             if len(subline.strip()) == 0:
-                print(f"{color}║{Colors.END} {' ' * content_width} {color}║{Colors.END}")
+                print(f"{color}â•‘{Colors.END} {' ' * content_width} {color}â•‘{Colors.END}")
             else:
                 wrapped = textwrap.wrap(subline, width=content_width) or ['']
                 for wrapped_line in wrapped:
                     padded = wrapped_line.ljust(content_width)
-                    print(f"{color}║{Colors.END} {padded} {color}║{Colors.END}")
-    print(f"{color}╚{'═' * width}╝{Colors.END}")
+                    print(f"{color}â•‘{Colors.END} {padded} {color}â•‘{Colors.END}")
+    print(f"{color}â•š{'â•' * width}â•{Colors.END}")
 
 
 def print_header(text, color=Colors.HEADER):
     """Print a section header"""
-    print(f"\n{color}{Colors.BOLD}{'═' * 70}")
+    print(f"\n{color}{Colors.BOLD}{'â•' * 70}")
     print(f"  {text}")
-    print(f"{'═' * 70}{Colors.END}\n")
+    print(f"{'â•' * 70}{Colors.END}\n")
 
 
 def slow_print(text, delay=TEXT_SPEED):
@@ -148,23 +132,11 @@ def slow_print(text, delay=TEXT_SPEED):
 
 def get_input(prompt, valid_options=None):
     """Get validated input"""
-    logger.debug(f"get_input called with prompt='{prompt}', valid_options={valid_options}")
     while True:
-        try:
-            response = input(f"{Colors.YELLOW}{prompt}{Colors.END} ").strip().upper()
-            logger.debug(f"get_input received response='{response}'")
-            if valid_options is None or response in valid_options:
-                return response
-            print(f"{Colors.RED}Please enter one of: {', '.join(valid_options)}{Colors.END}")
-        except EOFError as e:
-            logger.error(f"EOFError in get_input: {e}")
-            raise
-        except KeyboardInterrupt as e:
-            logger.error(f"KeyboardInterrupt in get_input: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Unexpected exception in get_input: {type(e).__name__}: {e}")
-            raise
+        response = input(f"{Colors.YELLOW}{prompt}{Colors.END} ").strip().upper()
+        if valid_options is None or response in valid_options:
+            return response
+        print(f"{Colors.RED}Please enter one of: {', '.join(valid_options)}{Colors.END}")
 
 
 def roll_dice(sides=20, show=True):
@@ -288,13 +260,13 @@ class NarrativeEngine:
     def _demo_response(self, prompt: str) -> str:
         """Demo response when API unavailable"""
         if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you first—woodsmoke, animal dung, something cooking. Your ears ring from the transition.
+            return """You stumble forward, catching yourself against rough stone. The air hits you firstâ€”woodsmoke, animal dung, something cooking. Your ears ring from the transition.
 
 When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
 
 A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
 
-You are Thomas the Stranger now—that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
+You are Thomas the Stranger nowâ€”that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
 
 A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
 
@@ -352,7 +324,18 @@ class Game:
     
     def _show_title(self):
         """Display title screen"""
-        input(f"{Colors.DIM}Press Enter to begin...{Colors.END}")
+        title = """
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘                                                                  â•‘
+    â•‘            â–„â–€â–ˆ â–ˆâ–„ â–ˆ â–„â–€â–ˆ â–ˆâ–€â–€ â–ˆ â–ˆ â–ˆâ–€â–ˆ â–ˆâ–€â–ˆ â–ˆâ–„ â–ˆ                     â•‘
+    â•‘            â–ˆâ–€â–ˆ â–ˆ â–€â–ˆ â–ˆâ–€â–ˆ â–ˆâ–„â–„ â–ˆâ–€â–ˆ â–ˆâ–€â–„ â–ˆâ–„â–ˆ â–ˆ â–€â–ˆ                     â•‘
+    â•‘                                                                  â•‘
+    â•‘              "How will you fare in another era?"                 â•‘
+    â•‘                                                                  â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        """
+        print(f"{Colors.CYAN}{title}{Colors.END}")
+        input(f"\n{Colors.DIM}Press Enter to begin...{Colors.END}")
     
     def _get_player_info(self):
         """Get player name"""
@@ -408,7 +391,7 @@ class Game:
         print()
         
         for item in self.state.inventory.modern_items:
-            print(f"  {Colors.GREEN}• {item.name}{Colors.END}")
+            print(f"  {Colors.GREEN}â€¢ {item.name}{Colors.END}")
             print(f"    {Colors.DIM}{item.description}{Colors.END}")
             print()
         
@@ -422,27 +405,27 @@ class Game:
         clear_screen()
         print_header("THE DEVICE")
         
-        slow_print("The time machine is small—about the size of a chunky wristwatch.")
+        slow_print("The time machine is smallâ€”about the size of a chunky wristwatch.")
         slow_print("You wear it on your wrist, hidden under your sleeve.")
         time.sleep(0.5)
         
         print(f"\n{Colors.CYAN}HOW IT WORKS:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}•{Colors.END} The window won't open immediately when you arrive somewhere new")
-        print(f"  {Colors.YELLOW}•{Colors.END} You'll have time to settle in first—typically most of a year")
-        print(f"  {Colors.YELLOW}•{Colors.END} When the window opens, you have a short time to decide")
-        print(f"  {Colors.YELLOW}•{Colors.END} Choose to activate it, or let the window close and stay")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} The window won't open immediately when you arrive somewhere new")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} You'll have time to settle in firstâ€”typically most of a year")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} When the window opens, you have a short time to decide")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} Choose to activate it, or let the window close and stay")
         print()
         
         print(f"{Colors.CYAN}THE CATCH:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}•{Colors.END} You can't choose where or when you go—it's random")
-        print(f"  {Colors.YELLOW}•{Colors.END} Your three items always come with you")
-        print(f"  {Colors.YELLOW}•{Colors.END} Your relationships do NOT come with you")
-        print(f"  {Colors.YELLOW}•{Colors.END} Each jump means starting over")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} You can't choose where or when you goâ€”it's random")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} Your three items always come with you")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} Your relationships do NOT come with you")
+        print(f"  {Colors.YELLOW}â€¢{Colors.END} Each jump means starting over")
         print()
         
         print(f"{Colors.CYAN}THE GOAL:{Colors.END}\n")
         slow_print("  Find a time and place where you want to stay.")
-        slow_print("  Build something worth staying for—people, purpose, freedom.")
+        slow_print("  Build something worth staying forâ€”people, purpose, freedom.")
         slow_print("  When the window opens and you choose not to leave...")
         slow_print("  that's when you've found happiness.")
         
@@ -511,7 +494,7 @@ class Game:
         """Show a brief summary of the era's main themes"""
         era = self.current_era
         
-        print(f"{Colors.CYAN}━━━ About This Era ━━━{Colors.END}")
+        print(f"{Colors.CYAN}â”â”â” About This Era â”â”â”{Colors.END}")
         print()
         
         # Location and time context
@@ -532,10 +515,10 @@ class Game:
                 # Truncate long events
                 if len(event) > 75:
                     event = event[:72] + "..."
-                print(f"    • {event}")
+                print(f"    â€¢ {event}")
             print()
         
-        print(f"{Colors.CYAN}━━━━━━━━━━━━━━━━━━━━━━{Colors.END}")
+        print(f"{Colors.CYAN}â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”{Colors.END}")
         print()
     
     def _play_turn(self):
@@ -623,9 +606,9 @@ class Game:
         if self.current_era:
             print(f"{Colors.DIM}{self.current_era['name']} | {self.state.current_era.time_in_era_description}{Colors.END}\n")
         
-        print(f"{Colors.GREEN}{'═' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'â•' * 50}{Colors.END}")
         print(f"{Colors.GREEN}  THE WINDOW IS OPEN{Colors.END}")
-        print(f"{Colors.GREEN}{'═' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'â•' * 50}{Colors.END}")
         print()
         
         if self.state.can_stay_meaningfully:
@@ -800,22 +783,8 @@ class Game:
 
 
 def main():
-    logger.info("=== Game starting ===")
-    try:
-        game = Game()
-        game.run()
-        logger.info("=== Game ended normally ===")
-    except EOFError as e:
-        logger.error(f"Game crashed with EOFError: {e}")
-        print(f"\n{Colors.RED}Connection lost. Please refresh to restart.{Colors.END}")
-    except KeyboardInterrupt:
-        logger.info("Game interrupted by user (Ctrl+C)")
-        print(f"\n{Colors.YELLOW}Game interrupted.{Colors.END}")
-    except Exception as e:
-        logger.error(f"Game crashed with unexpected exception: {type(e).__name__}: {e}", exc_info=True)
-        print(f"\n{Colors.RED}An error occurred: {e}{Colors.END}")
-    finally:
-        logger.info("=== Game process exiting ===")
+    game = Game()
+    game.run()
 
 
 if __name__ == "__main__":

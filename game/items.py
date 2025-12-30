@@ -152,10 +152,10 @@ class Inventory:
         
         for item in self.modern_items:
             if item.is_depleted:
-                lines.append(f"  • {item.name}: [DEPLETED]")
+                lines.append(f"  â€¢ {item.name}: [DEPLETED]")
             else:
                 uses_str = f" ({item.uses} uses left)" if item.uses is not None else ""
-                lines.append(f"  • {item.name}{uses_str}")
+                lines.append(f"  â€¢ {item.name}{uses_str}")
                 lines.append(f"    {item.description}")
         
         return "\n".join(lines)
@@ -174,11 +174,11 @@ def get_items_prompt_section(inventory: Inventory) -> str:
     lines.append("MODERN ITEMS (from the future):")
     for item in inventory.modern_items:
         if item.is_depleted:
-            lines.append(f"  • {item.name}: DEPLETED")
+            lines.append(f"  â€¢ {item.name}: DEPLETED")
         else:
             uses_str = f" ({item.uses} uses left)" if item.uses is not None else ""
             revealed_str = " - REVEALED in this era" if item.is_revealed else ""
-            lines.append(f"  • {item.name}{uses_str}{revealed_str}")
+            lines.append(f"  â€¢ {item.name}{uses_str}{revealed_str}")
             lines.append(f"    {item.description}")
             lines.append(f"    Utility: {item.utility}")
             lines.append(f"    Risk: {item.risk}")

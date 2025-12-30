@@ -28,7 +28,10 @@ export function setupPtyWebSocket(httpServer: Server): void {
   });
 
   pythonServer.stderr?.on("data", (data) => {
-    console.error(`[Python Error] ${data.toString().trim()}`);
+    const msg = data.toString().trim();
+    if (!msg.includes('DEBUG') && !msg.includes('INFO')) {
+      console.error(`[Python Error] ${msg}`);
+    }
   });
 
   pythonServer.on("error", (err) => {
@@ -66,16 +69,8 @@ export function setupPtyWebSocket(httpServer: Server): void {
       console.log(`Proxy connected to Python server for ${browserSocket.id}`);
     });
 
-    pythonSocket.on("output", (data: { data: string }) => {
-      browserSocket.emit("output", data);
-    });
-
-    pythonSocket.on("disconnected", (data: { reason: string }) => {
-      browserSocket.emit("disconnected", data);
-    });
-
-    pythonSocket.on("error", (data: { message: string }) => {
-      browserSocket.emit("error", data);
+    pythonSocket.on("message", (data: any) => {
+      browserSocket.emit("message", data);
     });
 
     pythonSocket.on("disconnect", (reason) => {
@@ -84,15 +79,31 @@ export function setupPtyWebSocket(httpServer: Server): void {
 
     pythonSocket.on("connect_error", (error) => {
       console.error(`Proxy connection error: ${error.message}`);
-      browserSocket.emit("error", { message: "Failed to connect to game server" });
+      browserSocket.emit("message", { type: "error", data: { message: "Failed to connect to game server" } });
     });
 
-    browserSocket.on("input", (data: { data: string }) => {
-      pythonSocket.emit("input", data);
+    browserSocket.on("set_name", (data: { name: string }) => {
+      pythonSocket.emit("set_name", data);
     });
 
-    browserSocket.on("resize", (data: { cols: number; rows: number }) => {
-      pythonSocket.emit("resize", data);
+    browserSocket.on("set_region", (data: { region: string }) => {
+      pythonSocket.emit("set_region", data);
+    });
+
+    browserSocket.on("enter_first_era", () => {
+      pythonSocket.emit("enter_first_era");
+    });
+
+    browserSocket.on("choose", (data: { choice: string }) => {
+      pythonSocket.emit("choose", data);
+    });
+
+    browserSocket.on("continue_to_next_era", () => {
+      pythonSocket.emit("continue_to_next_era");
+    });
+
+    browserSocket.on("get_state", () => {
+      pythonSocket.emit("get_state");
     });
 
     browserSocket.on("restart", () => {
