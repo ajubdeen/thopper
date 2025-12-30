@@ -13,6 +13,19 @@
     "blurb": "Found balance in Classical Athens - The Golden Age"
   },
   {
+    "player_name": "Ab",
+    "total": 195,
+    "turns_survived": 7,
+    "eras_visited": 2,
+    "belonging_score": 0,
+    "legacy_score": 0,
+    "freedom_score": 0,
+    "ending_type": "abandoned",
+    "final_era": "Classical Athens - The Golden Age",
+    "timestamp": "2025-12-30T20:51:02.123073",
+    "blurb": "Quit in Classical Athens - The Golden Age"
+  },
+  {
     "player_name": "ab",
     "total": 115,
     "turns_survived": 2,
@@ -23,6 +36,19 @@
     "ending_type": "abandoned",
     "final_era": "Viking Age Scandinavia",
     "timestamp": "2025-12-24T22:53:51.627884",
+    "blurb": "Quit in Viking Age Scandinavia"
+  },
+  {
+    "player_name": "Ab",
+    "total": 75,
+    "turns_survived": 0,
+    "eras_visited": 1,
+    "belonging_score": 0,
+    "legacy_score": 0,
+    "freedom_score": 0,
+    "ending_type": "abandoned",
+    "final_era": "Viking Age Scandinavia",
+    "timestamp": "2025-12-30T20:40:08.813648",
     "blurb": "Quit in Viking Age Scandinavia"
   }
 ]

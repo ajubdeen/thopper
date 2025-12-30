@@ -73,7 +73,7 @@ class Spinner:
         self.message = message
         self.spinning = False
         self.thread = None
-        self.frames = ['Ã¢â‚¬â€', '\\', '|', '/']
+        self.frames = ['Ã¢â‚¬"', '\\', '|', '/']
         
     def _spin(self):
         idx = 0
@@ -102,24 +102,24 @@ def clear_screen():
 def print_box(lines, color=Colors.CYAN, width=70):
     """Print text in a box"""
     content_width = width - 2
-    print(f"{color}Ã¢â€¢â€{'Ã¢â€¢Â' * width}Ã¢â€¢â€”{Colors.END}")
+    print(f"{color}Ã¢"¢"{'Ã¢"¢Â' * width}Ã¢"¢"”{Colors.END}")
     for line in lines:
         for subline in str(line).split('\n'):
             if len(subline.strip()) == 0:
-                print(f"{color}Ã¢â€¢â€˜{Colors.END} {' ' * content_width} {color}Ã¢â€¢â€˜{Colors.END}")
+                print(f"{color}Ã¢"¢"˜{Colors.END} {' ' * content_width} {color}Ã¢"¢"˜{Colors.END}")
             else:
                 wrapped = textwrap.wrap(subline, width=content_width) or ['']
                 for wrapped_line in wrapped:
                     padded = wrapped_line.ljust(content_width)
-                    print(f"{color}Ã¢â€¢â€˜{Colors.END} {padded} {color}Ã¢â€¢â€˜{Colors.END}")
-    print(f"{color}Ã¢â€¢Å¡{'Ã¢â€¢Â' * width}Ã¢â€¢Â{Colors.END}")
+                    print(f"{color}Ã¢"¢"˜{Colors.END} {padded} {color}Ã¢"¢"˜{Colors.END}")
+    print(f"{color}Ã¢"¢Å¡{'Ã¢"¢Â' * width}Ã¢"¢Â{Colors.END}")
 
 
 def print_header(text, color=Colors.HEADER):
     """Print a section header"""
-    print(f"\n{color}{Colors.BOLD}{'Ã¢â€¢Â' * 70}")
+    print(f"\n{color}{Colors.BOLD}{'Ã¢"¢Â' * 70}")
     print(f"  {text}")
-    print(f"{'Ã¢â€¢Â' * 70}{Colors.END}\n")
+    print(f"{'Ã¢"¢Â' * 70}{Colors.END}\n")
 
 
 def slow_print(text, delay=TEXT_SPEED):
@@ -260,13 +260,13 @@ class NarrativeEngine:
     def _demo_response(self, prompt: str) -> str:
         """Demo response when API unavailable"""
         if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you firstÃ¢â‚¬â€woodsmoke, animal dung, something cooking. Your ears ring from the transition.
+            return """You stumble forward, catching yourself against rough stone. The air hits you firstÃ¢â‚¬"woodsmoke, animal dung, something cooking. Your ears ring from the transition.
 
 When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
 
 A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
 
-You are Thomas the Stranger nowÃ¢â‚¬â€that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
+You are Thomas the Stranger nowÃ¢â‚¬"that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
 
 A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
 
@@ -330,14 +330,14 @@ class Game:
     def _show_title(self):
         """Display title screen"""
         title = """
-    Ã¢â€¢â€Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢â€”
-    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
-    Ã¢â€¢â€˜            Ã¢â€“â€žÃ¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€ž Ã¢â€“Ë† Ã¢â€“â€žÃ¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“â‚¬ Ã¢â€“Ë† Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€ž Ã¢â€“Ë†                     Ã¢â€¢â€˜
-    Ã¢â€¢â€˜            Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë† Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€žÃ¢â€“â€ž Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“â€ž Ã¢â€“Ë†Ã¢â€“â€žÃ¢â€“Ë† Ã¢â€“Ë† Ã¢â€“â‚¬Ã¢â€“Ë†                     Ã¢â€¢â€˜
-    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
-    Ã¢â€¢â€˜              "How will you fare in another era?"                 Ã¢â€¢â€˜
-    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
-    Ã¢â€¢Å¡Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+    Ã¢"¢"Ã¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢"”
+    Ã¢"¢"˜                                                                  Ã¢"¢"˜
+    Ã¢"¢"˜            Ã¢"“"žÃ¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“"ž Ã¢"“Ë† Ã¢"“"žÃ¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“â‚¬ Ã¢"“Ë† Ã¢"“Ë† Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“"ž Ã¢"“Ë†                     Ã¢"¢"˜
+    Ã¢"¢"˜            Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë† Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“"žÃ¢"“"ž Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“Ë† Ã¢"“Ë†Ã¢"“â‚¬Ã¢"“"ž Ã¢"“Ë†Ã¢"“"žÃ¢"“Ë† Ã¢"“Ë† Ã¢"“â‚¬Ã¢"“Ë†                     Ã¢"¢"˜
+    Ã¢"¢"˜                                                                  Ã¢"¢"˜
+    Ã¢"¢"˜              "How will you fare in another era?"                 Ã¢"¢"˜
+    Ã¢"¢"˜                                                                  Ã¢"¢"˜
+    Ã¢"¢Å¡Ã¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢ÂÃ¢"¢Â
         """
         print(f"{Colors.CYAN}{title}{Colors.END}")
         input(f"\n{Colors.DIM}Press Enter to begin...{Colors.END}")
@@ -396,7 +396,7 @@ class Game:
         print()
         
         for item in self.state.inventory.modern_items:
-            print(f"  {Colors.GREEN}Ã¢â‚¬Â¢ {item.name}{Colors.END}")
+            print(f"  {Colors.GREEN}• {item.name}{Colors.END}")
             print(f"    {Colors.DIM}{item.description}{Colors.END}")
             print()
         
@@ -410,27 +410,27 @@ class Game:
         clear_screen()
         print_header("THE DEVICE")
         
-        slow_print("The time machine is smallÃ¢â‚¬â€about the size of a chunky wristwatch.")
+        slow_print("The time machine is smallÃ¢â‚¬"about the size of a chunky wristwatch.")
         slow_print("You wear it on your wrist, hidden under your sleeve.")
         time.sleep(0.5)
         
         print(f"\n{Colors.CYAN}HOW IT WORKS:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} The window to use it won't open immediately when you arrive")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} You'll have time to settle in firstÃ¢â‚¬â€typically most of a year")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} When the window opens, you have a short time to decide")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Choose to activate it, or let the window close and stay")
+        print(f"  {Colors.YELLOW}•{Colors.END} The window to use it won't open immediately when you arrive")
+        print(f"  {Colors.YELLOW}•{Colors.END} You'll have time to settle in firstÃ¢â‚¬"typically most of a year")
+        print(f"  {Colors.YELLOW}•{Colors.END} When the window opens, you have a short time to decide")
+        print(f"  {Colors.YELLOW}•{Colors.END} Choose to activate it, or let the window close and stay")
         print()
         
         print(f"{Colors.CYAN}THE CATCH:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} You can't choose when you goÃ¢â‚¬â€it's random")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Your three items always come with you")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Your relationships do NOT come with you")
-        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Each jump means starting over")
+        print(f"  {Colors.YELLOW}•{Colors.END} You can't choose when you goÃ¢â‚¬"it's random")
+        print(f"  {Colors.YELLOW}•{Colors.END} Your three items always come with you")
+        print(f"  {Colors.YELLOW}•{Colors.END} Your relationships do NOT come with you")
+        print(f"  {Colors.YELLOW}•{Colors.END} Each jump means starting over")
         print()
         
         print(f"{Colors.CYAN}THE GOAL:{Colors.END}\n")
         slow_print("  Find a time and place where you want to stay.")
-        slow_print("  Build something worth staying forÃ¢â‚¬â€people, purpose, freedom.")
+        slow_print("  Build something worth staying forÃ¢â‚¬"people, purpose, freedom.")
         slow_print("  When the window opens and you choose not to leave...")
         slow_print("  that's when you've found happiness.")
         
@@ -499,7 +499,7 @@ class Game:
         """Show a brief summary of the era's main themes"""
         era = self.current_era
         
-        print(f"{Colors.CYAN}Ã¢â€ÂÃ¢â€ÂÃ¢â€Â About This Era Ã¢â€ÂÃ¢â€ÂÃ¢â€Â{Colors.END}")
+        print(f"{Colors.CYAN}Ã¢"ÂÃ¢"ÂÃ¢"Â About This Era Ã¢"ÂÃ¢"ÂÃ¢"Â{Colors.END}")
         print()
         
         # Location and time context
@@ -517,10 +517,10 @@ class Game:
         if key_events:
             print(f"  {Colors.YELLOW}What defines this time:{Colors.END}")
             for event in key_events:
-                print(f"    Ã¢â‚¬Â¢ {event}")
+                print(f"    • {event}")
             print()
         
-        print(f"{Colors.CYAN}Ã¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€Â{Colors.END}")
+        print(f"{Colors.CYAN}Ã¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"ÂÃ¢"Â{Colors.END}")
         print()
     
     def _play_turn(self):
@@ -720,9 +720,9 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         if self.current_era:
             print(f"{Colors.DIM}{self.current_era['name']} | {self.state.current_era.time_in_era_description}{Colors.END}\n")
         
-        print(f"{Colors.GREEN}{'Ã¢â€¢Â' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'Ã¢"¢Â' * 50}{Colors.END}")
         print(f"{Colors.GREEN}  THE WINDOW IS OPEN{Colors.END}")
-        print(f"{Colors.GREEN}{'Ã¢â€¢Â' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'Ã¢"¢Â' * 50}{Colors.END}")
         print()
         
         if self.state.can_stay_meaningfully:

@@ -208,13 +208,13 @@ class NarrativeEngine:
     def _demo_response(self, prompt: str) -> str:
         """Demo response when API unavailable"""
         if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you firstâ€”woodsmoke, animal dung, something cooking. Your ears ring from the transition.
+            return """You stumble forward, catching yourself against rough stone. The air hits you first"”woodsmoke, animal dung, something cooking. Your ears ring from the transition.
 
 When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
 
 A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
 
-You are Thomas the Stranger nowâ€”that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
+You are Thomas the Stranger now"”that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
 
 A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
 
@@ -334,20 +334,20 @@ class GameAPI:
         # Device explanation
         yield emit(MessageType.INTRO_DEVICE, {
             "title": "THE DEVICE",
-            "description": "The time machine is smallâ€”about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
+            "description": "The time machine is small"”about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
             "mechanics": [
                 "The window to use it won't open immediately when you arrive",
-                "You'll have time to settle in firstâ€”typically most of a year",
+                "You'll have time to settle in first"”typically most of a year",
                 "When the window opens, you have a short time to decide",
                 "Choose to activate it, or let the window close and stay"
             ],
             "catch": [
-                "You can't choose when you goâ€”it's random",
+                "You can't choose when you go"”it's random",
                 "Your three items always come with you",
                 "Your relationships do NOT come with you",
                 "Each jump means starting over"
             ],
-            "goal": "Find a time and place where you want to stay. Build something worth staying forâ€”people, purpose, freedom. When the window opens and you choose not to leave... that's when you've found happiness."
+            "goal": "Find a time and place where you want to stay. Build something worth staying for"”people, purpose, freedom. When the window opens and you choose not to leave... that's when you've found happiness."
         })
         
         yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_era"})
