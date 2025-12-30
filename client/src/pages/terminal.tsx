@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
-import heroImage from "@assets/ChatGPT_Image_Dec_24,_2025,_03_00_08_PM_1766617226950.png";
+import heroImage from "@assets/Gemini_Generated_Image_x73039x73039x730_1767131668867.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
