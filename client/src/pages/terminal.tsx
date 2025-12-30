@@ -402,7 +402,7 @@ export default function GamePage() {
                   disabled={isLoading}
                   data-testid="button-start-adventure"
                 >
-                  {isLoading ? "Traveling..." : "See where you've landed..."}
+                  {isLoading ? "Traveling in time..." : "See where you've landed..."}
                 </Button>
               )}
             </div>
@@ -450,7 +450,7 @@ export default function GamePage() {
                 )}
                 
                 <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {narrative}
+                  {narrative.replace(/\n\s*\[\d+\][^\n]*/g, '').trim()}
                 </div>
                 
                 {isLoading && (
@@ -471,10 +471,10 @@ export default function GamePage() {
                     key={choice.id}
                     onClick={() => makeChoice(choice.id)}
                     variant="outline"
-                    className="w-full justify-start text-left h-auto py-3 px-4 border-gray-700 bg-gray-900/50 hover:bg-gray-800 hover:border-amber-600"
+                    className="w-full justify-start text-left h-auto py-3 px-4 border-gray-700 bg-gray-900/50 hover:bg-gray-800 hover:border-amber-600 whitespace-normal"
                     data-testid={`button-choice-${choice.id}`}
                   >
-                    <span className="text-amber-400 font-bold mr-3">[{choice.id}]</span>
+                    <span className="text-amber-400 font-bold mr-3 flex-shrink-0">[{choice.id}]</span>
                     <span className="text-gray-300">{choice.text}</span>
                   </Button>
                 ))}
@@ -500,7 +500,7 @@ export default function GamePage() {
                   disabled={isLoading}
                   data-testid="button-continue-era"
                 >
-                  {isLoading ? "Traveling..." : "Continue to next era..."}
+                  {isLoading ? "Traveling in time..." : "Continue to next era..."}
                 </Button>
               </div>
             )}
