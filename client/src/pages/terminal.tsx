@@ -47,7 +47,7 @@ interface BufferedMessage {
   data: any;
 }
 
-const SETUP_PHASES: GamePhase[] = ["title", "setup_name", "setup_region", "intro"];
+const SETUP_PHASES: GamePhase[] = ["title", "setup_name", "setup_region"];
 
 export default function GamePage() {
   const socketRef = useRef<Socket | null>(null);
@@ -110,9 +110,6 @@ export default function GamePage() {
         if (!pastSetup.current) {
           if (msg.data.auto_select && !regionAutoSelectHandled.current) {
             regionAutoSelectHandled.current = true;
-            pastSetup.current = true;
-            setPhase("loading");
-            setLoadingMessage("Finding your destination...");
             socketRef.current?.emit('set_region', { region: msg.data.auto_select });
           } else if (!msg.data.auto_select) {
             safeSetPhase("setup_region");
@@ -123,7 +120,8 @@ export default function GamePage() {
         
       case "intro_story":
         setIntroStory(msg.data.paragraphs || []);
-        safeSetPhase("intro");
+        setPhase("intro");
+        setLoadingMessage("");
         break;
         
       case "intro_items":
@@ -317,7 +315,6 @@ export default function GamePage() {
     setPhase("loading");
     setLoadingMessage("Traveling through time...");
     socketRef.current?.emit('enter_first_era');
-    setWaitingAction(null);
   };
 
   const makeChoice = (choiceId: string) => {
