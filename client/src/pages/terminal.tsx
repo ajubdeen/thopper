@@ -44,6 +44,7 @@ interface EraInfo {
 export default function GamePage() {
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
+  const regionAutoSelectHandled = useRef(false);
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("title");
   const [playerName, setPlayerName] = useState("");
@@ -82,9 +83,11 @@ export default function GamePage() {
         break;
         
       case "setup_region":
-        if (msg.data.auto_select) {
+        if (msg.data.auto_select && !regionAutoSelectHandled.current) {
+          regionAutoSelectHandled.current = true;
+          setIsLoading(true);
           socketRef.current?.emit('set_region', { region: msg.data.auto_select });
-        } else {
+        } else if (!msg.data.auto_select) {
           setPhase("setup_region");
           setRegionOptions(msg.data.options || []);
         }
@@ -243,6 +246,7 @@ export default function GamePage() {
     setChoices([]);
     setFinalScore(null);
     setCurrentEra(null);
+    regionAutoSelectHandled.current = false;
     socketRef.current?.emit('restart');
   };
 
