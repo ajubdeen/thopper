@@ -132,7 +132,6 @@ export default function GamePage() {
         
       case "narrative_chunk":
         setNarrative(prev => prev + (msg.data.text || ""));
-        setShowEraSummary(false);
         setIsLoading(false);
         break;
         
@@ -230,6 +229,7 @@ export default function GamePage() {
   const makeChoice = (choiceId: string) => {
     setNarrative("");
     setChoices([]);
+    setShowEraSummary(false);
     setIsLoading(true);
     socketRef.current?.emit('choose', { choice: choiceId });
   };
