@@ -212,7 +212,12 @@ export default function GamePage() {
     const filtered = lines.filter(line => {
       const trimmed = line.trim();
       if (/^[1-9]\.\s/.test(trimmed)) return false;
+      if (/^[1-9]\)\s/.test(trimmed)) return false;
+      if (/^\([1-9]\)\s/.test(trimmed)) return false;
       if (/^\[?[1-9Q]\]?\s*[-–—:]?\s/.test(trimmed)) return false;
+      if (/^Option\s+[1-9]:/i.test(trimmed)) return false;
+      if (/^Choice\s+[1-9]:/i.test(trimmed)) return false;
+      if (/^\*\*\[?[1-9]\]?\*\*/.test(trimmed)) return false;
       return true;
     });
     return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
