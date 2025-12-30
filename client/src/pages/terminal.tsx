@@ -47,13 +47,17 @@ interface BufferedMessage {
   data: any;
 }
 
+const SETUP_PHASES: GamePhase[] = ["title", "setup_name", "setup_region", "intro"];
+
 export default function GamePage() {
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
   const regionAutoSelectHandled = useRef(false);
   const messageBuffer = useRef<BufferedMessage[]>([]);
+  const pastSetup = useRef(false);
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("title");
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -80,30 +84,46 @@ export default function GamePage() {
     scrollToBottom();
   }, [narrative, choices, scrollToBottom]);
 
+  const safeSetPhase = useCallback((newPhase: GamePhase) => {
+    if (SETUP_PHASES.includes(newPhase) && pastSetup.current) {
+      return false;
+    }
+    if (!SETUP_PHASES.includes(newPhase)) {
+      pastSetup.current = true;
+    }
+    setPhase(newPhase);
+    setLoadingMessage("");
+    return true;
+  }, []);
+
   const handleMessage = useCallback((msg: GameMessage) => {
     switch (msg.type) {
       case "title":
-        setPhase("title");
+        safeSetPhase("title");
         break;
         
       case "setup_name":
-        setPhase("setup_name");
+        safeSetPhase("setup_name");
         break;
         
       case "setup_region":
-        if (msg.data.auto_select && !regionAutoSelectHandled.current) {
-          regionAutoSelectHandled.current = true;
-          setIsLoading(true);
-          socketRef.current?.emit('set_region', { region: msg.data.auto_select });
-        } else if (!msg.data.auto_select) {
-          setPhase("setup_region");
-          setRegionOptions(msg.data.options || []);
+        if (!pastSetup.current) {
+          if (msg.data.auto_select && !regionAutoSelectHandled.current) {
+            regionAutoSelectHandled.current = true;
+            pastSetup.current = true;
+            setPhase("loading");
+            setLoadingMessage("Finding your destination...");
+            socketRef.current?.emit('set_region', { region: msg.data.auto_select });
+          } else if (!msg.data.auto_select) {
+            safeSetPhase("setup_region");
+            setRegionOptions(msg.data.options || []);
+          }
         }
         break;
         
       case "intro_story":
         setIntroStory(msg.data.paragraphs || []);
-        setPhase("intro");
+        safeSetPhase("intro");
         break;
         
       case "intro_items":
@@ -130,7 +150,7 @@ export default function GamePage() {
         setEraSummary([]);
         messageBuffer.current = [];
         setInBriefing(true);
-        setPhase("era_briefing");
+        safeSetPhase("era_briefing");
         break;
         
       case "era_summary":
@@ -191,12 +211,12 @@ export default function GamePage() {
         
       case "final_score":
         setFinalScore(msg.data);
-        setPhase("ended");
+        safeSetPhase("ended");
         setIsLoading(false);
         break;
         
       case "game_end":
-        setPhase("ended");
+        safeSetPhase("ended");
         setIsLoading(false);
         break;
         
@@ -205,7 +225,7 @@ export default function GamePage() {
         setIsLoading(false);
         break;
     }
-  }, [inBriefing]);
+  }, [inBriefing, safeSetPhase]);
 
   const stripOptionsFromNarrative = useCallback((text: string): string => {
     const lines = text.split('\n');
@@ -225,7 +245,7 @@ export default function GamePage() {
 
   const beginEra = useCallback(() => {
     setInBriefing(false);
-    setPhase("gameplay");
+    safeSetPhase("gameplay");
     
     messageBuffer.current.forEach(bufferedMsg => {
       switch (bufferedMsg.type) {
@@ -249,7 +269,7 @@ export default function GamePage() {
       }
     });
     messageBuffer.current = [];
-  }, []);
+  }, [safeSetPhase]);
 
   useEffect(() => {
     const socket = io({
@@ -293,7 +313,9 @@ export default function GamePage() {
   };
 
   const startAdventure = () => {
-    setIsLoading(true);
+    pastSetup.current = true;
+    setPhase("loading");
+    setLoadingMessage("Traveling through time...");
     socketRef.current?.emit('enter_first_era');
     setWaitingAction(null);
   };
@@ -312,12 +334,14 @@ export default function GamePage() {
   };
 
   const restartGame = () => {
+    pastSetup.current = false;
     setPhase("title");
     setNarrative("");
     setChoices([]);
     setFinalScore(null);
     setCurrentEra(null);
     setInBriefing(false);
+    setLoadingMessage("");
     messageBuffer.current = [];
     regionAutoSelectHandled.current = false;
     socketRef.current?.emit('restart');
@@ -363,12 +387,19 @@ export default function GamePage() {
             <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
             <p className="text-gray-400 text-center">How will you fare in another era?</p>
             <Button 
-              onClick={() => setPhase("setup_name")}
+              onClick={() => safeSetPhase("setup_name")}
               className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-lg"
               data-testid="button-start"
             >
               Begin Your Journey
             </Button>
+          </div>
+        )}
+
+        {phase === "loading" && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6">
+            <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400 text-center">{loadingMessage || "Loading..."}</p>
           </div>
         )}
 
