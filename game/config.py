@@ -32,18 +32,24 @@ EUROPEAN_ERA_IDS = [
 # Minimum turns before window can open (prevents slot-machine gameplay)
 WINDOW_MIN_TURNS = 7
 
-# Base probability of window opening after minimum turns (per turn)
-WINDOW_BASE_PROBABILITY = 0.15
+# Window probability by turn (guaranteed by turn 10)
+# Turn 7: 30%, Turn 8: 50%, Turn 9: 75%, Turn 10: 100%
+WINDOW_PROBABILITIES = {
+    7: 0.30,
+    8: 0.50,
+    9: 0.75,
+    10: 1.00,  # Guaranteed
+}
 
-# Probability increases by this amount each turn after minimum
-WINDOW_PROBABILITY_INCREMENT = 0.05
-
-# Maximum probability cap (ensures window eventually opens)
-WINDOW_PROBABILITY_CAP = 0.85
+# Legacy settings (kept for reference, no longer used)
+WINDOW_BASE_PROBABILITY = 0.30  # Starting probability at turn 7
+WINDOW_PROBABILITY_INCREMENT = 0.20  # Roughly matches new curve
+WINDOW_PROBABILITY_CAP = 1.0  # Guaranteed by turn 10
 
 # Small chance of very long gap (makes some playthroughs feel different)
-LONG_GAP_PROBABILITY = 0.05
-LONG_GAP_EXTRA_TURNS = 10  # Added to minimum if long gap triggers
+# DISABLED - we now guarantee window by turn 10
+LONG_GAP_PROBABILITY = 0.0  # Was 0.05
+LONG_GAP_EXTRA_TURNS = 0  # Was 10
 
 # Window duration in turns (how long player has to decide)
 WINDOW_DURATION_TURNS = 3  # Represents about a week in-game

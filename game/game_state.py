@@ -164,28 +164,38 @@ class GameState:
         
         self.phase = GamePhase.ARRIVAL
     
-    def advance_turn(self) -> Dict[str, Any]:
+    def check_and_advance_turn(self) -> Dict[str, Any]:
         """
-        Advance one turn and return events that occurred.
+        Check if window will open, advance turn, and return events.
+        
+        This is the primary method to call - it handles everything in one pass
+        so callers can decide which prompt to generate BEFORE streaming narrative.
         
         Returns dict with:
-        - window_opened: bool
-        - window_closing: bool (last turn of window)
-        - window_closed: bool
+        - window_opened: bool - Window just opened THIS turn
+        - window_closing: bool - Window is on its last turn
+        - window_closed: bool - Window just closed (player let it expire)
+        - window_already_open: bool - Window was already open before this turn
         """
         events = {
             "window_opened": False,
             "window_closing": False,
-            "window_closed": False
+            "window_closed": False,
+            "window_already_open": False
         }
         
+        # Track if window was already open
+        was_active = self.time_machine.window_active
+        if was_active:
+            events["window_already_open"] = True
+        
+        # Advance era turn counter
         if self.current_era:
             self.current_era.advance_turn()
         
         self.fulfillment.advance_turn()
         
-        # Check time machine
-        was_active = self.time_machine.window_active
+        # Check time machine - this may open or close the window
         window_opened = self.time_machine.advance_turn()
         
         if window_opened:
@@ -198,6 +208,20 @@ class GameState:
             events["window_closing"] = True
         
         return events
+    
+    def advance_turn(self) -> Dict[str, Any]:
+        """
+        Advance one turn and return events that occurred.
+        
+        DEPRECATED: Use check_and_advance_turn() instead for new code.
+        Kept for backward compatibility.
+        
+        Returns dict with:
+        - window_opened: bool
+        - window_closing: bool (last turn of window)
+        - window_closed: bool
+        """
+        return self.check_and_advance_turn()
     
     def choose_to_stay(self, is_final: bool = False):
         """Player chooses to stay in current era"""

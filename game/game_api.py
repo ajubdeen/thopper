@@ -208,13 +208,13 @@ class NarrativeEngine:
     def _demo_response(self, prompt: str) -> str:
         """Demo response when API unavailable"""
         if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you first—woodsmoke, animal dung, something cooking. Your ears ring from the transition.
+            return """You stumble forward, catching yourself against rough stone. The air hits you firstâ€”woodsmoke, animal dung, something cooking. Your ears ring from the transition.
 
 When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
 
 A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
 
-You are Thomas the Stranger now—that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
+You are Thomas the Stranger nowâ€”that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
 
 A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
 
@@ -277,8 +277,13 @@ class GameAPI:
         """Set player name and move to region selection"""
         self.state.player_name = name if name.strip() else "Traveler"
         
+        # TEMPORARY: Force European-only eras to avoid race/ethnicity immersion issues
+        # Player is established as 24yo from Bay Area (implicitly white/Western)
+        # Non-Western eras require proper handling of appearance/otherness
+        # TODO: Re-enable region selection when player appearance system is implemented
         yield emit(MessageType.SETUP_REGION, {
             "prompt": "Where in history?",
+            "auto_select": "european",  # Frontend should skip this screen and use this value
             "options": [
                 {
                     "id": "european",
@@ -329,20 +334,20 @@ class GameAPI:
         # Device explanation
         yield emit(MessageType.INTRO_DEVICE, {
             "title": "THE DEVICE",
-            "description": "The time machine is small—about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
+            "description": "The time machine is smallâ€”about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
             "mechanics": [
-                "The window won't open immediately when you arrive somewhere new",
-                "You'll have time to settle in first—typically most of a year",
+                "The window to use it won't open immediately when you arrive",
+                "You'll have time to settle in firstâ€”typically most of a year",
                 "When the window opens, you have a short time to decide",
                 "Choose to activate it, or let the window close and stay"
             ],
             "catch": [
-                "You can't choose where or when you go—it's random",
+                "You can't choose when you goâ€”it's random",
                 "Your three items always come with you",
                 "Your relationships do NOT come with you",
                 "Each jump means starting over"
             ],
-            "goal": "Find a time and place where you want to stay. Build something worth staying for—people, purpose, freedom. When the window opens and you choose not to leave... that's when you've found happiness."
+            "goal": "Find a time and place where you want to stay. Build something worth staying forâ€”people, purpose, freedom. When the window opens and you choose not to leave... that's when you've found happiness."
         })
         
         yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_era"})
@@ -364,62 +369,99 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices
+        # Check for special window choices (window was already open from previous turn)
         if self.state.phase == GamePhase.WINDOW_OPEN:
-            if choice == 'B':  # Leave this era
+            if choice == 'A':  # Leave this era (new ordering)
                 yield from self._handle_leaving()
                 return
-            if choice == 'C' and self.state.can_stay_meaningfully:  # Stay forever
+            if choice == 'B' and self.state.can_stay_meaningfully:  # Stay forever
                 yield from self._handle_stay_forever()
                 return
+            # Otherwise B or C = continue (will generate next turn)
         
-        # Normal turn
+        # Roll dice for this turn
         roll = random.randint(1, 20)
         
-        yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
-        
-        # Generate response
-        prompt = get_turn_prompt(self.state, choice, roll)
-        response = ""
-        
-        # Stream the narrative
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
-        
-        # Get full response if streaming didn't capture it
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record narrative
-        if self.current_game:
-            self.history.add_narrative(self.current_game, response)
-        
-        # Process response (anchors, items)
-        self._process_response(response)
-        
-        # Parse and emit choices
-        choices = self._parse_choices(response)
-        yield emit(MessageType.CHOICES, {
-            "choices": choices,
-            "can_quit": True
-        })
-        
-        # Advance turn and check for window
+        # IMPORTANT: Advance turn FIRST to check if window opens
+        # This lets us decide which prompt to use BEFORE generating narrative
         events = self.state.advance_turn()
         
+        # If window just opened, generate combined turn+window response
         if events["window_opened"]:
-            yield from self._handle_window_open()
-        elif events["window_closing"]:
-            yield emit(MessageType.WINDOW_CLOSING, {
-                "message": "The device pulses urgently. The window is closing..."
+            yield emit(MessageType.WINDOW_OPEN, {
+                "message": "THE WINDOW IS OPEN",
+                "can_stay_meaningfully": self.state.can_stay_meaningfully,
+                "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
             })
-        elif events["window_closed"]:
-            yield emit(MessageType.WINDOW_CLOSED, {
-                "message": "The device falls silent. The moment has passed."
+            
+            yield emit(MessageType.LOADING, {"message": "A moment of decision..."})
+            
+            # Generate combined turn outcome + window choice narrative
+            prompt = self._get_combined_turn_and_window_prompt(choice, roll)
+            response = ""
+            
+            for msg in self.narrator.generate_streaming(prompt):
+                yield msg
+                if msg["type"] == MessageType.NARRATIVE_CHUNK:
+                    response += msg["data"].get("text", "")
+            
+            if not response:
+                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            
+            # Record narrative
+            if self.current_game:
+                self.history.add_narrative(self.current_game, "[The time machine window opens]\n" + response)
+            
+            # Process response (anchors, items)
+            self._process_response(response)
+            
+            # Parse and emit choices (with window-specific options)
+            choices = self._parse_choices(response)
+            yield emit(MessageType.CHOICES, {
+                "choices": choices,
+                "can_quit": not self.state.can_stay_meaningfully,
+                "window_open": True,
+                "can_stay_forever": self.state.can_stay_meaningfully
             })
-            self.state.phase = GamePhase.LIVING
+        else:
+            # Normal turn - generate standard response
+            yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
+            
+            prompt = get_turn_prompt(self.state, choice, roll)
+            response = ""
+            
+            for msg in self.narrator.generate_streaming(prompt):
+                yield msg
+                if msg["type"] == MessageType.NARRATIVE_CHUNK:
+                    response += msg["data"].get("text", "")
+            
+            if not response:
+                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            
+            # Record narrative
+            if self.current_game:
+                self.history.add_narrative(self.current_game, response)
+            
+            # Process response (anchors, items)
+            self._process_response(response)
+            
+            # Parse and emit choices
+            choices = self._parse_choices(response)
+            yield emit(MessageType.CHOICES, {
+                "choices": choices,
+                "can_quit": True
+            })
+            
+            # Handle window state notifications (but NOT window_opened since we handled it above)
+            if events["window_closing"]:
+                yield emit(MessageType.WINDOW_CLOSING, {
+                    "message": "The device pulses urgently. The window is closing..."
+                })
+            elif events["window_closed"]:
+                yield emit(MessageType.WINDOW_CLOSED, {
+                    "message": "The device falls silent. The moment has passed."
+                })
+                self.state.phase = GamePhase.LIVING
         
         # Emit device status
         yield self._get_device_status()
@@ -537,6 +579,95 @@ class GameAPI:
         # Emit device status
         yield self._get_device_status()
     
+    def _get_combined_turn_and_window_prompt(self, choice: str, roll: int) -> str:
+        """
+        Generate a prompt that combines the turn outcome with window opening.
+        This prevents the double-narrative issue where turn and window are separate.
+        """
+        # Luck interpretation
+        if roll <= 5:
+            luck = "UNLUCKY - complications arise, the approach hits obstacles"
+        elif roll <= 8:
+            luck = "SLIGHTLY UNLUCKY - minor setbacks or delays"
+        elif roll <= 12:
+            luck = "NEUTRAL - things go roughly as expected"
+        elif roll <= 16:
+            luck = "LUCKY - things go better than expected"
+        else:
+            luck = "VERY LUCKY - unexpected good fortune, doors open"
+        
+        can_stay = self.state.can_stay_meaningfully
+        fulfillment = self.state.fulfillment.get_narrative_state()
+        window_turns = self.state.time_machine.window_turns_remaining  # Will be 3 since window just opened
+        
+        # Build emotional weight description
+        if can_stay:
+            emotional_weight = """
+The player has BUILT something here. They have:"""
+            if fulfillment['belonging']['has_arrived']:
+                emotional_weight += "\n- People who would miss them, a place in the community"
+            if fulfillment['legacy']['has_arrived']:
+                emotional_weight += "\n- Something lasting they've created or influenced"
+            if fulfillment['freedom']['has_arrived']:
+                emotional_weight += "\n- A life on their own terms, hard-won independence"
+            emotional_weight += """
+
+Leaving now means LOSING much of this. Make this cost FELT in the narrative."""
+        else:
+            emotional_weight = """
+The player hasn't built deep roots here yet. Leaving is easier, less costly.
+But they could stay and build more."""
+        
+        # Choice format - window just opened = turn 1 of 3
+        if can_stay:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME - player accepts this as permanent home)
+[C] Continue with current situation - the window will remain open for a little while longer
+
+Note: [A] leaves, [B] ends the game (permanent stay), [C] continues while window stays open."""
+        else:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind
+[B] First continuation option with current relationships/situation - mention window will remain open a little longer
+[C] Second continuation option - mention window will remain open a little longer
+
+Both [B] and [C] continue the game while the window stays open."""
+        
+        return f"""The player chose: [{choice}]
+Dice roll: {roll}/20 - {luck}
+
+THE TIME MACHINE WINDOW OPENS during this turn's events.
+
+{emotional_weight}
+
+NARRATIVE STRUCTURE:
+1. First, briefly resolve the outcome of their choice [{choice}] (1-2 paragraphs)
+2. Time passes appropriately (weeks, as usual for a turn)
+3. THEN the device pulses - the window opens
+4. Describe the weight of the moment - what they've built, who would miss them
+5. Present window-aware choices
+
+The narrative should flow naturally from choice resolution into the window moment.
+Do NOT present two separate sets of choices - only ONE set at the end.
+
+CRITICAL: Keep the time machine choice CLEAN. The player must be able to simply 
+activate the device. No combat, imprisonment, or obstacles to leaving.
+
+{choice_format}
+
+FORMAT:
+- 3-4 paragraphs total, ending with the window moment
+- Then present the choices as specified above
+
+<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>
+
+IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
+
     def _handle_window_open(self) -> Generator[Dict, None, None]:
         """Handle when travel window opens"""
         self.state.phase = GamePhase.WINDOW_OPEN

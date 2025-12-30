@@ -73,7 +73,7 @@ class Spinner:
         self.message = message
         self.spinning = False
         self.thread = None
-        self.frames = ['â€”', '\\', '|', '/']
+        self.frames = ['Ã¢â‚¬â€', '\\', '|', '/']
         
     def _spin(self):
         idx = 0
@@ -102,24 +102,24 @@ def clear_screen():
 def print_box(lines, color=Colors.CYAN, width=70):
     """Print text in a box"""
     content_width = width - 2
-    print(f"{color}â•”{'â•' * width}â•—{Colors.END}")
+    print(f"{color}Ã¢â€¢â€{'Ã¢â€¢Â' * width}Ã¢â€¢â€”{Colors.END}")
     for line in lines:
         for subline in str(line).split('\n'):
             if len(subline.strip()) == 0:
-                print(f"{color}â•‘{Colors.END} {' ' * content_width} {color}â•‘{Colors.END}")
+                print(f"{color}Ã¢â€¢â€˜{Colors.END} {' ' * content_width} {color}Ã¢â€¢â€˜{Colors.END}")
             else:
                 wrapped = textwrap.wrap(subline, width=content_width) or ['']
                 for wrapped_line in wrapped:
                     padded = wrapped_line.ljust(content_width)
-                    print(f"{color}â•‘{Colors.END} {padded} {color}â•‘{Colors.END}")
-    print(f"{color}â•š{'â•' * width}â•{Colors.END}")
+                    print(f"{color}Ã¢â€¢â€˜{Colors.END} {padded} {color}Ã¢â€¢â€˜{Colors.END}")
+    print(f"{color}Ã¢â€¢Å¡{'Ã¢â€¢Â' * width}Ã¢â€¢Â{Colors.END}")
 
 
 def print_header(text, color=Colors.HEADER):
     """Print a section header"""
-    print(f"\n{color}{Colors.BOLD}{'â•' * 70}")
+    print(f"\n{color}{Colors.BOLD}{'Ã¢â€¢Â' * 70}")
     print(f"  {text}")
-    print(f"{'â•' * 70}{Colors.END}\n")
+    print(f"{'Ã¢â€¢Â' * 70}{Colors.END}\n")
 
 
 def slow_print(text, delay=TEXT_SPEED):
@@ -260,13 +260,13 @@ class NarrativeEngine:
     def _demo_response(self, prompt: str) -> str:
         """Demo response when API unavailable"""
         if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you firstâ€”woodsmoke, animal dung, something cooking. Your ears ring from the transition.
+            return """You stumble forward, catching yourself against rough stone. The air hits you firstÃ¢â‚¬â€woodsmoke, animal dung, something cooking. Your ears ring from the transition.
 
 When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
 
 A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
 
-You are Thomas the Stranger nowâ€”that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
+You are Thomas the Stranger nowÃ¢â‚¬â€that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
 
 A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
 
@@ -311,7 +311,12 @@ class Game:
         
         # Setup
         self._get_player_info()
-        self._select_region()
+        # TEMPORARY: Skip region selection, force European-only eras
+        # Player is established as 24yo from Bay Area (implicitly white/Western)
+        # Non-Western eras require proper handling of appearance/otherness
+        # TODO: Re-enable when player appearance system is implemented
+        # self._select_region()
+        self._selected_region = RegionPreference.EUROPEAN
         self._select_mode()
         self._show_items()
         
@@ -325,14 +330,14 @@ class Game:
     def _show_title(self):
         """Display title screen"""
         title = """
-    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
-    â•‘                                                                  â•‘
-    â•‘            â–„â–€â–ˆ â–ˆâ–„ â–ˆ â–„â–€â–ˆ â–ˆâ–€â–€ â–ˆ â–ˆ â–ˆâ–€â–ˆ â–ˆâ–€â–ˆ â–ˆâ–„ â–ˆ                     â•‘
-    â•‘            â–ˆâ–€â–ˆ â–ˆ â–€â–ˆ â–ˆâ–€â–ˆ â–ˆâ–„â–„ â–ˆâ–€â–ˆ â–ˆâ–€â–„ â–ˆâ–„â–ˆ â–ˆ â–€â–ˆ                     â•‘
-    â•‘                                                                  â•‘
-    â•‘              "How will you fare in another era?"                 â•‘
-    â•‘                                                                  â•‘
-    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    Ã¢â€¢â€Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢â€”
+    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
+    Ã¢â€¢â€˜            Ã¢â€“â€žÃ¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€ž Ã¢â€“Ë† Ã¢â€“â€žÃ¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“â‚¬ Ã¢â€“Ë† Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€ž Ã¢â€“Ë†                     Ã¢â€¢â€˜
+    Ã¢â€¢â€˜            Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë† Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â€žÃ¢â€“â€ž Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“Ë† Ã¢â€“Ë†Ã¢â€“â‚¬Ã¢â€“â€ž Ã¢â€“Ë†Ã¢â€“â€žÃ¢â€“Ë† Ã¢â€“Ë† Ã¢â€“â‚¬Ã¢â€“Ë†                     Ã¢â€¢â€˜
+    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
+    Ã¢â€¢â€˜              "How will you fare in another era?"                 Ã¢â€¢â€˜
+    Ã¢â€¢â€˜                                                                  Ã¢â€¢â€˜
+    Ã¢â€¢Å¡Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
         """
         print(f"{Colors.CYAN}{title}{Colors.END}")
         input(f"\n{Colors.DIM}Press Enter to begin...{Colors.END}")
@@ -391,7 +396,7 @@ class Game:
         print()
         
         for item in self.state.inventory.modern_items:
-            print(f"  {Colors.GREEN}â€¢ {item.name}{Colors.END}")
+            print(f"  {Colors.GREEN}Ã¢â‚¬Â¢ {item.name}{Colors.END}")
             print(f"    {Colors.DIM}{item.description}{Colors.END}")
             print()
         
@@ -405,27 +410,27 @@ class Game:
         clear_screen()
         print_header("THE DEVICE")
         
-        slow_print("The time machine is smallâ€”about the size of a chunky wristwatch.")
+        slow_print("The time machine is smallÃ¢â‚¬â€about the size of a chunky wristwatch.")
         slow_print("You wear it on your wrist, hidden under your sleeve.")
         time.sleep(0.5)
         
         print(f"\n{Colors.CYAN}HOW IT WORKS:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} The window won't open immediately when you arrive somewhere new")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} You'll have time to settle in firstâ€”typically most of a year")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} When the window opens, you have a short time to decide")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} Choose to activate it, or let the window close and stay")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} The window to use it won't open immediately when you arrive")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} You'll have time to settle in firstÃ¢â‚¬â€typically most of a year")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} When the window opens, you have a short time to decide")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Choose to activate it, or let the window close and stay")
         print()
         
         print(f"{Colors.CYAN}THE CATCH:{Colors.END}\n")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} You can't choose where or when you goâ€”it's random")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} Your three items always come with you")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} Your relationships do NOT come with you")
-        print(f"  {Colors.YELLOW}â€¢{Colors.END} Each jump means starting over")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} You can't choose when you goÃ¢â‚¬â€it's random")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Your three items always come with you")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Your relationships do NOT come with you")
+        print(f"  {Colors.YELLOW}Ã¢â‚¬Â¢{Colors.END} Each jump means starting over")
         print()
         
         print(f"{Colors.CYAN}THE GOAL:{Colors.END}\n")
         slow_print("  Find a time and place where you want to stay.")
-        slow_print("  Build something worth staying forâ€”people, purpose, freedom.")
+        slow_print("  Build something worth staying forÃ¢â‚¬â€people, purpose, freedom.")
         slow_print("  When the window opens and you choose not to leave...")
         slow_print("  that's when you've found happiness.")
         
@@ -494,7 +499,7 @@ class Game:
         """Show a brief summary of the era's main themes"""
         era = self.current_era
         
-        print(f"{Colors.CYAN}â”â”â” About This Era â”â”â”{Colors.END}")
+        print(f"{Colors.CYAN}Ã¢â€ÂÃ¢â€ÂÃ¢â€Â About This Era Ã¢â€ÂÃ¢â€ÂÃ¢â€Â{Colors.END}")
         print()
         
         # Location and time context
@@ -512,13 +517,10 @@ class Game:
         if key_events:
             print(f"  {Colors.YELLOW}What defines this time:{Colors.END}")
             for event in key_events:
-                # Truncate long events
-                if len(event) > 75:
-                    event = event[:72] + "..."
-                print(f"    â€¢ {event}")
+                print(f"    Ã¢â‚¬Â¢ {event}")
             print()
         
-        print(f"{Colors.CYAN}â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”{Colors.END}")
+        print(f"{Colors.CYAN}Ã¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€ÂÃ¢â€Â{Colors.END}")
         print()
     
     def _play_turn(self):
@@ -543,45 +545,157 @@ class Game:
             self._handle_quit()
             return
         
-        # Check for special window choices
+        # Check for special window choices (window was already open from previous turn)
         if self.state.phase == GamePhase.WINDOW_OPEN:
-            # B = leave this era
-            if self._is_leaving_choice(choice):
+            # A = leave this era (new ordering)
+            if choice == 'A':
                 self._handle_leaving()
                 return
-            # C = stay forever (only when can_stay_meaningfully)
-            if choice == 'C' and self.state.can_stay_meaningfully:
+            # B = stay forever (only when can_stay_meaningfully)
+            if choice == 'B' and self.state.can_stay_meaningfully:
                 self._handle_stay_forever()
                 return
+            # Otherwise B or C = continue (will generate next turn)
         
-        # Normal turn
+        # Roll dice for this turn
         roll = roll_dice()
+        
+        # IMPORTANT: Advance turn FIRST to check if window opens
+        # This lets us decide which prompt to use BEFORE generating narrative
+        events = self.state.advance_turn()
         
         clear_screen()
         if self.state.current_era:
             print(f"{Colors.DIM}{self.current_era['name']} | {self.state.current_era.time_in_era_description}{Colors.END}\n")
         
-        # Generate response
-        prompt = get_turn_prompt(self.state, choice, roll)
-        response = self.narrator.generate(prompt)
+        # If window just opened, generate window-aware response instead of normal turn
+        if events["window_opened"]:
+            # Show window opened header
+            print(f"{Colors.GREEN}{'═' * 50}{Colors.END}")
+            print(f"{Colors.GREEN}  THE WINDOW IS OPEN{Colors.END}")
+            print(f"{Colors.GREEN}{'═' * 50}{Colors.END}")
+            print()
+            
+            if self.state.can_stay_meaningfully:
+                print(f"{Colors.YELLOW}You've built something here. You could stay forever...{Colors.END}\n")
+            
+            # Generate combined turn outcome + window choice narrative
+            prompt = self._get_combined_turn_and_window_prompt(choice, roll)
+            response = self.narrator.generate(prompt)
+            
+            # Record narrative in history
+            if self.current_game:
+                self.history.add_narrative(self.current_game, "[The time machine window opens]\n" + response)
+        else:
+            # Normal turn - generate standard response
+            prompt = get_turn_prompt(self.state, choice, roll)
+            response = self.narrator.generate(prompt)
+            
+            # Record narrative in history
+            if self.current_game:
+                self.history.add_narrative(self.current_game, response)
         
-        # Record narrative in history
-        if self.current_game:
-            self.history.add_narrative(self.current_game, response)
-        
-        # Process response
+        # Process response (anchors, items)
         self._process_response(response)
         
-        # Advance turn and check for window
-        events = self.state.advance_turn()
-        
-        if events["window_opened"]:
-            self._handle_window_open()
-        elif events["window_closing"]:
+        # Handle window state notifications (but NOT window_opened since we handled it above)
+        if events["window_closing"]:
             print(f"\n{Colors.YELLOW}The device pulses urgently. The window is closing...{Colors.END}")
         elif events["window_closed"]:
             print(f"\n{Colors.DIM}The device falls silent. The moment has passed.{Colors.END}")
             self.state.phase = GamePhase.LIVING
+    
+    def _get_combined_turn_and_window_prompt(self, choice: str, roll: int) -> str:
+        """
+        Generate a prompt that combines the turn outcome with window opening.
+        This prevents the double-narrative issue where turn and window are separate.
+        """
+        # Luck interpretation
+        if roll <= 5:
+            luck = "UNLUCKY - complications arise, the approach hits obstacles"
+        elif roll <= 8:
+            luck = "SLIGHTLY UNLUCKY - minor setbacks or delays"
+        elif roll <= 12:
+            luck = "NEUTRAL - things go roughly as expected"
+        elif roll <= 16:
+            luck = "LUCKY - things go better than expected"
+        else:
+            luck = "VERY LUCKY - unexpected good fortune, doors open"
+        
+        can_stay = self.state.can_stay_meaningfully
+        fulfillment = self.state.fulfillment.get_narrative_state()
+        window_turns = self.state.time_machine.window_turns_remaining  # Will be 3 since window just opened
+        
+        # Build emotional weight description
+        if can_stay:
+            emotional_weight = """
+The player has BUILT something here. They have:"""
+            if fulfillment['belonging']['has_arrived']:
+                emotional_weight += "\n- People who would miss them, a place in the community"
+            if fulfillment['legacy']['has_arrived']:
+                emotional_weight += "\n- Something lasting they've created or influenced"
+            if fulfillment['freedom']['has_arrived']:
+                emotional_weight += "\n- A life on their own terms, hard-won independence"
+            emotional_weight += """
+
+Leaving now means LOSING much of this. Make this cost FELT in the narrative."""
+        else:
+            emotional_weight = """
+The player hasn't built deep roots here yet. Leaving is easier, less costly.
+But they could stay and build more."""
+        
+        # Choice format depends on window turn and whether can_stay_meaningfully
+        # Window just opened = 3 turns remaining = turn 1 of window
+        # This is always turn 1 since window just opened in _get_combined_turn_and_window_prompt
+        
+        if can_stay:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME - player accepts this as permanent home)
+[C] Continue with current situation - the window will remain open for a little while longer
+
+Note: [B] ends the game. [C] lets player continue while window stays open."""
+        else:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind  
+[B] First continuation option with current relationships/situation - mention window will remain open a little longer
+[C] Second continuation option - mention window will remain open a little longer
+
+Both [B] and [C] continue the game while the window stays open."""
+        
+        return f"""The player chose: [{choice}]
+Dice roll: {roll}/20 - {luck}
+
+THE TIME MACHINE WINDOW OPENS during this turn's events.
+
+{emotional_weight}
+
+NARRATIVE STRUCTURE:
+1. First, briefly resolve the outcome of their choice [{choice}] (1-2 paragraphs)
+2. Time passes appropriately (weeks, as usual for a turn)
+3. THEN the device pulses - the window opens
+4. Describe the weight of the moment - what they've built, who would miss them
+5. Present window-aware choices
+
+The narrative should flow naturally from choice resolution into the window moment.
+Do NOT present two separate sets of choices - only ONE set at the end.
+
+CRITICAL: Keep the time machine choice CLEAN. The player must be able to simply 
+activate the device. No combat, imprisonment, or obstacles to leaving.
+
+{choice_format}
+
+FORMAT:
+- 3-4 paragraphs total, ending with the window moment
+- Then present the choices as specified above
+
+<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>
+
+IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
     
     def _show_device_status(self):
         """Show time machine indicator status"""
@@ -606,9 +720,9 @@ class Game:
         if self.current_era:
             print(f"{Colors.DIM}{self.current_era['name']} | {self.state.current_era.time_in_era_description}{Colors.END}\n")
         
-        print(f"{Colors.GREEN}{'â•' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'Ã¢â€¢Â' * 50}{Colors.END}")
         print(f"{Colors.GREEN}  THE WINDOW IS OPEN{Colors.END}")
-        print(f"{Colors.GREEN}{'â•' * 50}{Colors.END}")
+        print(f"{Colors.GREEN}{'Ã¢â€¢Â' * 50}{Colors.END}")
         print()
         
         if self.state.can_stay_meaningfully:
@@ -627,11 +741,6 @@ class Game:
         
         # Process response
         self._process_response(response)
-    
-    def _is_leaving_choice(self, choice: str) -> bool:
-        """Check if choice is the time machine activation (always B when window is open)"""
-        # When window is open, B is always the "activate time machine" choice per prompts
-        return choice == 'B' and self.state.time_machine.window_active
     
     def _handle_leaving(self):
         """Handle player choosing to leave"""

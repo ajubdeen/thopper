@@ -82,8 +82,12 @@ export default function GamePage() {
         break;
         
       case "setup_region":
-        setPhase("setup_region");
-        setRegionOptions(msg.data.options || []);
+        if (msg.data.auto_select) {
+          socketRef.current?.emit('set_region', { region: msg.data.auto_select });
+        } else {
+          setPhase("setup_region");
+          setRegionOptions(msg.data.options || []);
+        }
         break;
         
       case "intro_story":

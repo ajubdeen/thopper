@@ -14,9 +14,7 @@ from typing import Optional, List
 from enum import Enum
 
 from config import (
-    WINDOW_MIN_TURNS, WINDOW_BASE_PROBABILITY, WINDOW_PROBABILITY_INCREMENT,
-    WINDOW_PROBABILITY_CAP, LONG_GAP_PROBABILITY, LONG_GAP_EXTRA_TURNS,
-    WINDOW_DURATION_TURNS
+    WINDOW_MIN_TURNS, WINDOW_PROBABILITIES, WINDOW_DURATION_TURNS
 )
 
 
@@ -74,7 +72,6 @@ class TimeMachine:
     turns_since_last_window: int = 0
     window_active: bool = False
     window_turns_remaining: int = 0
-    long_gap_triggered: bool = False
     
     # The display
     display: TimeMachineDisplay = field(default_factory=TimeMachineDisplay)
@@ -83,21 +80,8 @@ class TimeMachine:
     eras_visited: List[str] = field(default_factory=list)
     total_turns: int = 0
     
-    # Probability accumulator
+    # Probability accumulator (for indicator display)
     _accumulated_probability: float = 0.0
-    
-    def __post_init__(self):
-        # Check for long gap on first era
-        if random.random() < LONG_GAP_PROBABILITY:
-            self.long_gap_triggered = True
-    
-    @property
-    def effective_min_turns(self) -> int:
-        """Minimum turns before window can open, accounting for long gap"""
-        base = WINDOW_MIN_TURNS
-        if self.long_gap_triggered:
-            base += LONG_GAP_EXTRA_TURNS
-        return base
     
     @property
     def indicator(self) -> IndicatorState:
@@ -105,7 +89,7 @@ class TimeMachine:
         if self.window_active:
             return IndicatorState.BRIGHT_PULSE
         
-        turns_until_eligible = self.effective_min_turns - self.turns_since_last_window
+        turns_until_eligible = WINDOW_MIN_TURNS - self.turns_since_last_window
         
         if turns_until_eligible > 3:
             return IndicatorState.DARK
@@ -127,7 +111,7 @@ class TimeMachine:
             return DeviceState.ACTIVE
         elif self.turns_since_last_window < 2:
             return DeviceState.COOLDOWN
-        elif self.turns_since_last_window >= self.effective_min_turns - 2:
+        elif self.turns_since_last_window >= WINDOW_MIN_TURNS - 2:
             return DeviceState.WARMING
         else:
             return DeviceState.DORMANT
@@ -151,16 +135,18 @@ class TimeMachine:
                 self._close_window()
             return False
         
-        # Check if eligible for window
-        if self.turns_since_last_window < self.effective_min_turns:
+        # Check if eligible for window (must be at least turn 7)
+        if self.turns_since_last_window < WINDOW_MIN_TURNS:
             return False
         
-        # Calculate and accumulate probability
-        turns_over_minimum = self.turns_since_last_window - self.effective_min_turns
-        current_probability = min(
-            WINDOW_BASE_PROBABILITY + (turns_over_minimum * WINDOW_PROBABILITY_INCREMENT),
-            WINDOW_PROBABILITY_CAP
-        )
+        # Get probability from table (guaranteed by turn 10)
+        # Turn 7: 30%, Turn 8: 50%, Turn 9: 75%, Turn 10+: 100%
+        current_turn = self.turns_since_last_window
+        if current_turn >= 10:
+            current_probability = 1.0  # Guaranteed
+        else:
+            current_probability = WINDOW_PROBABILITIES.get(current_turn, 1.0)
+        
         self._accumulated_probability = current_probability
         
         # Roll for window
@@ -181,9 +167,6 @@ class TimeMachine:
         self.window_turns_remaining = 0
         self.turns_since_last_window = 0
         self._accumulated_probability = 0.0
-        
-        # Roll for long gap on next cycle
-        self.long_gap_triggered = random.random() < LONG_GAP_PROBABILITY
     
     def travel(self, new_era_id: str) -> bool:
         """
@@ -198,9 +181,6 @@ class TimeMachine:
         self.window_turns_remaining = 0
         self.turns_since_last_window = 0
         self._accumulated_probability = 0.0
-        
-        # Roll for long gap in new era
-        self.long_gap_triggered = random.random() < LONG_GAP_PROBABILITY
         
         return True
     
