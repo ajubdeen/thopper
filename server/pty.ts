@@ -57,7 +57,6 @@ export function setupPtyWebSocket(httpServer: Server): void {
     console.log(`Browser connected: ${browserSocket.id}`);
 
     const pythonSocket = SocketIOClient("http://127.0.0.1:5001", {
-      transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
