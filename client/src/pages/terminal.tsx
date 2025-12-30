@@ -450,7 +450,7 @@ export default function GamePage() {
                 )}
                 
                 <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {narrative.replace(/\n\s*\[\d+\][^\n]*/g, '').trim()}
+                  {narrative.replace(/\n\s*\[[^\]]+\][^\n]*/g, '')}
                 </div>
                 
                 {isLoading && (
