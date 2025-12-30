@@ -83,6 +83,7 @@ export default function GamePage() {
         
       case "setup_region":
         if (msg.data.auto_select) {
+          setIsLoading(true);
           socketRef.current?.emit('set_region', { region: msg.data.auto_select });
         } else {
           setPhase("setup_region");
