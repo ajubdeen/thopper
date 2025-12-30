@@ -55,6 +55,7 @@ export default function GamePage() {
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
   const [currentEra, setCurrentEra] = useState<EraInfo | null>(null);
   const [eraSummary, setEraSummary] = useState<string[]>([]);
+  const [showEraSummary, setShowEraSummary] = useState(false);
   const [introItems, setIntroItems] = useState<any[]>([]);
   const [introDevice, setIntroDevice] = useState<any>(null);
   const [introStory, setIntroStory] = useState<string[]>([]);
@@ -117,6 +118,7 @@ export default function GamePage() {
           location: msg.data.location
         });
         setNarrative("");
+        setShowEraSummary(true);
         setPhase("gameplay");
         break;
         
@@ -130,6 +132,7 @@ export default function GamePage() {
         
       case "narrative_chunk":
         setNarrative(prev => prev + (msg.data.text || ""));
+        setShowEraSummary(false);
         setIsLoading(false);
         break;
         
@@ -435,7 +438,7 @@ export default function GamePage() {
             
             <ScrollArea className="flex-1 my-2">
               <div className="prose prose-invert prose-sm max-w-none">
-                {eraSummary.length > 0 && narrative === "" && (
+                {eraSummary.length > 0 && showEraSummary && (
                   <div className="mb-4 p-3 bg-gray-900/50 rounded-md">
                     <h4 className="text-cyan-400 text-sm font-medium mb-2">About this era:</h4>
                     <ul className="text-sm text-gray-400 space-y-1 list-none p-0 m-0">
