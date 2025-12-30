@@ -265,7 +265,7 @@ export default function GamePage() {
         <img 
           src={heroImage} 
           alt="Anachron" 
-          className="w-full h-full object-contain"
+          className="w-full h-full object-cover object-top"
           data-testid="img-hero"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-[#0d0d0d]" />
