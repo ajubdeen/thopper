@@ -45,7 +45,7 @@ export default function GamePage() {
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
   const [connected, setConnected] = useState(false);
-  const [phase, setPhase] = useState<GamePhase>("title");
+  const [phase, setPhase] = useState<GamePhase>("setup_name");
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
