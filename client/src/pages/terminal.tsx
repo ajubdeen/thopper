@@ -11,7 +11,6 @@ type GamePhase =
   | "setup_name" 
   | "setup_region" 
   | "intro" 
-  | "era_briefing"
   | "gameplay" 
   | "loading" 
   | "ended";
@@ -42,22 +41,11 @@ interface EraInfo {
   time_in_era?: string;
 }
 
-interface BufferedMessage {
-  type: string;
-  data: any;
-}
-
-const SETUP_PHASES: GamePhase[] = ["title", "setup_name", "setup_region"];
-
 export default function GamePage() {
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
-  const regionAutoSelectHandled = useRef(false);
-  const messageBuffer = useRef<BufferedMessage[]>([]);
-  const pastSetup = useRef(false);
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("title");
-  const [loadingMessage, setLoadingMessage] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -74,7 +62,6 @@ export default function GamePage() {
   const [finalScore, setFinalScore] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [waitingAction, setWaitingAction] = useState<string | null>(null);
-  const [inBriefing, setInBriefing] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     narrativeEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,44 +71,28 @@ export default function GamePage() {
     scrollToBottom();
   }, [narrative, choices, scrollToBottom]);
 
-  const safeSetPhase = useCallback((newPhase: GamePhase) => {
-    if (SETUP_PHASES.includes(newPhase) && pastSetup.current) {
-      return false;
-    }
-    if (!SETUP_PHASES.includes(newPhase)) {
-      pastSetup.current = true;
-    }
-    setPhase(newPhase);
-    setLoadingMessage("");
-    return true;
-  }, []);
-
   const handleMessage = useCallback((msg: GameMessage) => {
     switch (msg.type) {
       case "title":
-        safeSetPhase("title");
+        setPhase("title");
         break;
         
       case "setup_name":
-        safeSetPhase("setup_name");
+        setPhase("setup_name");
         break;
         
       case "setup_region":
-        if (!pastSetup.current) {
-          if (msg.data.auto_select && !regionAutoSelectHandled.current) {
-            regionAutoSelectHandled.current = true;
-            socketRef.current?.emit('set_region', { region: msg.data.auto_select });
-          } else if (!msg.data.auto_select) {
-            safeSetPhase("setup_region");
-            setRegionOptions(msg.data.options || []);
-          }
+        if (msg.data.auto_select) {
+          socketRef.current?.emit('set_region', { region: msg.data.auto_select });
+        } else {
+          setPhase("setup_region");
+          setRegionOptions(msg.data.options || []);
         }
         break;
         
       case "intro_story":
         setIntroStory(msg.data.paragraphs || []);
         setPhase("intro");
-        setLoadingMessage("");
         break;
         
       case "intro_items":
@@ -145,10 +116,7 @@ export default function GamePage() {
           location: msg.data.location
         });
         setNarrative("");
-        setEraSummary([]);
-        messageBuffer.current = [];
-        setInBriefing(true);
-        safeSetPhase("era_briefing");
+        setPhase("gameplay");
         break;
         
       case "era_summary":
@@ -156,40 +124,24 @@ export default function GamePage() {
         break;
         
       case "loading":
-        if (inBriefing) {
-          messageBuffer.current.push({ type: msg.type, data: msg.data });
-        } else {
-          setIsLoading(true);
-        }
+        setIsLoading(true);
         break;
         
       case "narrative_chunk":
-        if (inBriefing) {
-          messageBuffer.current.push({ type: msg.type, data: msg.data });
-        } else {
-          setNarrative(prev => prev + (msg.data.text || ""));
-          setIsLoading(false);
-        }
+        setNarrative(prev => prev + (msg.data.text || ""));
+        setIsLoading(false);
         break;
         
       case "choices":
-        if (inBriefing) {
-          messageBuffer.current.push({ type: msg.type, data: msg.data });
-        } else {
-          setChoices(msg.data.choices || []);
-          setCanQuit(msg.data.can_quit !== false);
-          setWindowOpen(msg.data.window_open || false);
-          setCanStayForever(msg.data.can_stay_forever || false);
-          setIsLoading(false);
-        }
+        setChoices(msg.data.choices || []);
+        setCanQuit(msg.data.can_quit !== false);
+        setWindowOpen(msg.data.window_open || false);
+        setCanStayForever(msg.data.can_stay_forever || false);
+        setIsLoading(false);
         break;
         
       case "device_status":
-        if (inBriefing) {
-          messageBuffer.current.push({ type: msg.type, data: msg.data });
-        } else {
-          setDeviceStatus(msg.data);
-        }
+        setDeviceStatus(msg.data);
         break;
         
       case "window_open":
@@ -209,12 +161,12 @@ export default function GamePage() {
         
       case "final_score":
         setFinalScore(msg.data);
-        safeSetPhase("ended");
+        setPhase("ended");
         setIsLoading(false);
         break;
         
       case "game_end":
-        safeSetPhase("ended");
+        setPhase("ended");
         setIsLoading(false);
         break;
         
@@ -223,51 +175,7 @@ export default function GamePage() {
         setIsLoading(false);
         break;
     }
-  }, [inBriefing, safeSetPhase]);
-
-  const stripOptionsFromNarrative = useCallback((text: string): string => {
-    const lines = text.split('\n');
-    const filtered = lines.filter(line => {
-      const trimmed = line.trim();
-      if (/^[1-9]\.\s/.test(trimmed)) return false;
-      if (/^[1-9]\)\s/.test(trimmed)) return false;
-      if (/^\([1-9]\)\s/.test(trimmed)) return false;
-      if (/^\[?[1-9Q]\]?\s*[-–—:]?\s/.test(trimmed)) return false;
-      if (/^Option\s+[1-9]:/i.test(trimmed)) return false;
-      if (/^Choice\s+[1-9]:/i.test(trimmed)) return false;
-      if (/^\*\*\[?[1-9]\]?\*\*/.test(trimmed)) return false;
-      return true;
-    });
-    return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   }, []);
-
-  const beginEra = useCallback(() => {
-    setInBriefing(false);
-    safeSetPhase("gameplay");
-    
-    messageBuffer.current.forEach(bufferedMsg => {
-      switch (bufferedMsg.type) {
-        case "loading":
-          setIsLoading(true);
-          break;
-        case "narrative_chunk":
-          setNarrative(prev => prev + (bufferedMsg.data.text || ""));
-          setIsLoading(false);
-          break;
-        case "choices":
-          setChoices(bufferedMsg.data.choices || []);
-          setCanQuit(bufferedMsg.data.can_quit !== false);
-          setWindowOpen(bufferedMsg.data.window_open || false);
-          setCanStayForever(bufferedMsg.data.can_stay_forever || false);
-          setIsLoading(false);
-          break;
-        case "device_status":
-          setDeviceStatus(bufferedMsg.data);
-          break;
-      }
-    });
-    messageBuffer.current = [];
-  }, [safeSetPhase]);
 
   useEffect(() => {
     const socket = io({
@@ -311,10 +219,9 @@ export default function GamePage() {
   };
 
   const startAdventure = () => {
-    pastSetup.current = true;
-    setPhase("loading");
-    setLoadingMessage("Traveling through time...");
+    setIsLoading(true);
     socketRef.current?.emit('enter_first_era');
+    setWaitingAction(null);
   };
 
   const makeChoice = (choiceId: string) => {
@@ -331,16 +238,11 @@ export default function GamePage() {
   };
 
   const restartGame = () => {
-    pastSetup.current = false;
     setPhase("title");
     setNarrative("");
     setChoices([]);
     setFinalScore(null);
     setCurrentEra(null);
-    setInBriefing(false);
-    setLoadingMessage("");
-    messageBuffer.current = [];
-    regionAutoSelectHandled.current = false;
     socketRef.current?.emit('restart');
   };
 
@@ -384,19 +286,12 @@ export default function GamePage() {
             <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
             <p className="text-gray-400 text-center">How will you fare in another era?</p>
             <Button 
-              onClick={() => safeSetPhase("setup_name")}
+              onClick={() => setPhase("setup_name")}
               className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-lg"
               data-testid="button-start"
             >
               Begin Your Journey
             </Button>
-          </div>
-        )}
-
-        {phase === "loading" && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6">
-            <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400 text-center">{loadingMessage || "Loading..."}</p>
           </div>
         )}
 
@@ -514,41 +409,6 @@ export default function GamePage() {
           </ScrollArea>
         )}
 
-        {phase === "era_briefing" && currentEra && (
-          <ScrollArea className="flex-1">
-            <div className="max-w-md mx-auto py-6 px-4 space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-amber-400">{currentEra.name}</h2>
-                <p className="text-gray-400">{currentEra.location} • {currentEra.year_display}</p>
-              </div>
-              
-              {eraSummary.length > 0 && (
-                <Card className="bg-gray-900 border-gray-700">
-                  <CardContent className="p-4 space-y-3">
-                    <h3 className="text-cyan-400 font-medium">What's happening in this era:</h3>
-                    <ul className="space-y-2">
-                      {eraSummary.map((event, i) => (
-                        <li key={i} className="flex gap-3 text-gray-300">
-                          <span className="text-amber-400 flex-shrink-0">•</span>
-                          <span>{event}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )}
-              
-              <Button 
-                onClick={beginEra}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg"
-                data-testid="button-begin-era"
-              >
-                Begin Era
-              </Button>
-            </div>
-          </ScrollArea>
-        )}
-
         {phase === "gameplay" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {currentEra && (
@@ -575,8 +435,22 @@ export default function GamePage() {
             
             <ScrollArea className="flex-1 my-2">
               <div className="prose prose-invert prose-sm max-w-none">
+                {eraSummary.length > 0 && narrative === "" && (
+                  <div className="mb-4 p-3 bg-gray-900/50 rounded-md">
+                    <h4 className="text-cyan-400 text-sm font-medium mb-2">About this era:</h4>
+                    <ul className="text-sm text-gray-400 space-y-1 list-none p-0 m-0">
+                      {eraSummary.map((event, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-gray-600">•</span>
+                          <span>{event}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
                 <div className="text-gray-300 leading-relaxed whitespace-pre-wrap">
-                  {stripOptionsFromNarrative(narrative)}
+                  {narrative}
                 </div>
                 
                 {isLoading && (
@@ -591,19 +465,17 @@ export default function GamePage() {
             </ScrollArea>
             
             {choices.length > 0 && !isLoading && (
-              <div className="flex-shrink-0 space-y-2 pt-2 border-t border-gray-800 px-1">
+              <div className="flex-shrink-0 space-y-2 pt-2 border-t border-gray-800">
                 {choices.map((choice) => (
                   <Button
                     key={choice.id}
                     onClick={() => makeChoice(choice.id)}
                     variant="outline"
-                    className="w-full text-left h-auto py-3 px-4 border-gray-700 bg-gray-900/50 hover:bg-gray-800 hover:border-amber-600 whitespace-normal"
+                    className="w-full justify-start text-left h-auto py-3 px-4 border-gray-700 bg-gray-900/50 hover:bg-gray-800 hover:border-amber-600"
                     data-testid={`button-choice-${choice.id}`}
                   >
-                    <div className="flex items-start gap-3 w-full">
-                      <span className="text-amber-400 font-bold flex-shrink-0">[{choice.id}]</span>
-                      <span className="text-gray-300 text-left">{choice.text}</span>
-                    </div>
+                    <span className="text-amber-400 font-bold mr-3">[{choice.id}]</span>
+                    <span className="text-gray-300">{choice.text}</span>
                   </Button>
                 ))}
                 
