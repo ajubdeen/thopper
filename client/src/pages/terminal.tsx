@@ -222,7 +222,6 @@ export default function GamePage() {
   const startAdventure = () => {
     setIsLoading(true);
     socketRef.current?.emit('enter_first_era');
-    setWaitingAction(null);
   };
 
   const makeChoice = (choiceId: string) => {
