@@ -948,12 +948,22 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, "[You choose to stay forever]\n" + response)
         
+        # Store ending narrative for later use
+        self._ending_narrative = strip_anchor_tags(response)
+        
         # End the game
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
+        # Wait for user to continue to score screen
+        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
+    
+    def continue_to_score(self) -> Generator[Dict, None, None]:
+        """Continue to the score screen after viewing ending narrative"""
+        ending_narrative = getattr(self, '_ending_narrative', None)
+        
         # Calculate and emit score
-        yield from self._emit_final_score()
+        yield from self._emit_final_score(ending_narrative=ending_narrative)
         
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
@@ -981,7 +991,7 @@ class GameAPI:
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
     
-    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
+    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = None) -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
         score = calculate_score(
             self.state, 
@@ -994,9 +1004,9 @@ class GameAPI:
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard
+        # Add to leaderboard (include ending narrative for leaderboard entry)
         leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score)
+        rank = leaderboard.add_score(score, ending_narrative=ending_narrative)
         
         yield emit(MessageType.FINAL_SCORE, {
             "total": score.total,
@@ -1021,7 +1031,7 @@ class GameAPI:
                     "bonus": score.ending_bonus
                 }
             },
-            "summary": score.get_narrative_summary(),
+            "ending_narrative": ending_narrative,
             "blurb": score.get_blurb(),
             "final_era": score.final_era
         })
@@ -1117,6 +1127,10 @@ class GameSession:
     def continue_to_next_era(self) -> List[Dict]:
         """Continue after departure"""
         return list(self.api.continue_to_next_era())
+    
+    def continue_to_score(self) -> List[Dict]:
+        """Continue to score screen after viewing ending narrative"""
+        return list(self.api.continue_to_score())
     
     def get_state(self) -> Dict:
         """Get current state"""
