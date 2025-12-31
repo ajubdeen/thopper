@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "saved_at": "2025-12-31T04:39:59.642279",
+  "saved_at": "2025-12-31T05:05:14.605046",
   "player_name": "Saber",
   "mode": "mature",
   "region_preference": "european",
-  "phase": "window_open",
+  "phase": "living",
   "started_at": "2025-12-31T04:33:23.588326",
   "ended_at": null,
   "ending_type": null,
@@ -14,7 +14,7 @@
     "era_name": "Viking Age Scandinavia",
     "era_year": 900,
     "era_location": "Scandinavia",
-    "turns_in_era": 7,
+    "turns_in_era": 11,
     "character_name": null,
     "relationships": [],
     "events": [
@@ -26,20 +26,24 @@
       "Turn 4",
       "Turn 5",
       "Turn 6",
-      "Turn 7"
+      "Turn 7",
+      "Turn 7",
+      "Turn 8",
+      "Turn 9",
+      "Turn 10"
     ],
     "situation": ""
   },
   "era_history": [],
   "time_machine": {
-    "turns_since_last_window": 7,
-    "window_active": true,
-    "window_turns_remaining": 3,
+    "turns_since_last_window": 1,
+    "window_active": false,
+    "window_turns_remaining": 0,
     "eras_visited": [
       "viking_age"
     ],
-    "total_turns": 7,
-    "_accumulated_probability": 0.3,
+    "total_turns": 11,
+    "_accumulated_probability": 0.0,
     "display": {
       "current_year": 900,
       "current_location": "Scandinavia",
@@ -59,7 +63,7 @@
       "value": 0,
       "history": []
     },
-    "current_turn": 7
+    "current_turn": 11
   },
   "inventory": {
     "items": [
@@ -86,19 +90,19 @@
       }
     ]
   },
-  "last_narrative": "Your ships beach on the familiar shingle as the settlement erupts in celebration. Warriors who stayed behind rush forward to marvel at the silver-laden hulls, while women ululate the ancient victory-songs. You stand at the prow of your lead vessel, watching Björn stride down to greet you with genuine warmth—your success has vindicated his compromise at the Thing. Even some of Hakon's former supporters eye the wealth with poorly concealed envy and respect.\n\nBut as you prepare to disembark, the device on your wrist grows warm. You glance down at the small display beneath your sleeve—the familiar readings, the date confirming you've been here nearly a full year. The warmth pulses rhythmically against your skin, and your heart lurches with recognition. The window. After all these months of dormancy, the broken time machine has found another random destination, another era calling across the centuries.\n\nAround you, your handpicked warriors laugh and boast about the raid's success. Thorvald Iron-Arm clasps your shoulder, already speaking of next year's expedition. The bereaved families whose trust you earned gather expectantly—you promised them vengeance and silver, and you've delivered both. Björn approaches with arms spread wide, clearly planning some grand gesture to honor his successful expedition leader. You've built something here: respect, loyalty, a place in this harsh world. The settlement needs you for the challenges ahead—Harald Fairhair's expansion, future raids, the delicate politics of survival.\n\nThe device pulses again, warmer now. The choice hangs in the salt air like the cry of gulls.\n\n[A] Press the device and let reality blur into whatever era awaits beyond\n\n[B] Focus on the wealth distribution ceremony—the window will remain open a little longer while you cement your position\n\n[C] Seek out Ingrid the völva first to report strange omens in your dreams—the window will remain open a little longer for guidance\n\n",
+  "last_narrative": "You feel the device's final urgent pulse, then let it fade to dormancy as you stride toward Björn's hall. The jarl receives you with the warmth reserved for valued retainers, and your request for formal courtship rights proves perfectly timed. Still basking in the glory of your successful raid, Björn sees the political wisdom immediately—binding his proven war-leader to one of the settlement's prominent bloodlines strengthens everyone involved.\n\nThe formal negotiations unfold better than you dared hope. Björn speaks to Astrid's male kinsmen with genuine enthusiasm, praising your tactical brilliance, your fair treatment of subordinates, and your proven ability to bring wealth to the community. When Hakon Blood-Eye attempts to raise objections about your foreign origins, Björn cuts him off sharply: \"The man who questions Valdmarr's worth questions my judgment in raising him to karl.\" The rebuke silences opposition and signals clear support from the settlement's highest authority.\n\nOver the following weeks, as autumn settles into winter, the betrothal arrangements crystallize into something remarkable. Astrid's family, impressed by both your success and Björn's backing, agrees to a modest bride-price that acknowledges your new status without bankrupting your resources. More importantly, Ragnhild herself proves an ideal match—intelligent enough to appreciate your unusual knowledge, ambitious enough to see the opportunities your rising status provides, and pragmatic enough to help you navigate the social complexities you still struggle with.\n\nBy midwinter, you're established not just as Björn's trusted lieutenant but as a future member of one of the settlement's core families. Your foreign origins have become exotic rather than suspicious, and your prophetic reputation grows stronger with each accurate prediction about weather and optimal raiding seasons.\n\n[A] Focus on building your own steading on land Björn grants you, establishing an independent household befitting your new status\n\n[B] Propose leading a winter expedition to establish trade relationships with the Rus settlements along the eastern rivers, using your knowledge of geography\n\n[C] Approach the settlement's craftsmen about improving their metalworking techniques, carefully introducing knowledge that won't seem impossibly advanced\n\n",
   "last_choices": [
     {
       "id": "A",
-      "text": "Press the device and let reality blur into whatever era awaits beyond"
+      "text": "Focus on building your own steading on land Björn grants you, establishing an independent household befitting your new status"
     },
     {
       "id": "B",
-      "text": "Focus on the wealth distribution ceremony—the window will remain open a little longer while you cement your position"
+      "text": "Propose leading a winter expedition to establish trade relationships with the Rus settlements along the eastern rivers, using your knowledge of geography"
     },
     {
       "id": "C",
-      "text": "Seek out Ingrid the völva first to report strange omens in your dreams—the window will remain open a little longer for guidance"
+      "text": "Approach the settlement's craftsmen about improving their metalworking techniques, carefully introducing knowledge that won't seem impossibly advanced"
     }
   ],
   "conversation_history": [
@@ -173,6 +177,38 @@
     {
       "role": "assistant",
       "content": "Your ships beach on the familiar shingle as the settlement erupts in celebration. Warriors who stayed behind rush forward to marvel at the silver-laden hulls, while women ululate the ancient victory-songs. You stand at the prow of your lead vessel, watching Björn stride down to greet you with genuine warmth—your success has vindicated his compromise at the Thing. Even some of Hakon's former supporters eye the wealth with poorly concealed envy and respect.\n\nBut as you prepare to disembark, the device on your wrist grows warm. You glance down at the small display beneath your sleeve—the familiar readings, the date confirming you've been here nearly a full year. The warmth pulses rhythmically against your skin, and your heart lurches with recognition. The window. After all these months of dormancy, the broken time machine has found another random destination, another era calling across the centuries.\n\nAround you, your handpicked warriors laugh and boast about the raid's success. Thorvald Iron-Arm clasps your shoulder, already speaking of next year's expedition. The bereaved families whose trust you earned gather expectantly—you promised them vengeance and silver, and you've delivered both. Björn approaches with arms spread wide, clearly planning some grand gesture to honor his successful expedition leader. You've built something here: respect, loyalty, a place in this harsh world. The settlement needs you for the challenges ahead—Harald Fairhair's expansion, future raids, the delicate politics of survival.\n\nThe device pulses again, warmer now. The choice hangs in the salt air like the cry of gulls.\n\n[A] Press the device and let reality blur into whatever era awaits beyond\n\n[B] Focus on the wealth distribution ceremony—the window will remain open a little longer while you cement your position\n\n[C] Seek out Ingrid the völva first to report strange omens in your dreams—the window will remain open a little longer for guidance\n\n<anchors>belonging[+12] legacy[+10] freedom[+8]</anchors>"
+    },
+    {
+      "role": "user",
+      "content": "The player chose: [B]\nDice roll: 20/20 - VERY LUCKY - unexpected good fortune, doors open\n\n\nTHE WINDOW IS OPEN (turn 1 of 3). The device pulses steadily.\nThe window will remain open for a little while longer.\n\nCRITICAL: Keep the time machine choice CLEAN. No obstacles to leaving.\n\n\nTIME COMPRESSION: The window is open! Time moves faster - turns represent DAYS not weeks.\nThe urgency of the decision accelerates everything.\n\nLUCK GUIDELINES:\n- Luck affects EXECUTION, not opportunity. Even unlucky outcomes should leave doors open.\n- Unlucky = complications and setbacks, NOT catastrophic disasters\n- Bad luck makes the path harder, it doesn't close all paths\n- Never narrate the player being killed, captured with no escape, or totally defeated\n\nNarrate the outcome of their choice, incorporating the luck factor. Be specific about consequences.\n\nThen continue the story and present 3 new choices.\n\n\nCHOICE ORDER (window turn 1 of 3 - player has time to decide):\n\n[A] Activate the time machine and leave this era behind\n[B] First continuation option - mention the window will remain open for a little while longer\n[C] Second continuation option - mention the window will remain open for a little while longer\n\nNote: [A] leaves. Both [B] and [C] continue the game while window stays open.\n\n<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>\n\nIMPORTANT: Put the <anchors> tag on its own line AFTER all three choices.\n\nMaintain continuity. Reference what came before. Build relationships and consequences."
+    },
+    {
+      "role": "assistant",
+      "content": "The wealth distribution becomes a triumph beyond imagination. As you stand before the gathered settlement, dividing the Irish spoils with ceremonial precision, something extraordinary unfolds. Your careful allocation—giving Björn the choicest Byzantine chalice, presenting the bereaved families with silver arm-rings from their enemies' own treasuries, offering even Hakon's supporters fine Irish brooches—transforms the entire political landscape in moments.\n\nThe breakthrough comes when old Gunnar, whose son drowned in the storm, publicly declares his blood-debt to you paid threefold. \"Valdmarr Strange-Dreamer has brought my boy's killers' gold to honor his memory,\" he announces, his voice carrying across the silent crowd. \"Any man who calls him thrall after this day calls me fool.\" The other bereaved families take up the cry, and suddenly your expedition members are recounting your tactical brilliance, your fair leadership, your proven luck in battle.\n\nBut the masterstroke comes when Björn himself, overwhelmed by the wealth flowing into his hall, makes an unprecedented declaration: \"Let no man say Valdmarr serves as thrall in my household. By Thor's hammer, I name him karl—free man and valued retainer!\" The crowd roars approval, and even Hakon Blood-Eye can only nod grimly at this fait accompli. In a single ceremony, you've leaped from questionable slave to respected free man with your own followers and proven war-luck.\n\nThe device continues its steady pulse against your wrist as the feast preparations begin around you. Your new status opens doors—you could seek marriage alliance with a prominent family, establish your own steading, or leverage this success into even greater expeditions.\n\n[A] Press the device and abandon this new life for whatever era awaits beyond\n\n[B] Approach Björn privately about leading a grand alliance against Harald Fairhair—the window will remain open for a little while longer\n\n[C] Seek out Astrid's unmarried daughter Ragnhild, whose obvious interest could cement your place in the settlement's bloodlines—the window will remain open for a little while longer\n\n<anchors>belonging[+15] legacy[+12] freedom[-5]</anchors>"
+    },
+    {
+      "role": "user",
+      "content": "The player chose: [C]\nDice roll: 12/20 - NEUTRAL - things go roughly as expected\n\n\nTHE WINDOW IS OPEN (turn 2 of 3). The device pulses steadily.\nThe window will remain open for one more moment.\n\nCRITICAL: Keep the time machine choice CLEAN. No obstacles to leaving.\n\n\nTIME COMPRESSION: The window is open! Time moves faster - turns represent DAYS not weeks.\nThe urgency of the decision accelerates everything.\n\nLUCK GUIDELINES:\n- Luck affects EXECUTION, not opportunity. Even unlucky outcomes should leave doors open.\n- Unlucky = complications and setbacks, NOT catastrophic disasters\n- Bad luck makes the path harder, it doesn't close all paths\n- Never narrate the player being killed, captured with no escape, or totally defeated\n\nNarrate the outcome of their choice, incorporating the luck factor. Be specific about consequences.\n\nThen continue the story and present 3 new choices.\n\n\nCHOICE ORDER (window turn 2 of 3 - player has time to decide):\n\n[A] Activate the time machine and leave this era behind\n[B] First continuation option - mention the window will remain open for one more moment\n[C] Second continuation option - mention the window will remain open for one more moment\n\nNote: [A] leaves. Both [B] and [C] continue the game while window stays open.\n\n<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>\n\nIMPORTANT: Put the <anchors> tag on its own line AFTER all three choices.\n\nMaintain continuity. Reference what came before. Build relationships and consequences."
+    },
+    {
+      "role": "assistant",
+      "content": "You find Ragnhild tending the ale-brewing behind her mother's hall, her golden braids catching the late sun. She's been watching you since your return, and when you approach with formal courtesy, her smile confirms Astrid's whispered hints about her daughter's interest. The conversation unfolds as expected—you speak of your new status as karl, your proven luck in battle, your desire to build a household worthy of a jarl's daughter. She listens with the calculating intelligence that runs in her bloodline.\n\nBut the negotiation proves more complex than anticipated. Ragnhild is no starry-eyed maiden impressed by silver and adventure tales. She questions your intentions shrewdly: will you stay in her father's lands or seek your own steading? Do you plan more raids or wish to settle into farming and trade? Her mother Astrid joins the conversation, and soon you're navigating a careful discussion of bride-price, household arrangements, and the political implications of such an alliance. They're interested, but they want guarantees about your commitment to the settlement's future.\n\nThe talks continue as the feast drums begin to sound. Both women are favorably disposed, but they need time to consult with their male kinsmen and ensure the match serves their family's broader interests. Ragnhild herself seems genuinely drawn to you, mentioning your \"strange wisdom\" and proven courage, but she also notes that successful raiders sometimes vanish as mysteriously as they arrived. Her pointed look suggests she's heard rumors about your foreign origins.\n\nThe device's pulse grows stronger against your wrist as twilight deepens around the settlement. The marriage negotiations could secure your place here permanently, but they're moving at the careful pace Norse families demand for such important alliances.\n\n[A] Press the device and leave before these roots grow deeper, abandoning the life being offered\n\n[B] Promise Astrid you'll establish a steading nearby and remain in their territory—the window will remain open for one more moment\n\n[C] Ask Ragnhild to walk with you to the sacred grove, seeking her private thoughts away from family politics—the window will remain open for one more moment\n\n<anchors>belonging[+18] legacy[+8] freedom[-12]</anchors>"
+    },
+    {
+      "role": "user",
+      "content": "The player chose: [C]\nDice roll: 4/20 - UNLUCKY - complications arise, the approach hits obstacles\n\n\nTHE WINDOW IS CLOSING. This is the LAST chance to leave. The device pulses urgently.\nIf the player doesn't leave now, the next window won't open for approximately another year.\n\nCRITICAL: Keep the time machine choice CLEAN. No obstacles to leaving.\n\n\nTIME COMPRESSION: The window is open! Time moves faster - turns represent DAYS not weeks.\nThe urgency of the decision accelerates everything.\n\nLUCK GUIDELINES:\n- Luck affects EXECUTION, not opportunity. Even unlucky outcomes should leave doors open.\n- Unlucky = complications and setbacks, NOT catastrophic disasters\n- Bad luck makes the path harder, it doesn't close all paths\n- Never narrate the player being killed, captured with no escape, or totally defeated\n\nNarrate the outcome of their choice, incorporating the luck factor. Be specific about consequences.\n\nThen continue the story and present 3 new choices.\n\n\nCHOICE ORDER (FINAL window turn - last chance!):\n\n[A] Activate the time machine and leave this era behind. This is your last chance - the next window won't open for about another year.\n[B] First continuation option - mention this is the last chance to leave and next window is ~1 year away\n[C] Second continuation option - mention this is the last chance to leave and next window is ~1 year away\n\nNote: [A] leaves. Both [B] and [C] mean staying - the window will close and won't reopen for ~1 year.\n\n<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>\n\nIMPORTANT: Put the <anchors> tag on its own line AFTER all three choices.\n\nMaintain continuity. Reference what came before. Build relationships and consequences."
+    },
+    {
+      "role": "assistant",
+      "content": "You suggest the walk to the sacred grove, hoping for private words with Ragnhild away from her mother's watchful eyes. She agrees, but as you move through the settlement, the evening takes an awkward turn. Several of your returning warriors, deep in their cups and flush with victory, intercept your path with loud congratulations and increasingly bawdy suggestions about your courtship. Their drunken enthusiasm draws attention from half the settlement.\n\nWorse, Hakon Blood-Eye emerges from Björn's hall at precisely the wrong moment. Seeing you walking alone with Ragnhild while her family isn't present, he calls out with false concern about \"proper courtship customs\" and whether a \"foreign-born karl\" truly understands Norse marriage traditions. His words carry the sting of deliberate insult—questioning both your origins and your honor. Ragnhild stiffens beside you, her cheeks flushing with anger at the public slight.\n\nThe situation deteriorates as a crowd gathers. What should have been a quiet, intimate conversation becomes a public spectacle with Ragnhild caught in the middle. She maintains her composure admirably, but you can see the frustration in her eyes as political maneuvering intrudes on personal matters. \"Perhaps,\" she says quietly, \"we should speak tomorrow when heads are clearer and tongues less loose.\" It's a graceful retreat, but the moment's intimacy is thoroughly shattered.\n\nThe device pulses urgently against your wrist—more insistent than before, almost burning now. Around you, the settlement buzzes with feast preparations, political calculations, and the weight of expectations. This is your last chance to leave; the next window won't open for about another year. By then, these relationships, these obligations, these roots will have grown much deeper.\n\n[A] Press the device now—this is your final chance to leave before the window closes for another year\n\n[B] Publicly challenge Hakon's insults to defend both your honor and Ragnhild's—knowing the window will close and won't reopen for about a year\n\n[C] Seek out Björn to formalize your courtship properly through official channels—knowing the window will close and won't reopen for about a year\n\n<anchors>belonging[+5] legacy[+3] freedom[-8]</anchors>"
+    },
+    {
+      "role": "user",
+      "content": "The player chose: [C]\nDice roll: 16/20 - LUCKY - things go better than expected\n\n\n\n\nTIME PACING: Each turn represents roughly 6-8 WEEKS passing. Show time progressing:\n- \"Over the following weeks...\"\n- \"As the season turned...\"\n- \"Weeks later...\"\nDon't compress everything into a single day.\n\nLUCK GUIDELINES:\n- Luck affects EXECUTION, not opportunity. Even unlucky outcomes should leave doors open.\n- Unlucky = complications and setbacks, NOT catastrophic disasters\n- Bad luck makes the path harder, it doesn't close all paths\n- Never narrate the player being killed, captured with no escape, or totally defeated\n\nNarrate the outcome of their choice, incorporating the luck factor. Be specific about consequences.\n\nThen continue the story and present 3 new choices.\n\n\nCHOICE DESIGN (CRITICAL):\n- ALL choices must be viable paths forward - no \"give up\" or \"accept death\" options\n- At least ONE choice should reward HISTORICAL KNOWLEDGE of this era\n- Historically clever choices should feel like: \"If you know this era, here's your angle\"\n- Examples: Appeal to local customs, leverage social structures, reference religion/prophecy\n\nSTRUCTURE:\n[A] Choice A\n[B] Choice B  \n[C] Choice C\n\n<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>\n\nIMPORTANT: Put the <anchors> tag on its own line AFTER all three choices.\n\nMaintain continuity. Reference what came before. Build relationships and consequences."
+    },
+    {
+      "role": "assistant",
+      "content": "You feel the device's final urgent pulse, then let it fade to dormancy as you stride toward Björn's hall. The jarl receives you with the warmth reserved for valued retainers, and your request for formal courtship rights proves perfectly timed. Still basking in the glory of your successful raid, Björn sees the political wisdom immediately—binding his proven war-leader to one of the settlement's prominent bloodlines strengthens everyone involved.\n\nThe formal negotiations unfold better than you dared hope. Björn speaks to Astrid's male kinsmen with genuine enthusiasm, praising your tactical brilliance, your fair treatment of subordinates, and your proven ability to bring wealth to the community. When Hakon Blood-Eye attempts to raise objections about your foreign origins, Björn cuts him off sharply: \"The man who questions Valdmarr's worth questions my judgment in raising him to karl.\" The rebuke silences opposition and signals clear support from the settlement's highest authority.\n\nOver the following weeks, as autumn settles into winter, the betrothal arrangements crystallize into something remarkable. Astrid's family, impressed by both your success and Björn's backing, agrees to a modest bride-price that acknowledges your new status without bankrupting your resources. More importantly, Ragnhild herself proves an ideal match—intelligent enough to appreciate your unusual knowledge, ambitious enough to see the opportunities your rising status provides, and pragmatic enough to help you navigate the social complexities you still struggle with.\n\nBy midwinter, you're established not just as Björn's trusted lieutenant but as a future member of one of the settlement's core families. Your foreign origins have become exotic rather than suspicious, and your prophetic reputation grows stronger with each accurate prediction about weather and optimal raiding seasons.\n\n[A] Focus on building your own steading on land Björn grants you, establishing an independent household befitting your new status\n\n[B] Propose leading a winter expedition to establish trade relationships with the Rus settlements along the eastern rivers, using your knowledge of geography\n\n[C] Approach the settlement's craftsmen about improving their metalworking techniques, carefully introducing knowledge that won't seem impossibly advanced\n\n<anchors>belonging[+20] legacy[+15] freedom[-15]</anchors>"
     }
   ],
   "user_id": "40484842",
