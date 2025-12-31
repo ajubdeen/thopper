@@ -425,7 +425,7 @@ class GameAPI:
         # Initialize game state
         self.state.start_game(self.state.player_name, GameMode.MATURE, self._selected_region)
         self.narrator = NarrativeEngine(self.state)
-        self.current_game = self.history.start_new_game(self.state.player_name, self.user_id)
+        self.current_game = self.history.start_new_game(self.state.player_name)
         
         # Intro story
         yield emit(MessageType.INTRO_STORY, {
