@@ -6,17 +6,11 @@ JSON-based API for the game, designed for web/mobile frontends.
 Separates game logic from presentation entirely.
 
 All methods return structured JSON that frontends can render as they wish.
-
-Features:
-- User ID support for multi-user deployments
-- Save/load game state for session persistence
-- Resume functionality with full narrative/choice restoration
 """
 
 import json
 import random
 import re
-import os
 from typing import Optional, Generator, Dict, Any, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -34,7 +28,7 @@ from game_state import GameState, GameMode, GamePhase, RegionPreference
 from time_machine import select_random_era, IndicatorState
 from fulfillment import parse_anchor_adjustments, strip_anchor_tags
 from items import parse_item_usage
-from eras import ERAS, get_era_by_id
+from eras import ERAS
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
     get_window_prompt, get_staying_ending_prompt, get_leaving_prompt
@@ -51,9 +45,6 @@ class MessageType:
     # Game flow
     GAME_START = "game_start"
     GAME_END = "game_end"
-    GAME_SAVED = "game_saved"
-    GAME_LOADED = "game_loaded"
-    GAME_RESUMED = "game_resumed"
     
     # Screens/phases
     TITLE = "title"
@@ -84,10 +75,6 @@ class MessageType:
     WAITING_INPUT = "waiting_input"
     ERROR = "error"
     LOADING = "loading"
-    
-    # User data
-    USER_GAMES = "user_games"
-    LEADERBOARD = "leaderboard"
 
 
 def emit(msg_type: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -120,14 +107,6 @@ class NarrativeEngine:
         """Set up system prompt for current era"""
         self.system_prompt = get_system_prompt(self.game_state, era)
         self.messages = []
-    
-    def restore_conversation(self, messages: List[Dict]):
-        """Restore conversation history from saved state"""
-        self.messages = messages
-    
-    def get_conversation_history(self) -> List[Dict]:
-        """Get current conversation history for saving"""
-        return self.messages.copy()
     
     def generate_streaming(self, user_prompt: str) -> Generator[Dict, None, str]:
         """
@@ -257,111 +236,6 @@ People are beginning to know your face now. Some nod in recognition. Others stil
 
 
 # =============================================================================
-# GAME SAVE/LOAD MANAGER
-# =============================================================================
-
-class GameSaveManager:
-    """Manages saving and loading game states"""
-    
-    def __init__(self, save_dir: str = "saves"):
-        self.save_dir = save_dir
-        self._ensure_dir()
-    
-    def _ensure_dir(self):
-        """Ensure save directory exists"""
-        if not os.path.exists(self.save_dir):
-            try:
-                os.makedirs(self.save_dir)
-            except OSError:
-                pass
-    
-    def _get_save_path(self, user_id: str, game_id: str) -> str:
-        """Get path for a save file"""
-        return os.path.join(self.save_dir, f"{user_id}_{game_id}.json")
-    
-    def _get_user_dir(self, user_id: str) -> str:
-        """Get directory for user's saves"""
-        return os.path.join(self.save_dir, user_id)
-    
-    def save_game(self, user_id: str, game_id: str, state: GameState) -> bool:
-        """
-        Save game state to file.
-        Returns True if successful.
-        """
-        try:
-            save_data = state.to_save_dict()
-            save_data["user_id"] = user_id
-            save_data["game_id"] = game_id
-            
-            filepath = self._get_save_path(user_id, game_id)
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, indent=2, ensure_ascii=False)
-            return True
-        except Exception as e:
-            print(f"Save error: {e}")
-            return False
-    
-    def load_game(self, user_id: str, game_id: str) -> Optional[GameState]:
-        """
-        Load game state from file.
-        Returns GameState or None if not found.
-        """
-        try:
-            filepath = self._get_save_path(user_id, game_id)
-            if not os.path.exists(filepath):
-                return None
-            
-            with open(filepath, 'r', encoding='utf-8') as f:
-                save_data = json.load(f)
-            
-            return GameState.from_save_dict(save_data)
-        except Exception as e:
-            print(f"Load error: {e}")
-            return None
-    
-    def delete_game(self, user_id: str, game_id: str) -> bool:
-        """Delete a saved game"""
-        try:
-            filepath = self._get_save_path(user_id, game_id)
-            if os.path.exists(filepath):
-                os.remove(filepath)
-            return True
-        except Exception:
-            return False
-    
-    def list_user_games(self, user_id: str) -> List[Dict]:
-        """List all saved games for a user"""
-        games = []
-        prefix = f"{user_id}_"
-        
-        try:
-            for filename in os.listdir(self.save_dir):
-                if filename.startswith(prefix) and filename.endswith('.json'):
-                    filepath = os.path.join(self.save_dir, filename)
-                    try:
-                        with open(filepath, 'r', encoding='utf-8') as f:
-                            save_data = json.load(f)
-                        
-                        games.append({
-                            "game_id": save_data.get("game_id", ""),
-                            "player_name": save_data.get("player_name", "Unknown"),
-                            "phase": save_data.get("phase", "unknown"),
-                            "current_era": save_data.get("current_era", {}).get("era_name", "Unknown") if save_data.get("current_era") else None,
-                            "total_turns": save_data.get("time_machine", {}).get("total_turns", 0),
-                            "saved_at": save_data.get("saved_at", ""),
-                            "started_at": save_data.get("started_at", "")
-                        })
-                    except Exception:
-                        continue
-        except Exception:
-            pass
-        
-        # Sort by saved_at, newest first
-        games.sort(key=lambda x: x.get("saved_at", ""), reverse=True)
-        return games
-
-
-# =============================================================================
 # GAME API CLASS
 # =============================================================================
 
@@ -371,15 +245,9 @@ class GameAPI:
     
     All methods yield or return structured message dicts.
     The frontend renders these however it wants.
-    
-    Supports:
-    - User ID for multi-user deployments
-    - Save/load for session persistence
-    - Resume with full narrative restoration
     """
     
-    def __init__(self, user_id: str = "default"):
-        self.user_id = user_id
+    def __init__(self):
         self.state = GameState()
         self.narrator = None
         self.current_era = None
@@ -388,12 +256,6 @@ class GameAPI:
         # History tracking
         self.history = GameHistory()
         self.current_game = None
-        
-        # Save manager
-        self.save_manager = GameSaveManager()
-        
-        # Game ID for this session
-        self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # =========================================================================
     # GAME FLOW
@@ -415,8 +277,13 @@ class GameAPI:
         """Set player name and move to region selection"""
         self.state.player_name = name if name.strip() else "Traveler"
         
+        # TEMPORARY: Force European-only eras to avoid race/ethnicity immersion issues
+        # Player is established as 24yo from Bay Area (implicitly white/Western)
+        # Non-Western eras require proper handling of appearance/otherness
+        # TODO: Re-enable region selection when player appearance system is implemented
         yield emit(MessageType.SETUP_REGION, {
             "prompt": "Where in history?",
+            "auto_select": "european",  # Frontend should skip this screen and use this value
             "options": [
                 {
                     "id": "european",
@@ -438,7 +305,7 @@ class GameAPI:
         # Initialize game state
         self.state.start_game(self.state.player_name, GameMode.MATURE, self._selected_region)
         self.narrator = NarrativeEngine(self.state)
-        self.current_game = self.history.start_new_game(self.state.player_name, self.user_id)
+        self.current_game = self.history.start_new_game(self.state.player_name)
         
         # Intro story
         yield emit(MessageType.INTRO_STORY, {
@@ -469,13 +336,13 @@ class GameAPI:
             "title": "THE DEVICE",
             "description": "The time machine is small—about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
             "mechanics": [
-                "The window won't open immediately when you arrive somewhere new",
+                "The window to use it won't open immediately when you arrive",
                 "You'll have time to settle in first—typically most of a year",
                 "When the window opens, you have a short time to decide",
                 "Choose to activate it, or let the window close and stay"
             ],
             "catch": [
-                "You can't choose where or when you go—it's random",
+                "You can't choose when you go—it's random",
                 "Your three items always come with you",
                 "Your relationships do NOT come with you",
                 "Each jump means starting over"
@@ -490,146 +357,6 @@ class GameAPI:
         yield from self._enter_random_era()
     
     # =========================================================================
-    # SAVE/LOAD/RESUME
-    # =========================================================================
-    
-    def save_game(self) -> Generator[Dict, None, None]:
-        """Save current game state"""
-        # Store conversation history in state
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        
-        success = self.save_manager.save_game(self.user_id, self.game_id, self.state)
-        
-        yield emit(MessageType.GAME_SAVED, {
-            "success": success,
-            "game_id": self.game_id,
-            "message": "Game saved successfully" if success else "Failed to save game"
-        })
-    
-    def load_game(self, game_id: str) -> Generator[Dict, None, None]:
-        """Load a saved game"""
-        loaded_state = self.save_manager.load_game(self.user_id, game_id)
-        
-        if not loaded_state:
-            yield emit(MessageType.ERROR, {
-                "message": f"Could not load game {game_id}"
-            })
-            return
-        
-        self.state = loaded_state
-        self.game_id = game_id
-        
-        # Restore current era reference
-        if self.state.current_era:
-            self.current_era = get_era_by_id(self.state.current_era.era_id)
-        
-        # Restore narrator with conversation history
-        self.narrator = NarrativeEngine(self.state)
-        if self.current_era:
-            self.narrator.set_era(self.current_era)
-            self.narrator.restore_conversation(self.state.conversation_history)
-        
-        yield emit(MessageType.GAME_LOADED, {
-            "success": True,
-            "game_id": game_id,
-            "player_name": self.state.player_name,
-            "phase": self.state.phase.value,
-            "current_era": self.state.current_era.era_name if self.state.current_era else None
-        })
-    
-    def resume_game(self) -> Generator[Dict, None, None]:
-        """
-        Resume a loaded game, providing full context for the player to pick up.
-        Emits the last narrative and choices so the player can continue.
-        """
-        if self.state.phase == GamePhase.ENDED:
-            yield emit(MessageType.ERROR, {
-                "message": "This game has already ended"
-            })
-            return
-        
-        # Build resume context
-        resume_data = {
-            "player_name": self.state.player_name,
-            "phase": self.state.phase.value,
-            "total_turns": self.state.total_turns,
-            "eras_visited": len(self.state.time_machine.eras_visited)
-        }
-        
-        # Current era info
-        if self.state.current_era and self.current_era:
-            year = self.current_era['year']
-            year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
-            
-            resume_data["era"] = {
-                "name": self.current_era['name'],
-                "year": year,
-                "year_display": year_str,
-                "location": self.current_era['location'],
-                "time_in_era": self.state.current_era.time_in_era_description,
-                "turns_in_era": self.state.current_era.turns_in_era
-            }
-        
-        # Device status
-        resume_data["device"] = {
-            "status": self.state.time_machine.indicator.value,
-            "window_active": self.state.time_machine.window_active,
-            "window_turns_remaining": self.state.time_machine.window_turns_remaining
-        }
-        
-        # Can stay meaningfully
-        resume_data["can_stay_meaningfully"] = self.state.can_stay_meaningfully
-        
-        yield emit(MessageType.GAME_RESUMED, resume_data)
-        
-        # Emit the last narrative if available
-        if self.state.last_narrative:
-            # Strip anchor tags before sending
-            clean_narrative = strip_anchor_tags(self.state.last_narrative)
-            yield emit(MessageType.NARRATIVE, {
-                "text": clean_narrative,
-                "is_resume": True
-            })
-        
-        # Emit the last choices if available
-        if self.state.last_choices:
-            yield emit(MessageType.CHOICES, {
-                "choices": self.state.last_choices,
-                "can_quit": not (self.state.phase == GamePhase.WINDOW_OPEN and self.state.can_stay_meaningfully),
-                "window_open": self.state.time_machine.window_active,
-                "can_stay_forever": self.state.can_stay_meaningfully and self.state.time_machine.window_active,
-                "is_resume": True
-            })
-        
-        # Emit device status
-        yield self._get_device_status()
-    
-    def list_saved_games(self) -> Generator[Dict, None, None]:
-        """List all saved games for current user"""
-        games = self.save_manager.list_user_games(self.user_id)
-        
-        yield emit(MessageType.USER_GAMES, {
-            "user_id": self.user_id,
-            "games": games
-        })
-    
-    def get_leaderboard(self, global_board: bool = True, limit: int = 10) -> Generator[Dict, None, None]:
-        """Get leaderboard data"""
-        leaderboard = Leaderboard()
-        
-        if global_board:
-            scores = leaderboard.get_top_scores(limit)
-        else:
-            scores = leaderboard.get_user_scores(self.user_id, limit)
-        
-        yield emit(MessageType.LEADERBOARD, {
-            "global": global_board,
-            "user_id": self.user_id if not global_board else None,
-            "scores": scores
-        })
-    
-    # =========================================================================
     # GAMEPLAY
     # =========================================================================
     
@@ -642,81 +369,106 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices
+        # Check for special window choices (window was already open from previous turn)
         if self.state.phase == GamePhase.WINDOW_OPEN:
-            if choice == 'A':  # Leave this era (A is always leave when window is open)
+            if choice == 'A':  # Leave this era (new ordering)
                 yield from self._handle_leaving()
                 return
             if choice == 'B' and self.state.can_stay_meaningfully:  # Stay forever
                 yield from self._handle_stay_forever()
                 return
-            # Otherwise B and C are continue options - fall through to normal turn
+            # Otherwise B or C = continue (will generate next turn)
         
-        # Normal turn
+        # Roll dice for this turn
         roll = random.randint(1, 20)
         
-        yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
-        
-        # Generate response
-        prompt = get_turn_prompt(self.state, choice, roll)
-        response = ""
-        
-        # Stream the narrative
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
-        
-        # Get full response if streaming didn't capture it
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record narrative
-        if self.current_game:
-            self.history.add_narrative(self.current_game, response)
-        
-        # Process response (anchors, items)
-        self._process_response(response)
-        
-        # Parse and emit choices
-        choices = self._parse_choices(response)
-        
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
-        
-        yield emit(MessageType.CHOICES, {
-            "choices": choices,
-            "can_quit": True
-        })
-        
-        # Advance turn and check for window
+        # IMPORTANT: Advance turn FIRST to check if window opens
+        # This lets us decide which prompt to use BEFORE generating narrative
         events = self.state.advance_turn()
         
+        # If window just opened, generate combined turn+window response
         if events["window_opened"]:
-            yield from self._handle_window_open()
-        elif events["window_closing"]:
-            yield emit(MessageType.WINDOW_CLOSING, {
-                "message": "The device pulses urgently. The window is closing..."
+            yield emit(MessageType.WINDOW_OPEN, {
+                "message": "THE WINDOW IS OPEN",
+                "can_stay_meaningfully": self.state.can_stay_meaningfully,
+                "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
             })
-        elif events["window_closed"]:
-            yield emit(MessageType.WINDOW_CLOSED, {
-                "message": "The device falls silent. The moment has passed."
+            
+            yield emit(MessageType.LOADING, {"message": "A moment of decision..."})
+            
+            # Generate combined turn outcome + window choice narrative
+            prompt = self._get_combined_turn_and_window_prompt(choice, roll)
+            response = ""
+            
+            for msg in self.narrator.generate_streaming(prompt):
+                yield msg
+                if msg["type"] == MessageType.NARRATIVE_CHUNK:
+                    response += msg["data"].get("text", "")
+            
+            if not response:
+                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            
+            # Record narrative
+            if self.current_game:
+                self.history.add_narrative(self.current_game, "[The time machine window opens]\n" + response)
+            
+            # Process response (anchors, items)
+            self._process_response(response)
+            
+            # Parse and emit choices (with window-specific options)
+            choices = self._parse_choices(response)
+            yield emit(MessageType.CHOICES, {
+                "choices": choices,
+                "can_quit": not self.state.can_stay_meaningfully,
+                "window_open": True,
+                "can_stay_forever": self.state.can_stay_meaningfully
             })
-            self.state.phase = GamePhase.LIVING
+        else:
+            # Normal turn - generate standard response
+            yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
+            
+            prompt = get_turn_prompt(self.state, choice, roll)
+            response = ""
+            
+            for msg in self.narrator.generate_streaming(prompt):
+                yield msg
+                if msg["type"] == MessageType.NARRATIVE_CHUNK:
+                    response += msg["data"].get("text", "")
+            
+            if not response:
+                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            
+            # Record narrative
+            if self.current_game:
+                self.history.add_narrative(self.current_game, response)
+            
+            # Process response (anchors, items)
+            self._process_response(response)
+            
+            # Parse and emit choices
+            choices = self._parse_choices(response)
+            yield emit(MessageType.CHOICES, {
+                "choices": choices,
+                "can_quit": True
+            })
+            
+            # Handle window state notifications (but NOT window_opened since we handled it above)
+            if events["window_closing"]:
+                yield emit(MessageType.WINDOW_CLOSING, {
+                    "message": "The device pulses urgently. The window is closing..."
+                })
+            elif events["window_closed"]:
+                yield emit(MessageType.WINDOW_CLOSED, {
+                    "message": "The device falls silent. The moment has passed."
+                })
+                self.state.phase = GamePhase.LIVING
         
         # Emit device status
         yield self._get_device_status()
-        
-        # Auto-save after each turn
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        self.save_manager.save_game(self.user_id, self.game_id, self.state)
     
     def get_current_state(self) -> Dict:
         """Get the current game state for frontend rendering"""
         return {
-            "game_id": self.game_id,
-            "user_id": self.user_id,
             "phase": self.state.phase.value,
             "player_name": self.state.player_name,
             "era": {
@@ -786,13 +538,12 @@ class GameAPI:
             "device_display": self.state.time_machine.display.get_display_text()
         })
         
-        # Era summary - only for first era
-        if not self.state.era_history:
-            yield emit(MessageType.ERA_SUMMARY, {
-                "location": self.current_era['location'],
-                "year_display": year_str,
-                "key_events": self.current_era.get('key_events', [])[:5]
-            })
+        # Era summary
+        yield emit(MessageType.ERA_SUMMARY, {
+            "location": self.current_era['location'],
+            "year_display": year_str,
+            "key_events": self.current_era.get('key_events', [])[:5]
+        })
         
         yield emit(MessageType.LOADING, {"message": "Arriving..."})
         
@@ -817,10 +568,6 @@ class GameAPI:
         
         # Parse and emit choices
         choices = self._parse_choices(response)
-        
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
-        
         yield emit(MessageType.CHOICES, {
             "choices": choices,
             "can_quit": True
@@ -831,12 +578,96 @@ class GameAPI:
         
         # Emit device status
         yield self._get_device_status()
-        
-        # Auto-save
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        self.save_manager.save_game(self.user_id, self.game_id, self.state)
     
+    def _get_combined_turn_and_window_prompt(self, choice: str, roll: int) -> str:
+        """
+        Generate a prompt that combines the turn outcome with window opening.
+        This prevents the double-narrative issue where turn and window are separate.
+        """
+        # Luck interpretation
+        if roll <= 5:
+            luck = "UNLUCKY - complications arise, the approach hits obstacles"
+        elif roll <= 8:
+            luck = "SLIGHTLY UNLUCKY - minor setbacks or delays"
+        elif roll <= 12:
+            luck = "NEUTRAL - things go roughly as expected"
+        elif roll <= 16:
+            luck = "LUCKY - things go better than expected"
+        else:
+            luck = "VERY LUCKY - unexpected good fortune, doors open"
+        
+        can_stay = self.state.can_stay_meaningfully
+        fulfillment = self.state.fulfillment.get_narrative_state()
+        window_turns = self.state.time_machine.window_turns_remaining  # Will be 3 since window just opened
+        
+        # Build emotional weight description
+        if can_stay:
+            emotional_weight = """
+The player has BUILT something here. They have:"""
+            if fulfillment['belonging']['has_arrived']:
+                emotional_weight += "\n- People who would miss them, a place in the community"
+            if fulfillment['legacy']['has_arrived']:
+                emotional_weight += "\n- Something lasting they've created or influenced"
+            if fulfillment['freedom']['has_arrived']:
+                emotional_weight += "\n- A life on their own terms, hard-won independence"
+            emotional_weight += """
+
+Leaving now means LOSING much of this. Make this cost FELT in the narrative."""
+        else:
+            emotional_weight = """
+The player hasn't built deep roots here yet. Leaving is easier, less costly.
+But they could stay and build more."""
+        
+        # Choice format - window just opened = turn 1 of 3
+        if can_stay:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME - player accepts this as permanent home)
+[C] Continue with current situation - the window will remain open for a little while longer
+
+Note: [A] leaves, [B] ends the game (permanent stay), [C] continues while window stays open."""
+        else:
+            choice_format = """
+CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+
+[A] Activate the time machine and leave this era behind
+[B] First continuation option with current relationships/situation - mention window will remain open a little longer
+[C] Second continuation option - mention window will remain open a little longer
+
+Both [B] and [C] continue the game while the window stays open."""
+        
+        return f"""The player chose: [{choice}]
+Dice roll: {roll}/20 - {luck}
+
+THE TIME MACHINE WINDOW OPENS during this turn's events.
+
+{emotional_weight}
+
+NARRATIVE STRUCTURE:
+1. First, briefly resolve the outcome of their choice [{choice}] (1-2 paragraphs)
+2. Time passes appropriately (weeks, as usual for a turn)
+3. THEN the device pulses - the window opens
+4. Describe the weight of the moment - what they've built, who would miss them
+5. Present window-aware choices
+
+The narrative should flow naturally from choice resolution into the window moment.
+Do NOT present two separate sets of choices - only ONE set at the end.
+
+CRITICAL: Keep the time machine choice CLEAN. The player must be able to simply 
+activate the device. No combat, imprisonment, or obstacles to leaving.
+
+{choice_format}
+
+FORMAT:
+- 3-4 paragraphs total, ending with the window moment
+- Then present the choices as specified above
+
+<anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>
+
+IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
+
     def _handle_window_open(self) -> Generator[Dict, None, None]:
         """Handle when travel window opens"""
         self.state.phase = GamePhase.WINDOW_OPEN
@@ -870,21 +701,12 @@ class GameAPI:
         
         # Parse and emit choices (with window-specific options)
         choices = self._parse_choices(response)
-        
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
-        
         yield emit(MessageType.CHOICES, {
             "choices": choices,
             "can_quit": not self.state.can_stay_meaningfully,  # No quit when "stay forever" is available
             "window_open": True,
             "can_stay_forever": self.state.can_stay_meaningfully
         })
-        
-        # Auto-save
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        self.save_manager.save_game(self.user_id, self.game_id, self.state)
     
     def _handle_leaving(self) -> Generator[Dict, None, None]:
         """Handle player choosing to leave"""
@@ -952,11 +774,11 @@ class GameAPI:
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
-        # Calculate and emit score
-        yield from self._emit_final_score()
+        # Emit waiting for user to continue to score screen
+        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
         
-        # Delete save file (game is complete)
-        self.save_manager.delete_game(self.user_id, self.game_id)
+        # Store ending narrative for when score is emitted
+        self._ending_narrative = response
     
     def _handle_quit(self) -> Generator[Dict, None, None]:
         """Handle player choosing to quit"""
@@ -977,26 +799,23 @@ class GameAPI:
         
         # Calculate and emit score
         yield from self._emit_final_score(ending_type_override="abandoned")
-        
-        # Delete save file (game is complete)
-        self.save_manager.delete_game(self.user_id, self.game_id)
     
-    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
+    def continue_to_score(self) -> Generator[Dict, None, None]:
+        """Show final score after player has read ending narrative"""
+        ending_narrative = getattr(self, '_ending_narrative', None)
+        yield from self._emit_final_score(ending_narrative=ending_narrative)
+    
+    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = None) -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
-        score = calculate_score(
-            self.state, 
-            ending_type_override=ending_type_override,
-            user_id=self.user_id,
-            game_id=self.game_id
-        )
+        score = calculate_score(self.state, ending_type_override=ending_type_override)
         
         # Save to history
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard
+        # Add to leaderboard with ending narrative
         leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score)
+        rank = leaderboard.add_score(score, ending_narrative=ending_narrative)
         
         yield emit(MessageType.FINAL_SCORE, {
             "total": score.total,
@@ -1021,7 +840,7 @@ class GameAPI:
                     "bonus": score.ending_bonus
                 }
             },
-            "summary": score.get_narrative_summary(),
+            "ending_narrative": ending_narrative or score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era
         })
@@ -1091,8 +910,8 @@ class GameSession:
     Useful for request/response style APIs (e.g., REST endpoints).
     """
     
-    def __init__(self, user_id: str = "default"):
-        self.api = GameAPI(user_id=user_id)
+    def __init__(self):
+        self.api = GameAPI()
     
     def start(self) -> List[Dict]:
         """Start game, return all setup messages"""
@@ -1121,23 +940,6 @@ class GameSession:
     def get_state(self) -> Dict:
         """Get current state"""
         return self.api.get_current_state()
-    
-    def save(self) -> List[Dict]:
-        """Save current game"""
-        return list(self.api.save_game())
-    
-    def load(self, game_id: str) -> List[Dict]:
-        """Load a saved game"""
-        return list(self.api.load_game(game_id))
-    
-    def resume(self) -> List[Dict]:
-        """Resume loaded game with full context"""
-        return list(self.api.resume_game())
-    
-    def list_saves(self) -> List[Dict]:
-        """List saved games"""
-        return list(self.api.list_saved_games())
-    
-    def leaderboard(self, global_board: bool = True) -> List[Dict]:
-        """Get leaderboard"""
-        return list(self.api.get_leaderboard(global_board))
+
+
+
