@@ -24,5 +24,20 @@
     "final_era": "Viking Age Scandinavia",
     "timestamp": "2025-12-24T22:53:51.627884",
     "blurb": "Quit in Viking Age Scandinavia"
+  },
+  {
+    "player_name": "Ab",
+    "user_id": "40484842",
+    "game_id": "20251231_022551",
+    "total": 85,
+    "turns_survived": 1,
+    "eras_visited": 1,
+    "belonging_score": 0,
+    "legacy_score": 0,
+    "freedom_score": 0,
+    "ending_type": "abandoned",
+    "final_era": "Classical Athens - The Golden Age",
+    "timestamp": "2025-12-31T02:27:00.891153",
+    "blurb": "Quit in Classical Athens - The Golden Age"
   }
 ]
