@@ -25,7 +25,8 @@
     "ending_type": "balanced",
     "final_era": "Classical Athens - The Golden Age",
     "timestamp": "2025-12-25T01:41:00.798385",
-    "blurb": "Found balance in Classical Athens - The Golden Age"
+    "blurb": "Found balance in Classical Athens - The Golden Age",
+    "ending_narrative": "[You choose to stay forever]\nYou feel the device's warmth fade against your wrist as the decision crystallizes in your heart. The pulsing slows, dims, and finally dies\u2014not with mechanical failure, but with the quiet finality of a door closing on one path so another may be walked fully. When you roll up your sleeve later that night, the display shows nothing but dark metal. The window has closed forever, and you are no longer a traveler between worlds but simply a man who has chosen his home.\n\nThe years that follow prove your choice wise beyond measure. Kleander's corruption scheme crumbles when you expose his network to authorities across Greece, strengthening your reputation as an incorruptible neutral arbiter. Your emporion becomes legendary\u2014the Sacred Grove of Hermes where honest trade flourishes even as the Peloponnesian War tears the Greek world apart. Students come from as far as Sicily to study in your school, where they learn not just rhetoric and mathematics, but the radical idea that enemies can meet in peace. Aristomenes becomes more than a partner; he's the brother you chose, standing beside you through plague years and bitter winters, celebrating when former students return as ambassadors and philosophers. You never marry\u2014some whisper it's because you loved a woman from a distant land\u2014but you mentor dozens of young people who call you father in all but blood. Your Swiss Army knife becomes the stuff of legend among metalworkers, studied and copied though never equaled.\n\nAs decades pass and your hair turns white, the emporion evolves into something beyond your original vision. It's not just a trading post but a cultural bridge, where Persian scholars debate with Athenian philosophers, where Spartan warriors lay down arms to study poetry, where the first seeds of cosmopolitan Greek culture take root. You live to see Alexander march past your borders, carrying ideas that first flowered in your neutral ground to the edges of the known world. Former students become the diplomats who shape the Hellenistic age, carrying forward the principle that enemies need not remain enemies forever.\n\nOn your final morning, sitting in the shrine you built to a god of travelers, you feel no regret for the journey not taken. The time machine lies buried beneath the altar's foundation\u2014you interred it there decades ago, knowing its purpose was complete. Around you, grandchildren of your first students play in gardens planted by Persian and Athenian hands alike. You built something that outlasted empires: proof that a stranger can become family, that neutrality is not indifference but love made practical, that home is not where you begin but where you choose to belong. The Far-Seer found his farthest shore in the place he finally chose to stay."
   },
   {
     "player_name": "ab",
@@ -39,6 +40,22 @@
     "final_era": "Viking Age Scandinavia",
     "timestamp": "2025-12-24T22:53:51.627884",
     "blurb": "Quit in Viking Age Scandinavia"
+  },
+  {
+    "player_name": "Saber",
+    "user_id": "40484842",
+    "game_id": "20251231_162712",
+    "total": 90,
+    "turns_survived": 1,
+    "eras_visited": 1,
+    "belonging_score": 5,
+    "legacy_score": 0,
+    "freedom_score": 0,
+    "ending_type": "abandoned",
+    "final_era": "American Civil War",
+    "timestamp": "2025-12-31T16:28:49.441441",
+    "blurb": "Quit in American Civil War",
+    "ending_narrative": ""
   },
   {
     "player_name": "Ab",
