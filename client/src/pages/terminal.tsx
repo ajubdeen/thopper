@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Trophy, Play, RotateCcw, User } from "lucide-react";
+import { LogOut, Trophy, Play, RotateCcw, User, Volume2, VolumeX } from "lucide-react";
 
 type GamePhase = 
   | "connecting"
@@ -98,6 +98,23 @@ export default function GamePage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
   const [storyModalEntry, setStoryModalEntry] = useState<LeaderboardEntry | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const testVoice = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    const sampleText = "You arrive in Classical Athens at dawn. The agora is already stirring with merchants and philosophers. The scent of olive oil and fresh bread fills the air.";
+    const utterance = new SpeechSynthesisUtterance(sampleText);
+    utterance.rate = 0.9;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const scrollToBottom = useCallback(() => {
     narrativeEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -479,7 +496,7 @@ export default function GamePage() {
                 </div>
               )}
               
-              <div className="pt-4 border-t border-gray-800/50 mt-2">
+              <div className="pt-4 border-t border-gray-800/50 mt-2 flex flex-col gap-2">
                 <Button 
                   onClick={() => showLeaderboard(true)}
                   variant="ghost"
@@ -488,6 +505,15 @@ export default function GamePage() {
                 >
                   <Trophy className="w-4 h-4" />
                   View Leaderboard
+                </Button>
+                <Button 
+                  onClick={testVoice}
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-amber-400 gap-2 py-5"
+                  data-testid="button-test-voice"
+                >
+                  {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  {isSpeaking ? "Stop Voice" : "Test Voice"}
                 </Button>
               </div>
             </div>
