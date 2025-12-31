@@ -115,5 +115,41 @@
     },
     "ending_type": "abandoned",
     "blurb": "Quit in Classical Athens - The Golden Age"
+  },
+  {
+    "id": "20251231_154029",
+    "user_id": "40484842",
+    "player_name": "Saber",
+    "started_at": "2025-12-31T15:40:29.159615",
+    "ended_at": "2025-12-31T15:41:07.047465",
+    "eras": [
+      {
+        "era_name": "Classical Athens - The Golden Age",
+        "era_year": -450,
+        "era_location": "Greece",
+        "narrative": "The world lurches sideways and you crash to your knees on sun-baked stone, retching as reality reassembles around you. Your ears ring with the cacophony of voices speaking... Greek? The acrid smoke of burning olive oil mingles with human sweat and something else - the sharp tang of bronze being worked nearby. When your vision clears, you're crouched in what appears to be a bustling marketplace, surrounded by sandaled feet and the hems of white tunics.\n\nA circle has formed around you. Weathered faces peer down with mixtures of curiosity and suspicion at your strange clothes - your jeans and t-shirt marking you as utterly foreign. A bearded man points at you and says something that sounds like \"barbaros.\" Others mutter and gesture. One woman backs away, clutching a clay amphora to her chest. The Swiss Army knife weighs heavy in your pocket, the smartphone a dangerous secret against your ribs.\n\nAn older merchant with kind eyes steps forward, speaking slowly in accented Greek you somehow understand: \"Where do you come from, stranger? Your garments... they are not of any land I know.\" Behind him, you catch glimpses of the agora's bustling life - philosophers debating near marble columns, slaves hauling goods, the distant gleam of the Acropolis rising against the blue sky. Your presence has disrupted the morning's rhythm, and every moment you remain silent makes you more suspect.\n\n[A] Claim to be a traveler from the far northern tribes, hoping your strange clothes pass for barbarian dress\n\n[B] Present yourself as a craftsman with unique skills, offering to demonstrate your \"foreign techniques\" \n\n[C] Approach the philosopher you spotted near the columns, knowing that intellectuals like Socrates welcomed curious strangers with unusual ideas\n\n<anchors>belonging[0] legacy[0] freedom[0]</anchors>\n\n[Journey abandoned]"
+      }
+    ],
+    "current_era_narrative": [
+      "The world lurches sideways and you crash to your knees on sun-baked stone, retching as reality reassembles around you. Your ears ring with the cacophony of voices speaking... Greek? The acrid smoke of burning olive oil mingles with human sweat and something else - the sharp tang of bronze being worked nearby. When your vision clears, you're crouched in what appears to be a bustling marketplace, surrounded by sandaled feet and the hems of white tunics.\n\nA circle has formed around you. Weathered faces peer down with mixtures of curiosity and suspicion at your strange clothes - your jeans and t-shirt marking you as utterly foreign. A bearded man points at you and says something that sounds like \"barbaros.\" Others mutter and gesture. One woman backs away, clutching a clay amphora to her chest. The Swiss Army knife weighs heavy in your pocket, the smartphone a dangerous secret against your ribs.\n\nAn older merchant with kind eyes steps forward, speaking slowly in accented Greek you somehow understand: \"Where do you come from, stranger? Your garments... they are not of any land I know.\" Behind him, you catch glimpses of the agora's bustling life - philosophers debating near marble columns, slaves hauling goods, the distant gleam of the Acropolis rising against the blue sky. Your presence has disrupted the morning's rhythm, and every moment you remain silent makes you more suspect.\n\n[A] Claim to be a traveler from the far northern tribes, hoping your strange clothes pass for barbarian dress\n\n[B] Present yourself as a craftsman with unique skills, offering to demonstrate your \"foreign techniques\" \n\n[C] Approach the philosopher you spotted near the columns, knowing that intellectuals like Socrates welcomed curious strangers with unusual ideas\n\n<anchors>belonging[0] legacy[0] freedom[0]</anchors>",
+      "[Journey abandoned]"
+    ],
+    "final_score": {
+      "player_name": "Saber",
+      "user_id": "40484842",
+      "game_id": "20251231_154014",
+      "total": 75,
+      "turns_survived": 0,
+      "eras_visited": 1,
+      "belonging_score": 0,
+      "legacy_score": 0,
+      "freedom_score": 0,
+      "ending_type": "abandoned",
+      "final_era": "Classical Athens - The Golden Age",
+      "timestamp": "2025-12-31T15:41:07.047453",
+      "blurb": "Quit in Classical Athens - The Golden Age"
+    },
+    "ending_type": "abandoned",
+    "blurb": "Quit in Classical Athens - The Golden Age"
   }
 ]
