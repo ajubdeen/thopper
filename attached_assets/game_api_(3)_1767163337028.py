@@ -774,11 +774,8 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
-        # Emit waiting for user to continue to score screen
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
-        
-        # Store ending narrative for when score is emitted
-        self._ending_narrative = response
+        # Calculate and emit score
+        yield from self._emit_final_score()
     
     def _handle_quit(self) -> Generator[Dict, None, None]:
         """Handle player choosing to quit"""
@@ -800,12 +797,7 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         # Calculate and emit score
         yield from self._emit_final_score(ending_type_override="abandoned")
     
-    def continue_to_score(self) -> Generator[Dict, None, None]:
-        """Show final score after player has read ending narrative"""
-        ending_narrative = getattr(self, '_ending_narrative', None)
-        yield from self._emit_final_score(ending_narrative=ending_narrative)
-    
-    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = None) -> Generator[Dict, None, None]:
+    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
         score = calculate_score(self.state, ending_type_override=ending_type_override)
         
@@ -813,9 +805,9 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard with ending narrative
+        # Add to leaderboard
         leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score, ending_narrative=ending_narrative)
+        rank = leaderboard.add_score(score)
         
         yield emit(MessageType.FINAL_SCORE, {
             "total": score.total,
@@ -840,7 +832,7 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
                     "bonus": score.ending_bonus
                 }
             },
-            "ending_narrative": ending_narrative or score.get_narrative_summary(),
+            "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era
         })

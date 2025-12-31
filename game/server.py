@@ -179,6 +179,20 @@ def handle_continue_to_next_era():
         emit('message', msg)
 
 
+@socketio.on('continue_to_score')
+def handle_continue_to_score():
+    """Continue from ending narrative to score screen"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    messages = session.continue_to_score()
+    for msg in messages:
+        emit('message', msg)
+
+
 @socketio.on('get_state')
 def handle_get_state():
     """Get current game state"""

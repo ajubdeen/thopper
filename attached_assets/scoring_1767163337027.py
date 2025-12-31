@@ -227,14 +227,12 @@ class Leaderboard:
         except IOError:
             pass  # Silently fail if can't save
     
-    def add_score(self, score: Score, ending_narrative: str = None) -> int:
+    def add_score(self, score: Score) -> int:
         """
         Add a score to the leaderboard.
         Returns the rank (1-indexed).
         """
         score_dict = score.to_dict()
-        if ending_narrative:
-            score_dict["ending_narrative"] = ending_narrative
         self.scores.append(score_dict)
         
         # Sort by total score descending
