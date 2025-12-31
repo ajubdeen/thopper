@@ -1,20 +1,5 @@
 [
   {
-    "player_name": "Saber",
-    "user_id": "40484842",
-    "game_id": "20251231_043310",
-    "total": 700,
-    "turns_survived": 30,
-    "eras_visited": 1,
-    "belonging_score": 100,
-    "legacy_score": 100,
-    "freedom_score": 0,
-    "ending_type": "balanced",
-    "final_era": "Viking Age Scandinavia",
-    "timestamp": "2025-12-31T06:27:22.825871",
-    "blurb": "Found balance in Viking Age Scandinavia"
-  },
-  {
     "player_name": "ab",
     "total": 535,
     "turns_survived": 11,

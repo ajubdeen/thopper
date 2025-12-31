@@ -2,14 +2,15 @@
 Anachron - Scoring Module
 
 Tracks player score invisibly during gameplay, calculates final score,
-and manages the leaderboard.
+and manages the leaderboard with user_id support for multi-user deployments.
 """
 
 import json
 import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
+from abc import ABC, abstractmethod
 
 
 @dataclass
@@ -35,8 +36,10 @@ class Score:
     
     # Metadata
     player_name: str = ""
+    user_id: str = ""  # Added for multi-user support
     final_era: str = ""
     timestamp: str = ""
+    game_id: str = ""  # Links to saved game
     
     @property
     def survival_points(self) -> int:
@@ -76,12 +79,12 @@ class Score:
     def get_breakdown_display(self) -> str:
         """Get formatted score breakdown for display"""
         lines = []
-        lines.append("-" * 40)
+        lines.append("-" * 40)
         lines.append("           FINAL SCORE")
-        lines.append("-" * 40)
+        lines.append("-" * 40)
         lines.append("")
-        lines.append(f"  Survival ({self.turns_survived} turns Ãƒ— 10)".ljust(32) + f"{self.survival_points:>6}")
-        lines.append(f"  Exploration ({self.eras_visited} eras Ãƒ— 50)".ljust(32) + f"{self.exploration_points:>6}")
+        lines.append(f"  Survival ({self.turns_survived} turns x 10)".ljust(32) + f"{self.survival_points:>6}")
+        lines.append(f"  Exploration ({self.eras_visited} eras x 50)".ljust(32) + f"{self.exploration_points:>6}")
         lines.append("")
         lines.append("  Fulfillment:")
         lines.append(f"    Belonging".ljust(32) + f"{self.belonging_score:>6}")
@@ -92,7 +95,7 @@ class Score:
         lines.append("")
         lines.append("-" * 40)
         lines.append(f"  TOTAL".ljust(32) + f"{self.total:>6}")
-        lines.append("-" * 40)
+        lines.append("-" * 40)
         return "\n".join(lines)
     
     def get_narrative_summary(self) -> str:
@@ -172,6 +175,8 @@ class Score:
         """Convert to dictionary for JSON storage"""
         return {
             "player_name": self.player_name,
+            "user_id": self.user_id,
+            "game_id": self.game_id,
             "total": self.total,
             "turns_survived": self.turns_survived,
             "eras_visited": self.eras_visited,
@@ -189,6 +194,8 @@ class Score:
         """Create from dictionary"""
         return cls(
             player_name=data.get("player_name", "Unknown"),
+            user_id=data.get("user_id", ""),
+            game_id=data.get("game_id", ""),
             turns_survived=data.get("turns_survived", 0),
             eras_visited=data.get("eras_visited", 0),
             belonging_score=data.get("belonging_score", 0),
@@ -200,8 +207,41 @@ class Score:
         )
 
 
-class Leaderboard:
-    """Manages high scores across games"""
+# =============================================================================
+# LEADERBOARD STORAGE INTERFACE
+# =============================================================================
+
+class LeaderboardStorage(ABC):
+    """Abstract interface for leaderboard storage backends"""
+    
+    @abstractmethod
+    def load_scores(self) -> List[dict]:
+        """Load all scores"""
+        pass
+    
+    @abstractmethod
+    def save_scores(self, scores: List[dict]):
+        """Save all scores"""
+        pass
+    
+    @abstractmethod
+    def add_score(self, score: dict) -> int:
+        """Add a score and return its rank"""
+        pass
+    
+    @abstractmethod
+    def get_top_scores(self, n: int = 10) -> List[dict]:
+        """Get top N scores"""
+        pass
+    
+    @abstractmethod
+    def get_user_scores(self, user_id: str, n: int = 10) -> List[dict]:
+        """Get top N scores for a specific user"""
+        pass
+
+
+class JSONLeaderboardStorage(LeaderboardStorage):
+    """Local JSON file storage for leaderboard (default implementation)"""
     
     def __init__(self, filepath: str = "leaderboard.json"):
         self.filepath = filepath
@@ -227,40 +267,68 @@ class Leaderboard:
         except IOError:
             pass  # Silently fail if can't save
     
-    def add_score(self, score: Score, ending_narrative: str = None) -> int:
-        """
-        Add a score to the leaderboard.
-        Returns the rank (1-indexed).
-        """
-        score_dict = score.to_dict()
-        if ending_narrative:
-            score_dict["ending_narrative"] = ending_narrative
-        self.scores.append(score_dict)
-        
-        # Sort by total score descending
+    def load_scores(self) -> List[dict]:
+        return self.scores
+    
+    def save_scores(self, scores: List[dict]):
+        self.scores = scores
+        self._save()
+    
+    def add_score(self, score: dict) -> int:
+        """Add a score and return its rank (1-indexed)"""
+        self.scores.append(score)
         self.scores.sort(key=lambda x: x.get("total", 0), reverse=True)
-        
-        # Keep only top 100
-        self.scores = self.scores[:100]
-        
+        self.scores = self.scores[:100]  # Keep top 100
         self._save()
         
         # Find rank
         for i, s in enumerate(self.scores):
-            if s["timestamp"] == score_dict["timestamp"] and s["player_name"] == score_dict["player_name"]:
+            if s.get("timestamp") == score.get("timestamp") and s.get("user_id") == score.get("user_id"):
                 return i + 1
         return len(self.scores)
     
     def get_top_scores(self, n: int = 10) -> List[dict]:
-        """Get top N scores"""
         return self.scores[:n]
+    
+    def get_user_scores(self, user_id: str, n: int = 10) -> List[dict]:
+        user_scores = [s for s in self.scores if s.get("user_id") == user_id]
+        return user_scores[:n]
+
+
+class Leaderboard:
+    """Manages high scores across games with pluggable storage backend"""
+    
+    def __init__(self, storage: LeaderboardStorage = None, filepath: str = "leaderboard.json"):
+        """
+        Initialize leaderboard with optional custom storage backend.
+        
+        Args:
+            storage: Custom storage backend (for external databases)
+            filepath: Path for default JSON storage (ignored if storage is provided)
+        """
+        self.storage = storage or JSONLeaderboardStorage(filepath)
+    
+    def add_score(self, score: Score) -> int:
+        """
+        Add a score to the leaderboard.
+        Returns the rank (1-indexed).
+        """
+        return self.storage.add_score(score.to_dict())
+    
+    def get_top_scores(self, n: int = 10) -> List[dict]:
+        """Get top N scores globally"""
+        return self.storage.get_top_scores(n)
+    
+    def get_user_scores(self, user_id: str, n: int = 10) -> List[dict]:
+        """Get top N scores for a specific user"""
+        return self.storage.get_user_scores(user_id, n)
     
     def get_display(self, highlight_score: Optional[Score] = None) -> str:
         """Get formatted leaderboard display"""
         lines = []
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         lines.append("                    LEADERBOARD")
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         lines.append("")
         
         top_scores = self.get_top_scores(10)
@@ -277,24 +345,26 @@ class Leaderboard:
                 # Highlight current score if provided
                 marker = ""
                 if highlight_score and s.get("timestamp") == highlight_score.timestamp:
-                    marker = " -"
+                    marker = " <-"
                 
                 lines.append(f"  {rank:>2}. {name}   {total:>5} pts{marker}")
                 if blurb:
                     lines.append(f"      {blurb}")
                 lines.append("")
         
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         return "\n".join(lines)
 
 
-def calculate_score(game_state, ending_type_override: str = None) -> Score:
+def calculate_score(game_state, ending_type_override: str = None, user_id: str = "", game_id: str = "") -> Score:
     """Calculate the final score from game state
     
     Args:
         game_state: The current game state
         ending_type_override: If provided, use this instead of calculating from fulfillment
                               (e.g., "abandoned" when player quits)
+        user_id: User ID for multi-user support
+        game_id: Game ID to link score to saved game
     """
     
     # Get values from game state
@@ -321,6 +391,8 @@ def calculate_score(game_state, ending_type_override: str = None) -> Score:
         freedom_score=freedom,
         ending_type=ending_type,
         player_name=game_state.player_name,
+        user_id=user_id,
+        game_id=game_id,
         final_era=game_state.current_era.era_name if game_state.current_era else "Unknown",
         timestamp=datetime.now().isoformat()
     )
@@ -358,10 +430,11 @@ class GameHistory:
         except IOError:
             pass  # Silently fail if can't save
     
-    def start_new_game(self, player_name: str) -> dict:
+    def start_new_game(self, player_name: str, user_id: str = "") -> dict:
         """Create a new game record and return it"""
         game = {
             "id": datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "user_id": user_id,
             "player_name": player_name,
             "started_at": datetime.now().isoformat(),
             "ended_at": None,
@@ -408,10 +481,17 @@ class GameHistory:
         self.games.append(game)
         self._save()
     
+    def get_user_games(self, user_id: str, include_in_progress: bool = False) -> List[dict]:
+        """Get all games for a specific user"""
+        user_games = [g for g in self.games if g.get("user_id") == user_id]
+        if not include_in_progress:
+            user_games = [g for g in user_games if g.get("ended_at") is not None]
+        return user_games
+    
     def get_game_summary(self, game: dict) -> str:
         """Get a readable summary of a game"""
         lines = []
-        lines.append(f"--- {game['player_name']}'s Journey ---")
+        lines.append(f"--- {game['player_name']}'s Journey ---")
         lines.append(f"Started: {game['started_at'][:10]}")
         
         if game['final_score']:
@@ -423,7 +503,7 @@ class GameHistory:
         for era in game.get('eras', []):
             year = era.get('era_year', 0)
             year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
-            lines.append(f"  • {era.get('era_name', 'Unknown')} ({year_str})")
+            lines.append(f"  - {era.get('era_name', 'Unknown')} ({year_str})")
         
         return "\n".join(lines)
     
@@ -432,43 +512,47 @@ class GameHistory:
         for game in self.games:
             if game.get('id') == game_id:
                 lines = []
-                lines.append("-" * 60)
+                lines.append("-" * 60)
                 lines.append(f"  THE JOURNEY OF {game['player_name'].upper()}")
-                lines.append("-" * 60)
+                lines.append("-" * 60)
                 lines.append("")
                 
                 for era in game.get('eras', []):
                     year = era.get('era_year', 0)
                     year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
                     
-                    lines.append(f"-”Â- {era.get('era_name', 'Unknown')} ({year_str}) -”Â-")
+                    lines.append(f"--- {era.get('era_name', 'Unknown')} ({year_str}) ---")
                     lines.append("")
                     lines.append(era.get('narrative', '[No narrative recorded]'))
                     lines.append("")
                     lines.append("")
                 
                 if game.get('final_score'):
-                    lines.append("-" * 60)
+                    lines.append("-" * 60)
                     lines.append(f"  Final Score: {game['final_score'].get('total', 0)}")
                     lines.append(f"  {game.get('blurb', '')}")
-                    lines.append("-" * 60)
+                    lines.append("-" * 60)
                 
                 return "\n".join(lines)
         
         return None
     
-    def list_games(self) -> str:
-        """List all saved games"""
-        if not self.games:
+    def list_games(self, user_id: str = None) -> str:
+        """List saved games, optionally filtered by user"""
+        games_to_show = self.games
+        if user_id:
+            games_to_show = [g for g in games_to_show if g.get("user_id") == user_id]
+        
+        if not games_to_show:
             return "No saved games yet."
         
         lines = []
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         lines.append("               SAVED JOURNEYS")
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         lines.append("")
         
-        for i, game in enumerate(reversed(self.games[-20:])):  # Last 20 games, newest first
+        for i, game in enumerate(reversed(games_to_show[-20:])):  # Last 20 games, newest first
             score = game.get('final_score', {}).get('total', 0)
             date = game.get('started_at', '')[:10]
             name = game.get('player_name', 'Unknown')
@@ -479,8 +563,8 @@ class GameHistory:
             lines.append(f"      {date} | {blurb}")
             lines.append("")
         
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         lines.append("  To read a story, open game_history.json")
-        lines.append("-" * 60)
+        lines.append("-" * 60)
         
         return "\n".join(lines)

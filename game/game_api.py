@@ -642,7 +642,7 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices
+        # Check for special window choices (when window is already open)
         if self.state.phase == GamePhase.WINDOW_OPEN:
             if choice == 'A':  # Leave this era (A is always leave when window is open)
                 yield from self._handle_leaving()
@@ -652,28 +652,55 @@ class GameAPI:
                 return
             # Otherwise B and C are continue options - fall through to normal turn
         
-        # Normal turn
+        # Roll dice for this turn
         roll = random.randint(1, 20)
+        
+        # ADVANCE TURN FIRST - then generate appropriate narrative
+        events = self.state.advance_turn()
         
         yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
         
-        # Generate response
-        prompt = get_turn_prompt(self.state, choice, roll)
+        # Generate ONE narrative based on what happened
+        if events["window_opened"]:
+            # Window just opened - use window prompt (includes choice outcome)
+            self.state.phase = GamePhase.WINDOW_OPEN
+            
+            yield emit(MessageType.WINDOW_OPEN, {
+                "message": "THE WINDOW IS OPEN",
+                "can_stay_meaningfully": self.state.can_stay_meaningfully,
+                "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
+            })
+            
+            prompt = get_window_prompt(self.state, choice, roll)
+            history_prefix = "[The time machine window opens]\n"
+            can_quit = not self.state.can_stay_meaningfully
+            window_open = True
+        else:
+            # Normal turn - use turn prompt
+            prompt = get_turn_prompt(self.state, choice, roll)
+            history_prefix = ""
+            can_quit = True
+            window_open = False
+        
         response = ""
         
-        # Stream the narrative
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
+        # Stream the narrative - capture full response from generator
+        generator = self.narrator.generate_streaming(prompt)
+        try:
+            while True:
+                msg = next(generator)
+                yield msg
+        except StopIteration as e:
+            # Generator's return value contains the full response including anchor tags
+            response = e.value if e.value else ""
         
-        # Get full response if streaming didn't capture it
+        # Fallback if response is empty
         if not response:
             response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
         
         # Record narrative
         if self.current_game:
-            self.history.add_narrative(self.current_game, response)
+            self.history.add_narrative(self.current_game, history_prefix + response)
         
         # Process response (anchors, items)
         self._process_response(response)
@@ -686,23 +713,22 @@ class GameAPI:
         
         yield emit(MessageType.CHOICES, {
             "choices": choices,
-            "can_quit": True
+            "can_quit": can_quit,
+            "window_open": window_open,
+            "can_stay_forever": self.state.can_stay_meaningfully if window_open else False
         })
         
-        # Advance turn and check for window
-        events = self.state.advance_turn()
-        
-        if events["window_opened"]:
-            yield from self._handle_window_open()
-        elif events["window_closing"]:
-            yield emit(MessageType.WINDOW_CLOSING, {
-                "message": "The device pulses urgently. The window is closing..."
-            })
-        elif events["window_closed"]:
-            yield emit(MessageType.WINDOW_CLOSED, {
-                "message": "The device falls silent. The moment has passed."
-            })
-            self.state.phase = GamePhase.LIVING
+        # Handle window closing/closed messages (for turns where window was already open)
+        if not events["window_opened"]:
+            if events["window_closing"]:
+                yield emit(MessageType.WINDOW_CLOSING, {
+                    "message": "The device pulses urgently. The window is closing..."
+                })
+            elif events["window_closed"]:
+                yield emit(MessageType.WINDOW_CLOSED, {
+                    "message": "The device falls silent. The moment has passed."
+                })
+                self.state.phase = GamePhase.LIVING
         
         # Emit device status
         yield self._get_device_status()
@@ -800,10 +826,14 @@ class GameAPI:
         prompt = get_arrival_prompt(self.state, self.current_era)
         response = ""
         
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
+        # Stream the narrative - capture full response from generator
+        generator = self.narrator.generate_streaming(prompt)
+        try:
+            while True:
+                msg = next(generator)
+                yield msg
+        except StopIteration as e:
+            response = e.value if e.value else ""
         
         if not response:
             response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
@@ -837,55 +867,6 @@ class GameAPI:
             self.state.conversation_history = self.narrator.get_conversation_history()
         self.save_manager.save_game(self.user_id, self.game_id, self.state)
     
-    def _handle_window_open(self) -> Generator[Dict, None, None]:
-        """Handle when travel window opens"""
-        self.state.phase = GamePhase.WINDOW_OPEN
-        
-        yield emit(MessageType.WINDOW_OPEN, {
-            "message": "THE WINDOW IS OPEN",
-            "can_stay_meaningfully": self.state.can_stay_meaningfully,
-            "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
-        })
-        
-        yield emit(MessageType.LOADING, {"message": "A moment of decision..."})
-        
-        # Generate window narrative
-        prompt = get_window_prompt(self.state)
-        response = ""
-        
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
-        
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record narrative
-        if self.current_game:
-            self.history.add_narrative(self.current_game, "[The time machine window opens]\n" + response)
-        
-        # Process response
-        self._process_response(response)
-        
-        # Parse and emit choices (with window-specific options)
-        choices = self._parse_choices(response)
-        
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
-        
-        yield emit(MessageType.CHOICES, {
-            "choices": choices,
-            "can_quit": not self.state.can_stay_meaningfully,  # No quit when "stay forever" is available
-            "window_open": True,
-            "can_stay_forever": self.state.can_stay_meaningfully
-        })
-        
-        # Auto-save
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        self.save_manager.save_game(self.user_id, self.game_id, self.state)
-    
     def _handle_leaving(self) -> Generator[Dict, None, None]:
         """Handle player choosing to leave"""
         self.state.choose_to_travel()
@@ -901,10 +882,14 @@ class GameAPI:
         prompt = get_leaving_prompt(self.state)
         response = ""
         
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
+        # Stream the narrative - capture full response from generator
+        generator = self.narrator.generate_streaming(prompt)
+        try:
+            while True:
+                msg = next(generator)
+                yield msg
+        except StopIteration as e:
+            response = e.value if e.value else ""
         
         if not response:
             response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
@@ -936,10 +921,14 @@ class GameAPI:
         prompt = get_staying_ending_prompt(self.state, self.current_era)
         response = ""
         
-        for msg in self.narrator.generate_streaming(prompt):
-            yield msg
-            if msg["type"] == MessageType.NARRATIVE_CHUNK:
-                response += msg["data"].get("text", "")
+        # Stream the narrative - capture full response from generator
+        generator = self.narrator.generate_streaming(prompt)
+        try:
+            while True:
+                msg = next(generator)
+                yield msg
+        except StopIteration as e:
+            response = e.value if e.value else ""
         
         if not response:
             response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
@@ -952,16 +941,8 @@ class GameAPI:
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
-        # Store ending narrative for score screen
-        self._ending_narrative = response
-        
-        # Wait for user to continue to score screen
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
-    
-    def continue_to_score(self) -> Generator[Dict, None, None]:
-        """Continue from ending narrative to final score screen"""
-        ending_narrative = getattr(self, '_ending_narrative', None)
-        yield from self._emit_final_score(ending_narrative=ending_narrative)
+        # Calculate and emit score
+        yield from self._emit_final_score()
         
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
@@ -989,7 +970,7 @@ class GameAPI:
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
     
-    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = None) -> Generator[Dict, None, None]:
+    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
         score = calculate_score(
             self.state, 
@@ -1002,9 +983,9 @@ class GameAPI:
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard with ending narrative
+        # Add to leaderboard
         leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score, ending_narrative=ending_narrative)
+        rank = leaderboard.add_score(score)
         
         yield emit(MessageType.FINAL_SCORE, {
             "total": score.total,
@@ -1029,7 +1010,7 @@ class GameAPI:
                     "bonus": score.ending_bonus
                 }
             },
-            "ending_narrative": ending_narrative or score.get_narrative_summary(),
+            "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era
         })
@@ -1125,10 +1106,6 @@ class GameSession:
     def continue_to_next_era(self) -> List[Dict]:
         """Continue after departure"""
         return list(self.api.continue_to_next_era())
-    
-    def continue_to_score(self) -> List[Dict]:
-        """Continue from ending narrative to score screen"""
-        return list(self.api.continue_to_score())
     
     def get_state(self) -> Dict:
         """Get current state"""

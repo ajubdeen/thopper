@@ -111,10 +111,6 @@ export function setupPtyWebSocket(httpServer: Server): void {
       pythonSocket.emit("continue_to_next_era");
     });
 
-    browserSocket.on("continue_to_score", () => {
-      pythonSocket.emit("continue_to_score");
-    });
-
     browserSocket.on("get_state", () => {
       pythonSocket.emit("get_state");
     });
