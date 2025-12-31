@@ -941,6 +941,11 @@ class GameAPI:
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
+        # Wait for user to click continue before showing score
+        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
+    
+    def continue_to_score(self) -> Generator[Dict, None, None]:
+        """Continue to show the final score after the narrative"""
         # Calculate and emit score
         yield from self._emit_final_score()
         
@@ -1106,6 +1111,10 @@ class GameSession:
     def continue_to_next_era(self) -> List[Dict]:
         """Continue after departure"""
         return list(self.api.continue_to_next_era())
+    
+    def continue_to_score(self) -> List[Dict]:
+        """Continue to show final score after ending narrative"""
+        return list(self.api.continue_to_score())
     
     def get_state(self) -> Dict:
         """Get current state"""

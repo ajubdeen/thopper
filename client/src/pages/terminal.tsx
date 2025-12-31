@@ -211,8 +211,11 @@ export default function GamePage() {
         break;
         
       case "departure":
-      case "staying_forever":
         setNarrative("");
+        break;
+        
+      case "staying_forever":
+        // Don't clear narrative - we want to show the ending story
         break;
         
       case "final_score":
@@ -311,6 +314,12 @@ export default function GamePage() {
   const continueToNextEra = () => {
     setIsLoading(true);
     socketRef.current?.emit('continue_to_next_era');
+    setWaitingAction(null);
+  };
+
+  const continueToScore = () => {
+    setIsLoading(true);
+    socketRef.current?.emit('continue_to_score');
     setWaitingAction(null);
   };
 
@@ -765,6 +774,19 @@ export default function GamePage() {
                   data-testid="button-continue-era"
                 >
                   {isLoading ? "Traveling in time..." : "Continue to next era..."}
+                </Button>
+              </div>
+            )}
+            
+            {waitingAction === "continue_to_score" && (
+              <div className="flex-shrink-0 pt-2 border-t border-gray-800">
+                <Button 
+                  onClick={continueToScore}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white py-4"
+                  disabled={isLoading}
+                  data-testid="button-continue-score"
+                >
+                  {isLoading ? "Calculating..." : "Continue to see your score..."}
                 </Button>
               </div>
             )}
