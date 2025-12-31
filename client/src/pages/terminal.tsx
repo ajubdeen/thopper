@@ -64,6 +64,10 @@ interface LeaderboardEntry {
   final_era: string;
   timestamp: string;
   ending_narrative?: string;
+  belonging_score?: number;
+  legacy_score?: number;
+  freedom_score?: number;
+  blurb?: string;
 }
 
 export default function GamePage() {
@@ -568,17 +572,58 @@ export default function GamePage() {
             </ScrollArea>
             
             <Dialog open={!!storyModalEntry} onOpenChange={(open) => !open && setStoryModalEntry(null)}>
-              <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl max-h-[80vh] flex flex-col">
                 <DialogHeader>
                   <DialogTitle className="text-amber-400">
-                    {storyModalEntry?.player_name || 'Anonymous'}'s Ending
+                    {storyModalEntry?.player_name || 'Anonymous'} chose to stay in {storyModalEntry?.final_era}
                   </DialogTitle>
                 </DialogHeader>
-                <ScrollArea className="flex-1 pr-4">
-                  <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                    {storyModalEntry?.ending_narrative}
+                
+                <div className="space-y-4 pb-2">
+                  <div className="text-gray-300">
+                    <span className="text-amber-400 font-bold text-lg">{storyModalEntry?.total} pts</span>
+                    <span className="text-gray-500 mx-2">-</span>
+                    <span className="text-gray-400">{storyModalEntry?.blurb || `${storyModalEntry?.ending_type} ending`}</span>
                   </div>
-                </ScrollArea>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 text-sm w-20">Belonging</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-amber-500 rounded-full transition-all"
+                          style={{ width: `${storyModalEntry?.belonging_score || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 text-sm w-20">Legacy</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-amber-500 rounded-full transition-all"
+                          style={{ width: `${storyModalEntry?.legacy_score || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 text-sm w-20">Freedom</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-amber-500 rounded-full transition-all"
+                          style={{ width: `${storyModalEntry?.freedom_score || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border-t border-gray-700 pt-4 flex-1 overflow-hidden">
+                  <ScrollArea className="h-[40vh]">
+                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed pr-4">
+                      {storyModalEntry?.ending_narrative}
+                    </div>
+                  </ScrollArea>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
