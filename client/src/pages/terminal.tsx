@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOut, Trophy, Play, RotateCcw, User } from "lucide-react";
 
@@ -62,6 +63,7 @@ interface LeaderboardEntry {
   ending_type: string;
   final_era: string;
   timestamp: string;
+  ending_narrative?: string;
 }
 
 export default function GamePage() {
@@ -91,6 +93,7 @@ export default function GamePage() {
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
+  const [storyModalEntry, setStoryModalEntry] = useState<LeaderboardEntry | null>(null);
 
   const scrollToBottom = useCallback(() => {
     narrativeEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -539,10 +542,22 @@ export default function GamePage() {
                             <span className="text-gray-100 font-medium">{entry.player_name || 'Anonymous'}</span>
                             <span className="text-amber-400 font-bold">{entry.total}</span>
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
                             <span className="capitalize">{entry.ending_type}</span>
-                            <span className="mx-1">&middot;</span>
+                            <span>&middot;</span>
                             <span>{entry.final_era}</span>
+                            {entry.ending_narrative && (
+                              <>
+                                <span>&middot;</span>
+                                <button
+                                  onClick={() => setStoryModalEntry(entry)}
+                                  className="text-amber-500 hover:text-amber-400 underline"
+                                  data-testid={`button-story-${i}`}
+                                >
+                                  The Story
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -551,6 +566,21 @@ export default function GamePage() {
                 )}
               </div>
             </ScrollArea>
+            
+            <Dialog open={!!storyModalEntry} onOpenChange={(open) => !open && setStoryModalEntry(null)}>
+              <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="text-amber-400">
+                    {storyModalEntry?.player_name || 'Anonymous'}'s Ending
+                  </DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="flex-1 pr-4">
+                  <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {storyModalEntry?.ending_narrative}
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
