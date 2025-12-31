@@ -5,15 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/use-auth";
+import { LogOut, Trophy, Play, RotateCcw, User } from "lucide-react";
 
 type GamePhase = 
+  | "connecting"
+  | "menu"
   | "title" 
   | "setup_name" 
   | "setup_region" 
   | "intro" 
   | "gameplay" 
   | "loading" 
-  | "ended";
+  | "ended"
+  | "leaderboard";
 
 interface Choice {
   id: string;
@@ -41,11 +46,30 @@ interface EraInfo {
   time_in_era?: string;
 }
 
+interface SavedGame {
+  game_id: string;
+  player_name: string;
+  phase: string;
+  current_era: string | null;
+  total_turns: number;
+  saved_at: string;
+}
+
+interface LeaderboardEntry {
+  user_id: string;
+  total: number;
+  ending_type: string;
+  final_era: string;
+  timestamp: string;
+}
+
 export default function GamePage() {
+  const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
   const [connected, setConnected] = useState(false);
-  const [phase, setPhase] = useState<GamePhase>("setup_name");
+  const [initialized, setInitialized] = useState(false);
+  const [phase, setPhase] = useState<GamePhase>("connecting");
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -63,6 +87,9 @@ export default function GamePage() {
   const [finalScore, setFinalScore] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [waitingAction, setWaitingAction] = useState<string | null>(null);
+  const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(true);
 
   const scrollToBottom = useCallback(() => {
     narrativeEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,6 +101,30 @@ export default function GamePage() {
 
   const handleMessage = useCallback((msg: GameMessage) => {
     switch (msg.type) {
+      case "ready":
+        setInitialized(true);
+        socketRef.current?.emit('list_saves');
+        break;
+        
+      case "user_games":
+        setSavedGames(msg.data.games || []);
+        setPhase("menu");
+        break;
+        
+      case "game_loaded":
+        socketRef.current?.emit('resume');
+        break;
+        
+      case "game_resumed":
+        setCurrentEra(msg.data.era || null);
+        setPhase("gameplay");
+        break;
+        
+      case "leaderboard":
+        setLeaderboard(msg.data.scores || []);
+        setPhase("leaderboard");
+        break;
+        
       case "title":
         setPhase("title");
         break;
@@ -130,6 +181,7 @@ export default function GamePage() {
         setIsLoading(true);
         break;
         
+      case "narrative":
       case "narrative_chunk":
         setNarrative(prev => prev + (msg.data.text || ""));
         setIsLoading(false);
@@ -181,6 +233,8 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    
     const socket = io({
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -192,6 +246,7 @@ export default function GamePage() {
     socket.on('connect', () => {
       console.log('Connected to game server');
       setConnected(true);
+      socket.emit('init', { user_id: user?.id || 'anonymous' });
     });
 
     socket.on('message', handleMessage);
@@ -199,6 +254,7 @@ export default function GamePage() {
     socket.on('disconnect', (reason) => {
       console.log('Disconnected:', reason);
       setConnected(false);
+      setInitialized(false);
     });
 
     socket.on('connect_error', (error) => {
@@ -211,7 +267,24 @@ export default function GamePage() {
     return () => {
       socket.disconnect();
     };
-  }, [handleMessage]);
+  }, [handleMessage, authLoading, isAuthenticated, user?.id]);
+
+  const startNewGame = () => {
+    socketRef.current?.emit('new_game');
+  };
+
+  const loadGame = (gameId: string) => {
+    socketRef.current?.emit('load', { game_id: gameId });
+  };
+
+  const showLeaderboard = (global: boolean = true) => {
+    setShowGlobalLeaderboard(global);
+    socketRef.current?.emit('leaderboard', { global });
+  };
+
+  const backToMenu = () => {
+    socketRef.current?.emit('list_saves');
+  };
 
   const submitName = () => {
     socketRef.current?.emit('set_name', { name: playerName || 'Traveler' });
@@ -241,12 +314,12 @@ export default function GamePage() {
   };
 
   const restartGame = () => {
-    setPhase("title");
+    setPhase("menu");
     setNarrative("");
     setChoices([]);
     setFinalScore(null);
     setCurrentEra(null);
-    socketRef.current?.emit('restart');
+    socketRef.current?.emit('list_saves');
   };
 
   const getDeviceStatusColor = () => {
@@ -258,6 +331,48 @@ export default function GamePage() {
       default: return "bg-gray-600";
     }
   };
+
+  // Show loading while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#0d0d0d] text-gray-100 flex flex-col">
+        <div className="relative w-full h-[200px] sm:h-[280px]">
+          <img 
+            src={heroImage} 
+            alt="Anachron" 
+            className="w-full h-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-[#0d0d0d]" />
+        </div>
+        
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 -mt-16">
+          <h1 className="text-4xl sm:text-5xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
+          <p className="text-gray-400 text-center max-w-md">
+            A time-travel survival adventure. Sign in to save your progress and compete on the leaderboard.
+          </p>
+          
+          <div className="flex flex-col gap-3 w-full max-w-xs mt-4">
+            <Button 
+              onClick={() => window.location.href = "/api/login"}
+              className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg"
+              data-testid="button-login"
+            >
+              Sign In to Play
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-gray-100 flex flex-col overscroll-none touch-pan-y">
@@ -281,9 +396,149 @@ export default function GamePage() {
             <span className="text-xs text-gray-300 capitalize">{deviceStatus.status.replace('_', ' ')}</span>
           </div>
         )}
+        
+        {(phase === "menu" || phase === "leaderboard") && (
+          <div className="absolute top-3 right-3 flex items-center gap-2">
+            <div className="flex items-center gap-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md">
+              <User className="w-3 h-3 text-gray-300" />
+              <span className="text-xs text-gray-300">{user?.firstName || user?.email || 'Player'}</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => logout()}
+              className="h-7 w-7 bg-black/60 backdrop-blur-sm hover:bg-black/80"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-3 h-3 text-gray-300" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
+        {phase === "connecting" && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4">
+            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400">Connecting to game server...</p>
+          </div>
+        )}
+
+        {phase === "menu" && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-md mx-auto w-full">
+            <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
+            <p className="text-gray-400 text-center">How will you fare in another era?</p>
+            
+            <div className="flex flex-col gap-3 w-full mt-4">
+              <Button 
+                onClick={startNewGame}
+                className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg gap-2"
+                data-testid="button-new-game"
+              >
+                <Play className="w-5 h-5" />
+                New Game
+              </Button>
+              
+              {savedGames.length > 0 && (
+                <>
+                  <div className="text-sm text-gray-500 text-center mt-2">or continue a saved game</div>
+                  {savedGames.slice(0, 3).map((game) => (
+                    <Card 
+                      key={game.game_id}
+                      className="bg-gray-900 border-gray-700 cursor-pointer hover:border-amber-500 transition-colors"
+                      onClick={() => loadGame(game.game_id)}
+                      data-testid={`button-continue-${game.game_id}`}
+                    >
+                      <CardContent className="p-3 flex items-center justify-between">
+                        <div>
+                          <div className="text-amber-400 font-medium">{game.player_name}</div>
+                          <div className="text-xs text-gray-500">
+                            {game.current_era || 'Starting'} - Turn {game.total_turns}
+                          </div>
+                        </div>
+                        <RotateCcw className="w-4 h-4 text-gray-500" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              )}
+              
+              <Button 
+                onClick={() => showLeaderboard(true)}
+                variant="outline"
+                className="border-gray-700 text-gray-300 mt-4 gap-2"
+                data-testid="button-leaderboard"
+              >
+                <Trophy className="w-4 h-4" />
+                Leaderboard
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "leaderboard" && (
+          <div className="flex-1 flex flex-col max-w-md mx-auto w-full py-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-amber-400">Leaderboard</h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={backToMenu}
+                className="text-gray-400"
+                data-testid="button-back-menu"
+              >
+                Back
+              </Button>
+            </div>
+            
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={showGlobalLeaderboard ? "default" : "outline"}
+                size="sm"
+                onClick={() => showLeaderboard(true)}
+                className={showGlobalLeaderboard ? "bg-amber-600" : "border-gray-700"}
+                data-testid="button-global-leaderboard"
+              >
+                Global
+              </Button>
+              <Button
+                variant={!showGlobalLeaderboard ? "default" : "outline"}
+                size="sm"
+                onClick={() => showLeaderboard(false)}
+                className={!showGlobalLeaderboard ? "bg-amber-600" : "border-gray-700"}
+                data-testid="button-my-scores"
+              >
+                My Scores
+              </Button>
+            </div>
+            
+            <ScrollArea className="flex-1">
+              <div className="space-y-2">
+                {leaderboard.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
+                ) : (
+                  leaderboard.map((entry, i) => (
+                    <Card key={i} className="bg-gray-900 border-gray-700">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-amber-400 font-bold">
+                          {i + 1}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-300">{entry.final_era}</span>
+                            <span className="text-amber-400 font-bold">{entry.total}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 capitalize">{entry.ending_type}</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
         {phase === "title" && (
           <div className="flex-1 flex flex-col items-center justify-center gap-6">
             <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
@@ -375,7 +630,7 @@ export default function GamePage() {
                     <ul className="text-sm text-gray-400 space-y-1">
                       {introDevice.mechanics?.map((m: string, i: number) => (
                         <li key={i} className="flex gap-2">
-                          <span className="text-amber-400">•</span>
+                          <span className="text-amber-400">-</span>
                           <span>{m}</span>
                         </li>
                       ))}
@@ -387,7 +642,7 @@ export default function GamePage() {
                     <ul className="text-sm text-gray-400 space-y-1">
                       {introDevice.catch?.map((c: string, i: number) => (
                         <li key={i} className="flex gap-2">
-                          <span className="text-red-400">•</span>
+                          <span className="text-red-400">-</span>
                           <span>{c}</span>
                         </li>
                       ))}
@@ -418,7 +673,7 @@ export default function GamePage() {
               <div className="flex-shrink-0 py-2 border-b border-gray-800">
                 <div className="text-center">
                   <h2 className="text-lg font-semibold text-amber-400">{currentEra.name}</h2>
-                  <p className="text-sm text-gray-500">{currentEra.location} • {currentEra.year_display}</p>
+                  <p className="text-sm text-gray-500">{currentEra.location} - {currentEra.year_display}</p>
                 </div>
               </div>
             )}
@@ -444,7 +699,7 @@ export default function GamePage() {
                     <ul className="text-sm text-gray-400 space-y-1 list-none p-0 m-0">
                       {eraSummary.map((event, i) => (
                         <li key={i} className="flex gap-2">
-                          <span className="text-gray-600">•</span>
+                          <span className="text-gray-600">-</span>
                           <span>{event}</span>
                         </li>
                       ))}

@@ -4,6 +4,13 @@ Anachron Game Server
 
 Flask-SocketIO server that wraps the GameSession API.
 Emits structured JSON messages to connected clients.
+
+Supports:
+- User ID for multi-user save/load
+- Auto-select European region
+- Skip region selection screen
+- Save/load/resume game sessions
+- Leaderboard display
 """
 
 import os
@@ -34,15 +41,49 @@ from game_api import GameSession
 sessions = {}
 
 
+def get_session(sid):
+    """Get session or emit error"""
+    if sid not in sessions:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return None
+    return sessions[sid]
+
+
 @socketio.on('connect')
 def handle_connect():
-    """Handle new client connection"""
+    """Handle new client connection - wait for init event"""
     sid = request.sid
     logger.info(f"Client connected: {sid}")
+    # Don't create session yet - wait for init event with user_id
+
+
+@socketio.on('init')
+def handle_init(data):
+    """Initialize game session with user_id"""
+    sid = request.sid
+    user_id = data.get('user_id', 'anonymous')
+    logger.info(f"Initializing session for {sid} with user_id: {user_id}")
     
-    session = GameSession()
-    sessions[sid] = session
+    # Create session with user_id
+    session = GameSession(user_id=user_id)
+    sessions[sid] = {
+        'session': session,
+        'user_id': user_id
+    }
     
+    # Emit ready event - let frontend decide what to do
+    emit('message', {'type': 'ready', 'data': {'user_id': user_id}})
+
+
+@socketio.on('new_game')
+def handle_new_game():
+    """Start a new game"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
     messages = session.start()
     for msg in messages:
         emit('message', msg)
@@ -60,28 +101,37 @@ def handle_disconnect():
 
 @socketio.on('set_name')
 def handle_set_name(data):
-    """Set player name"""
+    """Set player name and auto-select European region"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
+    session = session_data['session']
     name = data.get('name', 'Traveler')
-    messages = sessions[sid].set_name(name)
+    
+    # Set name
+    messages = session.set_name(name)
+    for msg in messages:
+        emit('message', msg)
+    
+    # Auto-select European region (skip region selection)
+    messages = session.set_region('european')
     for msg in messages:
         emit('message', msg)
 
 
 @socketio.on('set_region')
 def handle_set_region(data):
-    """Set region preference"""
+    """Set region preference (fallback if frontend sends it)"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
-    region = data.get('region', 'worldwide')
-    messages = sessions[sid].set_region(region)
+    session = session_data['session']
+    region = data.get('region', 'european')
+    messages = session.set_region(region)
     for msg in messages:
         emit('message', msg)
 
@@ -90,11 +140,12 @@ def handle_set_region(data):
 def handle_enter_first_era():
     """Enter the first era"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
-    messages = sessions[sid].enter_first_era()
+    session = session_data['session']
+    messages = session.enter_first_era()
     for msg in messages:
         emit('message', msg)
 
@@ -103,12 +154,13 @@ def handle_enter_first_era():
 def handle_choose(data):
     """Make a choice"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
+    session = session_data['session']
     choice = data.get('choice', 'A')
-    messages = sessions[sid].choose(choice)
+    messages = session.choose(choice)
     for msg in messages:
         emit('message', msg)
 
@@ -117,11 +169,12 @@ def handle_choose(data):
 def handle_continue_to_next_era():
     """Continue to next era after departure"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
-    messages = sessions[sid].continue_to_next_era()
+    session = session_data['session']
+    messages = session.continue_to_next_era()
     for msg in messages:
         emit('message', msg)
 
@@ -130,22 +183,109 @@ def handle_continue_to_next_era():
 def handle_get_state():
     """Get current game state"""
     sid = request.sid
-    if sid not in sessions:
-        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+    session_data = get_session(sid)
+    if not session_data:
         return
     
-    state = sessions[sid].get_state()
+    session = session_data['session']
+    state = session.get_state()
     emit('message', {'type': 'state', 'data': state})
+
+
+@socketio.on('save')
+def handle_save():
+    """Save current game"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    messages = session.save()
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('load')
+def handle_load(data):
+    """Load a saved game"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    game_id = data.get('game_id')
+    if not game_id:
+        emit('message', {'type': 'error', 'data': {'message': 'No game_id provided'}})
+        return
+    
+    messages = session.load(game_id)
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('resume')
+def handle_resume():
+    """Resume a loaded game"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    messages = session.resume()
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('list_saves')
+def handle_list_saves():
+    """List saved games for current user"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    messages = session.list_saves()
+    for msg in messages:
+        emit('message', msg)
+
+
+@socketio.on('leaderboard')
+def handle_leaderboard(data):
+    """Get leaderboard"""
+    sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        return
+    
+    session = session_data['session']
+    global_board = data.get('global', True) if data else True
+    messages = session.leaderboard(global_board)
+    for msg in messages:
+        emit('message', msg)
 
 
 @socketio.on('restart')
 def handle_restart():
     """Restart the game"""
     sid = request.sid
+    session_data = get_session(sid)
+    if not session_data:
+        emit('message', {'type': 'error', 'data': {'message': 'Session not found'}})
+        return
+    
+    user_id = session_data['user_id']
     logger.info(f"Restart requested for {sid}")
     
-    session = GameSession()
-    sessions[sid] = session
+    # Create new session with same user_id
+    session = GameSession(user_id=user_id)
+    sessions[sid] = {
+        'session': session,
+        'user_id': user_id
+    }
     
     messages = session.start()
     for msg in messages:

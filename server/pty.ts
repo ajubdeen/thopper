@@ -81,6 +81,16 @@ export function setupPtyWebSocket(httpServer: Server): void {
       browserSocket.emit("message", { type: "error", data: { message: "Failed to connect to game server" } });
     });
 
+    // Initialize with user_id
+    browserSocket.on("init", (data: { user_id: string }) => {
+      pythonSocket.emit("init", data);
+    });
+
+    // Start new game
+    browserSocket.on("new_game", () => {
+      pythonSocket.emit("new_game");
+    });
+
     browserSocket.on("set_name", (data: { name: string }) => {
       pythonSocket.emit("set_name", data);
     });
@@ -103,6 +113,28 @@ export function setupPtyWebSocket(httpServer: Server): void {
 
     browserSocket.on("get_state", () => {
       pythonSocket.emit("get_state");
+    });
+
+    // Save/load/resume
+    browserSocket.on("save", () => {
+      pythonSocket.emit("save");
+    });
+
+    browserSocket.on("load", (data: { game_id: string }) => {
+      pythonSocket.emit("load", data);
+    });
+
+    browserSocket.on("resume", () => {
+      pythonSocket.emit("resume");
+    });
+
+    browserSocket.on("list_saves", () => {
+      pythonSocket.emit("list_saves");
+    });
+
+    // Leaderboard
+    browserSocket.on("leaderboard", (data?: { global: boolean }) => {
+      pythonSocket.emit("leaderboard", data);
     });
 
     browserSocket.on("restart", () => {
