@@ -57,6 +57,7 @@ interface SavedGame {
 
 interface LeaderboardEntry {
   user_id: string;
+  player_name?: string;
   total: number;
   ending_type: string;
   final_era: string;
@@ -516,7 +517,7 @@ export default function GamePage() {
             <ScrollArea className="flex-1">
               <div className="space-y-2">
                 {leaderboard.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No scores yet. Be the first!</p>
+                  <p className="text-gray-500 text-center py-8">No scores yet: Play your first game!</p>
                 ) : (
                   leaderboard.map((entry, i) => (
                     <Card key={i} className="bg-gray-900 border-gray-700">
@@ -525,11 +526,15 @@ export default function GamePage() {
                           {i + 1}
                         </div>
                         <div className="flex-1">
-                          <div className="flex justify-between">
-                            <span className="text-gray-300">{entry.final_era}</span>
+                          <div className="flex justify-between items-center gap-2">
+                            <span className="text-gray-100 font-medium">{entry.player_name || 'Anonymous'}</span>
                             <span className="text-amber-400 font-bold">{entry.total}</span>
                           </div>
-                          <div className="text-xs text-gray-500 capitalize">{entry.ending_type}</div>
+                          <div className="text-xs text-gray-500">
+                            <span className="capitalize">{entry.ending_type}</span>
+                            <span className="mx-1">&middot;</span>
+                            <span>{entry.final_era}</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
