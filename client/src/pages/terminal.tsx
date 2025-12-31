@@ -425,14 +425,15 @@ export default function GamePage() {
         )}
 
         {phase === "menu" && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-md mx-auto w-full">
-            <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
-            <p className="text-gray-400 text-center">How will you fare in another era?</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-8 max-w-sm mx-auto w-full px-2">
+            <p className="text-gray-300 text-center text-lg">
+              How will <em className="text-amber-400 not-italic font-medium">you</em> fare in another era?
+            </p>
             
-            <div className="flex flex-col gap-3 w-full mt-4">
+            <div className="flex flex-col gap-4 w-full">
               <Button 
                 onClick={startNewGame}
-                className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg gap-2"
+                className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white py-7 text-lg font-semibold gap-3 shadow-lg shadow-amber-900/30 border border-amber-500/30"
                 data-testid="button-new-game"
               >
                 <Play className="w-5 h-5" />
@@ -440,38 +441,38 @@ export default function GamePage() {
               </Button>
               
               {savedGames.length > 0 && (
-                <>
-                  <div className="text-sm text-gray-500 text-center mt-2">or continue a saved game</div>
+                <div className="space-y-3 mt-2">
+                  <div className="text-sm text-gray-500 text-center uppercase tracking-wide">Saved Games</div>
                   {savedGames.slice(0, 3).map((game) => (
-                    <Card 
+                    <button 
                       key={game.game_id}
-                      className="bg-gray-900 border-gray-700 cursor-pointer hover:border-amber-500 transition-colors"
+                      className="w-full bg-gray-900/80 border border-gray-700/50 rounded-lg p-4 flex items-center justify-between hover:bg-gray-800/80 hover:border-amber-600/40 transition-all duration-200 group"
                       onClick={() => loadGame(game.game_id)}
                       data-testid={`button-continue-${game.game_id}`}
                     >
-                      <CardContent className="p-3 flex items-center justify-between">
-                        <div>
-                          <div className="text-amber-400 font-medium">{game.player_name}</div>
-                          <div className="text-xs text-gray-500">
-                            {game.current_era || 'Starting'} - Turn {game.total_turns}
-                          </div>
+                      <div className="text-left">
+                        <div className="text-amber-400 font-semibold group-hover:text-amber-300 transition-colors">{game.player_name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {game.current_era || 'Starting'} &middot; Turn {game.total_turns}
                         </div>
-                        <RotateCcw className="w-4 h-4 text-gray-500" />
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <RotateCcw className="w-4 h-4 text-gray-600 group-hover:text-amber-500 transition-colors" />
+                    </button>
                   ))}
-                </>
+                </div>
               )}
               
-              <Button 
-                onClick={() => showLeaderboard(true)}
-                variant="outline"
-                className="border-gray-700 text-gray-300 mt-4 gap-2"
-                data-testid="button-leaderboard"
-              >
-                <Trophy className="w-4 h-4" />
-                Leaderboard
-              </Button>
+              <div className="pt-4 border-t border-gray-800/50 mt-2">
+                <Button 
+                  onClick={() => showLeaderboard(true)}
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-amber-400 gap-2 py-5"
+                  data-testid="button-leaderboard"
+                >
+                  <Trophy className="w-4 h-4" />
+                  View Leaderboard
+                </Button>
+              </div>
             </div>
           </div>
         )}
