@@ -472,7 +472,7 @@ class GameAPI:
             "title": "THE DEVICE",
             "description": "The time machine is small—about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
             "mechanics": [
-                "The window won't open immediately when you arrive somewhere new",
+                "The window to use the machine won't open immediately when you arrive somewhere new",
                 "You'll have time to settle in first—typically most of a year",
                 "When the window opens, you have a short time to decide",
                 "Choose to activate it, or let the window close and stay"
