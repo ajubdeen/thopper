@@ -412,24 +412,11 @@ class GameAPI:
         })
     
     def set_player_name(self, name: str) -> Generator[Dict, None, None]:
-        """Set player name and move to region selection"""
+        """Set player name and auto-select European region (skip region selection)"""
         self.state.player_name = name if name.strip() else "Traveler"
         
-        yield emit(MessageType.SETUP_REGION, {
-            "prompt": "Where in history?",
-            "options": [
-                {
-                    "id": "european",
-                    "name": "European Focus",
-                    "description": "Ancient Greece, Vikings, Medieval Europe, Colonial America, Industrial Britain, World Wars"
-                },
-                {
-                    "id": "worldwide",
-                    "name": "World Explorer", 
-                    "description": "All eras: Egypt, China, Aztec Empire, Mughal India, plus European eras"
-                }
-            ]
-        })
+        # Auto-select European region - skip the region selection screen
+        yield from self.set_region("european")
     
     def set_region(self, region: str) -> Generator[Dict, None, None]:
         """Set region preference and show intro"""
