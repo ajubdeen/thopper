@@ -412,11 +412,24 @@ class GameAPI:
         })
     
     def set_player_name(self, name: str) -> Generator[Dict, None, None]:
-        """Set player name and auto-select European region (skip region selection)"""
+        """Set player name and move to region selection"""
         self.state.player_name = name if name.strip() else "Traveler"
         
-        # Auto-select European region - skip the region selection screen
-        yield from self.set_region("european")
+        yield emit(MessageType.SETUP_REGION, {
+            "prompt": "Where in history?",
+            "options": [
+                {
+                    "id": "european",
+                    "name": "European Focus",
+                    "description": "Ancient Greece, Vikings, Medieval Europe, Colonial America, Industrial Britain, World Wars"
+                },
+                {
+                    "id": "worldwide",
+                    "name": "World Explorer", 
+                    "description": "All eras: Egypt, China, Aztec Empire, Mughal India, plus European eras"
+                }
+            ]
+        })
     
     def set_region(self, region: str) -> Generator[Dict, None, None]:
         """Set region preference and show intro"""
@@ -425,7 +438,7 @@ class GameAPI:
         # Initialize game state
         self.state.start_game(self.state.player_name, GameMode.MATURE, self._selected_region)
         self.narrator = NarrativeEngine(self.state)
-        self.current_game = self.history.start_new_game(self.state.player_name)
+        self.current_game = self.history.start_new_game(self.state.player_name, self.user_id)
         
         # Intro story
         yield emit(MessageType.INTRO_STORY, {
@@ -935,22 +948,12 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, "[You choose to stay forever]\n" + response)
         
-        # Store ending narrative for later use
-        self._ending_narrative = strip_anchor_tags(response)
-        
         # End the game
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
-        # Wait for user to continue to score screen
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
-    
-    def continue_to_score(self) -> Generator[Dict, None, None]:
-        """Continue to the score screen after viewing ending narrative"""
-        ending_narrative = getattr(self, '_ending_narrative', None)
-        
         # Calculate and emit score
-        yield from self._emit_final_score(ending_narrative=ending_narrative)
+        yield from self._emit_final_score()
         
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
@@ -978,7 +981,7 @@ class GameAPI:
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
     
-    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = None) -> Generator[Dict, None, None]:
+    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
         score = calculate_score(
             self.state, 
@@ -991,9 +994,9 @@ class GameAPI:
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard (include ending narrative for leaderboard entry)
+        # Add to leaderboard
         leaderboard = Leaderboard()
-        rank = leaderboard.add_score(score, ending_narrative=ending_narrative)
+        rank = leaderboard.add_score(score)
         
         yield emit(MessageType.FINAL_SCORE, {
             "total": score.total,
@@ -1018,7 +1021,7 @@ class GameAPI:
                     "bonus": score.ending_bonus
                 }
             },
-            "ending_narrative": ending_narrative,
+            "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era
         })
@@ -1114,10 +1117,6 @@ class GameSession:
     def continue_to_next_era(self) -> List[Dict]:
         """Continue after departure"""
         return list(self.api.continue_to_next_era())
-    
-    def continue_to_score(self) -> List[Dict]:
-        """Continue to score screen after viewing ending narrative"""
-        return list(self.api.continue_to_score())
     
     def get_state(self) -> Dict:
         """Get current state"""

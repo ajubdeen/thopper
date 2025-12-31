@@ -314,12 +314,6 @@ export default function GamePage() {
     setWaitingAction(null);
   };
 
-  const continueToScore = () => {
-    setIsLoading(true);
-    socketRef.current?.emit('continue_to_score');
-    setWaitingAction(null);
-  };
-
   const restartGame = () => {
     setPhase("menu");
     setNarrative("");
@@ -774,19 +768,6 @@ export default function GamePage() {
                 </Button>
               </div>
             )}
-            
-            {waitingAction === "continue_to_score" && (
-              <div className="flex-shrink-0 pt-2 border-t border-gray-800">
-                <Button 
-                  onClick={continueToScore}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white py-4"
-                  disabled={isLoading}
-                  data-testid="button-continue-score"
-                >
-                  {isLoading ? "Calculating your journey..." : "Continue"}
-                </Button>
-              </div>
-            )}
           </div>
         )}
 
@@ -833,12 +814,10 @@ export default function GamePage() {
                       </div>
                     </div>
                     
-                    {(finalScore.ending_narrative || finalScore.blurb) && (
-                      <div className="border-t border-gray-700 pt-4">
-                        <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                          {finalScore.ending_narrative || finalScore.blurb}
-                        </p>
-                      </div>
+                    {finalScore.summary && (
+                      <p className="text-gray-400 text-sm italic border-t border-gray-700 pt-4">
+                        {finalScore.summary}
+                      </p>
                     )}
                   </CardContent>
                 </Card>
