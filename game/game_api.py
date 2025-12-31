@@ -394,6 +394,9 @@ class GameAPI:
         
         # Game ID for this session
         self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Ending narrative for stay-forever endings
+        self._ending_narrative = ""
     
     # =========================================================================
     # GAME FLOW
@@ -937,6 +940,9 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, "[You choose to stay forever]\n" + response)
         
+        # Store the ending narrative for the score
+        self._ending_narrative = response
+        
         # End the game
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
@@ -946,8 +952,9 @@ class GameAPI:
     
     def continue_to_score(self) -> Generator[Dict, None, None]:
         """Continue to show the final score after the narrative"""
-        # Calculate and emit score
-        yield from self._emit_final_score()
+        # Calculate and emit score, passing the stored ending narrative
+        ending_narrative = getattr(self, '_ending_narrative', '')
+        yield from self._emit_final_score(ending_narrative=ending_narrative)
         
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
@@ -975,13 +982,14 @@ class GameAPI:
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)
     
-    def _emit_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
+    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = "") -> Generator[Dict, None, None]:
         """Calculate and emit final score"""
         score = calculate_score(
             self.state, 
             ending_type_override=ending_type_override,
             user_id=self.user_id,
-            game_id=self.game_id
+            game_id=self.game_id,
+            ending_narrative=ending_narrative
         )
         
         # Save to history

@@ -40,6 +40,7 @@ class Score:
     final_era: str = ""
     timestamp: str = ""
     game_id: str = ""  # Links to saved game
+    ending_narrative: str = ""  # Full ending narrative for stay-forever endings
     
     @property
     def survival_points(self) -> int:
@@ -186,7 +187,8 @@ class Score:
             "ending_type": self.ending_type,
             "final_era": self.final_era,
             "timestamp": self.timestamp,
-            "blurb": self.get_blurb()
+            "blurb": self.get_blurb(),
+            "ending_narrative": self.ending_narrative
         }
     
     @classmethod
@@ -203,7 +205,8 @@ class Score:
             freedom_score=data.get("freedom_score", 0),
             ending_type=data.get("ending_type", "searching"),
             final_era=data.get("final_era", "Unknown"),
-            timestamp=data.get("timestamp", "")
+            timestamp=data.get("timestamp", ""),
+            ending_narrative=data.get("ending_narrative", "")
         )
 
 
@@ -356,7 +359,7 @@ class Leaderboard:
         return "\n".join(lines)
 
 
-def calculate_score(game_state, ending_type_override: str = None, user_id: str = "", game_id: str = "") -> Score:
+def calculate_score(game_state, ending_type_override: str = None, user_id: str = "", game_id: str = "", ending_narrative: str = "") -> Score:
     """Calculate the final score from game state
     
     Args:
@@ -365,6 +368,7 @@ def calculate_score(game_state, ending_type_override: str = None, user_id: str =
                               (e.g., "abandoned" when player quits)
         user_id: User ID for multi-user support
         game_id: Game ID to link score to saved game
+        ending_narrative: The full ending narrative for stay-forever endings
     """
     
     # Get values from game state
@@ -394,7 +398,8 @@ def calculate_score(game_state, ending_type_override: str = None, user_id: str =
         user_id=user_id,
         game_id=game_id,
         final_era=game_state.current_era.era_name if game_state.current_era else "Unknown",
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
+        ending_narrative=ending_narrative
     )
     
     return score
