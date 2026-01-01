@@ -39,7 +39,8 @@ from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
     get_window_prompt, get_staying_ending_prompt, get_leaving_prompt
 )
-from scoring import calculate_score, Leaderboard, GameHistory
+from scoring import calculate_score, Leaderboard
+from db_storage import DatabaseSaveManager, DatabaseLeaderboardStorage, DatabaseGameHistory
 
 
 # =============================================================================
@@ -385,12 +386,12 @@ class GameAPI:
         self.current_era = None
         self._selected_region = RegionPreference.WORLDWIDE
         
-        # History tracking
-        self.history = GameHistory()
+        # History tracking (database-backed)
+        self.history = DatabaseGameHistory()
         self.current_game = None
         
-        # Save manager
-        self.save_manager = GameSaveManager()
+        # Save manager (database-backed)
+        self.save_manager = DatabaseSaveManager()
         
         # Game ID for this session
         self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -619,7 +620,7 @@ class GameAPI:
     
     def get_leaderboard(self, global_board: bool = True, limit: int = 10) -> Generator[Dict, None, None]:
         """Get leaderboard data"""
-        leaderboard = Leaderboard()
+        leaderboard = Leaderboard(storage=DatabaseLeaderboardStorage())
         
         if global_board:
             scores = leaderboard.get_top_scores(limit)
@@ -995,8 +996,8 @@ class GameAPI:
         if self.current_game:
             self.history.end_game(self.current_game, score)
         
-        # Add to leaderboard
-        leaderboard = Leaderboard()
+        # Add to leaderboard (database-backed)
+        leaderboard = Leaderboard(storage=DatabaseLeaderboardStorage())
         rank = leaderboard.add_score(score)
         
         yield emit(MessageType.FINAL_SCORE, {
