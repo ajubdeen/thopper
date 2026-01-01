@@ -815,13 +815,12 @@ class GameAPI:
             "device_display": self.state.time_machine.display.get_display_text()
         })
         
-        # Era summary - only for first era
-        if not self.state.era_history:
-            yield emit(MessageType.ERA_SUMMARY, {
-                "location": self.current_era['location'],
-                "year_display": year_str,
-                "key_events": self.current_era.get('key_events', [])[:5]
-            })
+        # Era summary for every era arrival
+        yield emit(MessageType.ERA_SUMMARY, {
+            "location": self.current_era['location'],
+            "year_display": year_str,
+            "key_events": self.current_era.get('key_events', [])[:5]
+        })
         
         yield emit(MessageType.LOADING, {"message": "Arriving..."})
         
