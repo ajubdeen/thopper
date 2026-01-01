@@ -128,20 +128,14 @@ that sometimes glows. When the indicator pulses brightly, a "window" opens for t
 can choose to stay (let the window close) or leave (travel to a random new era). The controls
 for choosing destination are broken - that's how this journey started.
 
-ABSOLUTE RULE - INSTANT DEPARTURE (READ THIS CAREFULLY):
-When the player CHOOSES to activate the time machine and leave, the departure is INSTANT and COMPLETE.
-There is NO:
-- Hesitation ("your hand trembles...")
-- Last-minute doubt ("you can't bring yourself to...")
-- Physical obstacles ("but before you can press it...")
-- Emotional paralysis ("tears blur your vision as you freeze...")
-- Failed attempts ("you reach for it but...")
-- Interrupted activation ("someone grabs your arm...")
-
-The player has ALREADY MADE THE CHOICE by selecting the option. Respect their agency.
-When they choose to leave: they press, reality blurs, they're gone. IMMEDIATELY. 
-One sentence maximum for the activation itself. Then describe what they left behind AFTER they're gone.
-The emotional weight comes from what they ABANDONED, not from melodramatic hesitation.
+CRITICAL - TIME MACHINE RELIABILITY:
+The time machine ALWAYS works cleanly when activated. It NEVER malfunctions, partially activates,
+traps the player, creates temporal loops, or fails in any way. When the player chooses to leave:
+- The device activates instantly and reliably
+- The player vanishes cleanly from this era
+- There is no drama around the MECHANISM - only around the DECISION
+- No "botched escapes", "incomplete activations", or "device damage"
+The drama is in WHAT THEY LEAVE BEHIND, not in whether the device works.
 
 Current indicator: {game_state.time_machine.indicator.value}
 Window status: {"OPEN - player can choose to leave" if game_state.time_machine.window_active else "closed"}
@@ -195,14 +189,13 @@ NARRATIVE GUIDELINES:
    - Present the choice naturally within the story
    - The device pulses. The player knows what it means.
 
-7. INSTANT DEPARTURE (CRITICAL - NO EXCEPTIONS)
-   When the player selects "leave this era" or "activate the time machine":
-   - They press the button IMMEDIATELY - no hesitation, no trembling, no doubt
-   - Reality shifts INSTANTLY - one sentence: "You press the device. Reality blurs."
-   - They are GONE - describe what they left behind, not a dramatic departure scene
-   - NEVER write the player hesitating, freezing, having second thoughts, or being unable to act
-   - The player ALREADY DECIDED by selecting the option - do not second-guess their choice
-   - Emotional weight = what they abandoned, NOT melodramatic "can I really do this?" moments
+7. CLEAN TIME MACHINE USE (CRITICAL)
+   When the window is open, the player must ALWAYS be able to simply activate the device:
+   - Do NOT put them in situations that complicate leaving (combat, imprisonment, tied up)
+   - Do NOT create "botched" or "partial" activations
+   - Do NOT make the device malfunction, trap them, or create temporal paradoxes
+   - The device ALWAYS works instantly and reliably
+   - All drama comes from the DECISION (what they leave), not the MECHANISM (can they leave)
 
 8. LUCK AND SETBACKS
    The game uses dice rolls to add unpredictability, but luck should never feel hopeless:
@@ -422,37 +415,37 @@ Maintain continuity. Reference what came before. Build relationships and consequ
 
 
 def get_window_prompt(game_state: GameState, choice: str = None, roll: int = None) -> str:
-    """Prompt for when the travel window opens (turn 1 of window)
+    """
+    Prompt for when the travel window opens.
     
-    If choice and roll are provided, this is the turn where the window just opened,
-    so we need to narrate both the choice outcome AND the window opening.
+    Args:
+        game_state: Current game state
+        choice: The player's choice that triggered this turn (A/B/C)
+        roll: The dice roll for luck (1-20)
     """
     
     can_stay = game_state.can_stay_meaningfully
     fulfillment = game_state.fulfillment.get_narrative_state()
     
-    # If this is the turn where window opens, include the choice outcome
-    if choice and roll:
-        # Luck interpretation
-        if roll <= 5:
-            luck = "UNLUCKY - complications arise, the approach hits obstacles"
-        elif roll <= 8:
-            luck = "SLIGHTLY UNLUCKY - minor setbacks or delays"
-        elif roll <= 12:
-            luck = "NEUTRAL - things go roughly as expected"
-        elif roll <= 16:
-            luck = "LUCKY - things go better than expected"
+    # Luck interpretation
+    if roll:
+        if roll >= 17:
+            luck = "VERY LUCKY - things go better than expected"
+        elif roll >= 12:
+            luck = "LUCKY - fortune favors them"
+        elif roll >= 9:
+            luck = "NEUTRAL - events unfold normally"
+        elif roll >= 5:
+            luck = "UNLUCKY - complications arise"
         else:
-            luck = "VERY LUCKY - unexpected good fortune, doors open"
+            luck = "VERY UNLUCKY - significant setbacks (but never fatal/trapping)"
         
-        choice_context = f"""
-FIRST: The player chose [{choice}] this turn.
+        choice_outcome = f"""The player chose: [{choice}]
 Dice roll: {roll}/20 - {luck}
 
-Briefly narrate the outcome of their choice (1-2 paragraphs), then transition to the window opening.
-The device begins to pulse warmly - the window is opening."""
+First, briefly narrate the outcome of their choice (1-2 paragraphs), then transition to the window opening."""
     else:
-        choice_context = ""
+        choice_outcome = ""
     
     if can_stay:
         emotional_weight = """
@@ -469,29 +462,33 @@ Leaving now means LOSING much of this. The narrative should make this cost FELT.
 But staying means never knowing what else might have been. Never going home."""
         
         choice_format = """
-CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+CRITICAL - CHOICE ORDER WHEN PLAYER CAN STAY MEANINGFULLY:
 
 [A] Activate the time machine and leave this era behind
 [B] This is my home now. I choose to stay here forever. (ENDS THE GAME - player accepts this as permanent home)
 [C] Continue with current situation - the window will remain open for a little while longer
 
-Note: [A] leaves, [B] ends the game (permanent stay), [C] continues while window stays open."""
+IMPORTANT: You MUST use this exact choice structure. [A] = leave, [B] = stay forever (game ends), [C] = continue.
+The code expects this order. Do NOT deviate from this structure."""
     else:
         emotional_weight = """
 The player hasn't built deep roots here yet. Leaving is easier, less costly.
 But they could stay and build more. The choice is still significant."""
         
         choice_format = """
-CHOICE ORDER (window turn 1 of 3 - player has time to decide):
+CRITICAL - CHOICE ORDER WHEN PLAYER CANNOT STAY MEANINGFULLY:
 
 [A] Activate the time machine and leave this era behind
 [B] First continuation option - mention the window will remain open a little longer
 [C] Second continuation option - mention the window will remain open a little longer
 
-Note: [A] leaves. Both [B] and [C] continue the game while window stays open."""
+IMPORTANT: You MUST use this exact choice structure. [A] = leave, [B] and [C] = continue options.
+There is NO "stay forever" option because the player hasn't built enough here yet.
+The code expects this order. Do NOT deviate from this structure."""
 
     return f"""THE TIME MACHINE WINDOW HAS OPENED.
-{choice_context}
+
+{choice_outcome}
 
 {emotional_weight}
 
@@ -504,10 +501,8 @@ shows the current date and location. They know what the pulsing means - the wind
 CRITICAL - CLEAN CHOICE:
 The player must be in a situation where they can SIMPLY CHOOSE to activate the device.
 Do NOT put them in combat, imprisonment, or any situation that complicates leaving.
-
-IMPORTANT: If the player selects [A] to leave, the departure will be INSTANT.
-No hesitation scenes, no "hand trembles," no last-minute drama. They press, they're gone.
-Write the current scene knowing that if they choose to leave, it happens immediately.
+The drama is in the DECISION (what they leave behind), not the MECHANISM (can they reach the device?).
+The player can always activate the device cleanly if they choose to.
 
 Do NOT ask them directly "do you want to leave?" - this isn't a game menu.
 Instead, show the moment: the device warming, the awareness of the choice, the life they've
@@ -572,9 +567,9 @@ The player leaves with few deep ties. A fresh start awaits."""
 
 {emotional_context}
 
-CRITICAL INSTRUCTION - READ CAREFULLY:
-The departure has ALREADY HAPPENED. Do not write hesitation, trembling hands, second thoughts,
-or any "dramatic moment of pressing the button." The player made their choice. Respect it.
+ABSOLUTE RULE - INSTANT DEPARTURE:
+The player made their choice. The departure has ALREADY HAPPENED. Do not write any hesitation,
+trembling hands, second thoughts, or dramatic "moment of pressing the button."
 
 Write ONLY this:
 1. ONE sentence: "You press the device. Reality dissolves." (or similar - keep it instant)
@@ -587,6 +582,7 @@ FORBIDDEN (do not write any of these):
 - "You hesitate, looking back one last time..."
 - "Can you really leave? Your finger trembles..."
 - "Someone calls your name but..."
+- "Part of you wants to stay..."
 - ANY pause, doubt, or emotional paralysis before pressing
 
 The player selected "leave." They left. Instantly. The emotion is in the LOSS, not in melodrama.
