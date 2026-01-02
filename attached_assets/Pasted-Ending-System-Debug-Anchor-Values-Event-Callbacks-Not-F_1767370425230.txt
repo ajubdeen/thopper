@@ -1,0 +1,38 @@
+Ending System Debug - Anchor Values & Event Callbacks Not Flowing to Narrative
+The ending narrative is generating but appears to be using placeholder/default data instead of actual game state. Please verify the following data flows:
+1. Anchor Values at Ending Time
+In get_staying_ending_prompt(), we pull:
+pythonfulfillment = game_state.fulfillment.get_narrative_state()
+belonging_value = fulfillment['belonging']['value']
+legacy_value = fulfillment['legacy']['value']
+freedom_value = fulfillment['freedom']['value']
+Debug check: Add logging at the start of _handle_stay_forever() in game_api.py:
+pythonprint(f"DEBUG ENDING - Anchors: B={self.state.fulfillment.belonging.value}, L={self.state.fulfillment.legacy.value}, F={self.state.fulfillment.freedom.value}")
+print(f"DEBUG ENDING - Ending type: {self.state.fulfillment.get_ending_type()}")
+Expected: Non-zero values after a real playthrough. If all zeros, anchor accumulation is broken.
+2. Event Log Population
+Events are logged via game_state.log_event() and should persist in game_state.game_events. The ending should have access to:
+
+relationship events (NPC names)
+wisdom events (historical insights)
+defining_moment events (large anchor shifts)
+character_named events
+
+Debug check: Add logging before prompt generation:
+pythonprint(f"DEBUG ENDING - Total events: {len(self.state.game_events)}")
+print(f"DEBUG ENDING - Event types: {set(e['type'] for e in self.state.game_events)}")
+print(f"DEBUG ENDING - Relationships: {self.state.get_events_by_type('relationship')}")
+Expected: Multiple events of various types. If empty, event logging in _process_response() isn't firing.
+3. Relationships Context in Prompt
+The prompt builds relationships_context from game_state.current_era.relationships, but NPCs are logged as events, not stored in current_era.relationships.
+Likely bug: The relationships list is populated separately from the event log. Check if current_era.relationships is being populated at all, or if we should switch to pulling from game_state.get_events_by_type('relationship') instead.
+4. Ending Type Selection
+get_ending_type() in fulfillment.py determines narrative config. It uses arrival_anchors (anchors above threshold 40).
+Debug check: Verify threshold isn't too high for typical playthroughs. A player who never crosses 40 on any anchor gets "searching" ending regardless of their journey.
+
+Quick Test:
+Play through ~10 turns, make choices that clearly favor one anchor (e.g., help the same NPC repeatedly for belonging), stay permanently, and verify:
+
+Anchor values are non-zero at ending
+ending_type reflects the dominant anchor
+The narrative mentions actual NPCs/events from the playthrough
