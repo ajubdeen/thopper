@@ -127,6 +127,28 @@ no horses with saddles, no glass.""",
             "Ã°Å¸â€œâ€“ 'Red Land, Black Land' by Barbara Mertz (accessible history)",
             "Ã°Å¸Å½Â¬ 'Egypt's Golden Empire' - PBS documentary",
             "Ã°Å¸Å’Â britishmuseum.org/collection (search 'ancient egypt')"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "approached_priests_first",
+                "insight": "In ancient Egypt, priests controlled vast wealth and knowledge. Approaching the temple before secular authorities showed understanding of where real power lay.",
+                "narrative_hook": "The priests remembered how you came to them first, recognizing their authority."
+            },
+            {
+                "id": "respected_nile_cycles",
+                "insight": "The Nile's annual flood determined life and death. Those who understood its rhythms could plan while others merely reacted.",
+                "narrative_hook": "Your knowledge of the river's ways earned respect from those who'd spent lifetimes learning them."
+            },
+            {
+                "id": "understood_scribe_power",
+                "insight": "Literacy in ancient Egypt meant power. Only 1% could read - scribes were a privileged class that could rise above birth.",
+                "narrative_hook": "You recognized that the pen could elevate you where strength could not."
+            },
+            {
+                "id": "navigated_royal_favor",
+                "insight": "Pharaoh's favor could raise anyone to greatness - or destroy them overnight. Wise servants learned to be useful but not threatening.",
+                "narrative_hook": "You understood the dangerous game of proximity to divine power."
+            }
         ]
     },
     
@@ -246,6 +268,28 @@ everywhere.""",
             "Ã°Å¸â€œâ€“ 'The Last Days of Socrates' by Plato",
             "Ã°Å¸Å½Â¬ 'The Greeks' - PBS documentary series",
             "Ã°Å¸Å’Â perseus.tufts.edu (ancient texts and images)"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_metic_status",
+                "insight": "Foreigners (metics) in Athens could grow wealthy but never become citizens. Knowing this limitation shaped realistic expectations.",
+                "narrative_hook": "You never pretended to rights you couldn't have - and found power in what you could."
+            },
+            {
+                "id": "leveraged_philosophy",
+                "insight": "In Athens, rhetoric and philosophy could make a reputation. Ideas were currency among the educated elite.",
+                "narrative_hook": "Your willingness to engage in philosophical debate opened doors that birth had closed."
+            },
+            {
+                "id": "respected_democracy_limits",
+                "insight": "Athenian democracy was real but limited - only free adult male citizens could vote. Understanding who had power mattered.",
+                "narrative_hook": "You learned to work within the system rather than against it."
+            },
+            {
+                "id": "avoided_ostracism",
+                "insight": "Any citizen could be exiled by popular vote. Standing out too much was dangerous - wise Athenians cultivated useful obscurity.",
+                "narrative_hook": "You learned that in Athens, the tallest blade of grass gets cut."
+            }
         ]
     },
     
@@ -368,6 +412,28 @@ No gunpowder weapons, no printing press (yet), distinctive Han dynasty aesthetic
             "Ã°Å¸â€œâ€“ 'Chronicle of the Chinese Emperors' by Ann Paludan",
             "Ã°Å¸Å½Â¬ 'China: A Century of Revolution' - PBS documentary",
             "Ã°Å¸Å’Â depts.washington.edu/silkroad"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_confucian_hierarchy",
+                "insight": "Han China was built on Confucian principles - respect for hierarchy, education, and proper relationships. Working within this system was essential.",
+                "narrative_hook": "Your respect for proper relationships and hierarchy marked you as civilized."
+            },
+            {
+                "id": "valued_civil_service",
+                "insight": "The Han civil service exams could elevate anyone with education. Merit existed alongside birth - a revolutionary concept.",
+                "narrative_hook": "You recognized that in China, the brush was mightier than the sword."
+            },
+            {
+                "id": "navigated_silk_road",
+                "insight": "The Silk Road connected China to Rome. Those who understood trade routes and foreign goods could accumulate great wealth.",
+                "narrative_hook": "Your knowledge of distant lands made you valuable to merchants and officials alike."
+            },
+            {
+                "id": "understood_eunuch_power",
+                "insight": "Court eunuchs controlled access to the Emperor. Their power was real, if unconventional - wise courtiers cultivated their favor.",
+                "narrative_hook": "You understood that palace politics followed different rules than the outside world."
+            }
         ]
     },
     
@@ -490,6 +556,28 @@ dominant yet, iron age technology.""",
             "Ã°Å¸â€œâ€“ 'Norse Mythology' by Neil Gaiman (accessible myths)",
             "Ã°Å¸Å½Â¬ 'Vikings' TV series (dramatized but atmospheric)",
             "Ã°Å¸Å’Â hurstwic.org (Viking combat and daily life)"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_thing_law",
+                "insight": "Vikings settled disputes at the Thing (assembly). Law and reputation mattered - even warriors needed to argue their case.",
+                "narrative_hook": "Your willingness to submit to the Thing's judgment earned grudging respect."
+            },
+            {
+                "id": "valued_reputation",
+                "insight": "In Norse society, reputation was everything. A man's word and honor determined his place - cowardice was worse than death.",
+                "narrative_hook": "You learned that among the Norse, how you were remembered mattered more than how long you lived."
+            },
+            {
+                "id": "understood_thrall_reality",
+                "insight": "Thralls (slaves) could be freed and even rise in society. The line between slave and free was more fluid than in other cultures.",
+                "narrative_hook": "You understood that among Vikings, today's thrall might be tomorrow's freedman."
+            },
+            {
+                "id": "navigated_gift_economy",
+                "insight": "Gift-giving created bonds of obligation. A generous lord attracted followers; receiving gifts meant owing service.",
+                "narrative_hook": "You learned to give and receive with the calculation the Norse expected."
+            }
         ]
     },
     
@@ -609,6 +697,28 @@ No modern elements visible - no glass windows, no printed signs, no metal fixtur
             "Ã°Å¸â€œâ€“ 'A Distant Mirror' by Barbara Tuchman (ages 12+)",
             "Ã°Å¸Å½Â¬ 'The Black Death' - BBC Documentary (YouTube)",
             "Ã°Å¸Å’Â medievalchronicles.com/black-death"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_miasma_belief",
+                "insight": "Medieval people believed bad air (miasma) caused plague. While wrong, this belief shaped behavior - avoiding stench meant avoiding crowds.",
+                "narrative_hook": "Your caution around crowds and foul air, whatever the reason, helped you survive."
+            },
+            {
+                "id": "recognized_church_power",
+                "insight": "The Church controlled spiritual life and much temporal power. Priests could offer sanctuary, last rites, and community organization.",
+                "narrative_hook": "You understood that in crisis, the Church was both spiritual comfort and practical power."
+            },
+            {
+                "id": "valued_guild_membership",
+                "insight": "Guilds provided economic protection and community. A guild member had rights and support that outsiders lacked.",
+                "narrative_hook": "Your connection to a guild gave you standing when social order collapsed."
+            },
+            {
+                "id": "understood_flagellant_fervor",
+                "insight": "Religious fervor intensified during plague. Flagellants, persecution of Jews, and apocalyptic thinking spread - wise survivors stayed clear.",
+                "narrative_hook": "You learned to recognize when religious fervor became dangerous."
+            }
         ]
     },
     
@@ -731,6 +841,28 @@ frame the valley. No horses, no iron, no wheat - distinctly Mesoamerican.""",
             "Ã°Å¸â€œâ€“ 'Aztec' by Gary Jennings (epic historical fiction, mature)",
             "Ã°Å¸Å½Â¬ 'Engineering an Empire: The Aztecs' - History Channel",
             "Ã°Å¸Å’Â mexicolore.co.uk (educational resource)"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_tribute_system",
+                "insight": "The Aztec Empire ran on tribute from conquered peoples. Understanding who owed what to whom revealed the real power structure.",
+                "narrative_hook": "Your grasp of tribute relationships helped you navigate imperial politics."
+            },
+            {
+                "id": "respected_religious_calendar",
+                "insight": "The Aztec calendar determined everything - when to plant, when to wage war, when to sacrifice. Knowing the calendar was knowing the future.",
+                "narrative_hook": "Your attention to the sacred calendar showed respect for the cosmic order."
+            },
+            {
+                "id": "understood_calpulli_bonds",
+                "insight": "The calpulli (clan/neighborhood) was the basic unit of Aztec society. Belonging to one meant obligations and protections.",
+                "narrative_hook": "You found your place within a calpulli, accepting its duties for its protections."
+            },
+            {
+                "id": "recognized_merchant_status",
+                "insight": "Pochteca (long-distance merchants) had special status - they were spies, traders, and sometimes warriors. Commerce was never just commerce.",
+                "narrative_hook": "You understood that among the Aztecs, trade and statecraft were inseparable."
+            }
         ]
     },
     
@@ -854,6 +986,28 @@ Minarets and Hindu temple spires both visible. Distinctive Mughal architecture."
             "Ã°Å¸â€œâ€“ 'Akbar and the Rise of the Mughal Empire' by G.B. Malleson",
             "Ã°Å¸Å½Â¬ 'Jodhaa Akbar' (2008 film - dramatized but beautiful)",
             "Ã°Å¸Å’Â metmuseum.org (search 'Mughal miniatures')"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_mansabdari_system",
+                "insight": "Mughal nobles held ranks (mansabs) that determined their status and military obligations. The system was complex but navigable.",
+                "narrative_hook": "Your understanding of court ranks helped you know who to approach and who to avoid."
+            },
+            {
+                "id": "respected_religious_diversity",
+                "insight": "The Mughals ruled Hindus, Muslims, Sikhs, and others. Smart rulers balanced communities; smart subjects understood these tensions.",
+                "narrative_hook": "You learned to move between communities without threatening any."
+            },
+            {
+                "id": "valued_artistic_patronage",
+                "insight": "The Mughal court valued art, poetry, and architecture. Patrons gained status through beautiful commissions; artists gained protection.",
+                "narrative_hook": "Your appreciation for beauty connected you to those who valued it."
+            },
+            {
+                "id": "understood_harem_politics",
+                "insight": "The imperial harem held enormous political power. Queens and mothers of princes shaped policy from behind the curtain.",
+                "narrative_hook": "You learned that in Mughal India, the zenana held as much power as the durbar."
+            }
         ]
     },
     
@@ -980,6 +1134,28 @@ electricity or modern elements.""",
             "Ã°Å¸â€œâ€“ 'George vs. George' by Rosalyn Schanzer (accessible comparison)",
             "Ã°Å¸Å½Â¬ 'Liberty's Kids' animated series (PBS, free online)",
             "Ã°Å¸Å’Â americanrevolution.org"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_loyalist_risk",
+                "insight": "Not everyone supported independence - Loyalists faced confiscation and exile. Choosing sides had permanent consequences.",
+                "narrative_hook": "You understood that in revolution, neutrality was rarely an option."
+            },
+            {
+                "id": "valued_local_committees",
+                "insight": "Committees of Safety and Correspondence held real power. Local organization mattered more than grand declarations.",
+                "narrative_hook": "Your engagement with local committees gave you influence where it counted."
+            },
+            {
+                "id": "recognized_militia_importance",
+                "insight": "The militia system meant every free man might fight. Military service was civic duty - and a path to respect.",
+                "narrative_hook": "Your willingness to serve marked you as committed to the cause."
+            },
+            {
+                "id": "understood_slavery_contradiction",
+                "insight": "The revolution proclaimed liberty while preserving slavery. This contradiction shaped everything - and would echo for centuries.",
+                "narrative_hook": "You saw the gap between revolutionary ideals and revolutionary reality."
+            }
         ]
     },
     
@@ -1102,6 +1278,28 @@ windows crowd together. No cars, no electricity lines, Victorian industrial aest
             "Ã°Å¸â€œâ€“ 'Street Child' by Berlie Doherty (ages 9+)",
             "Ã°Å¸Å½Â¬ 'The Mill' (Channel 4 series)",
             "Ã°Å¸Å’Â spartacus-educational.com/industrial-revolution"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_factory_system",
+                "insight": "The factory system transformed work - clock time replaced task time, machines set the pace. Adapting to industrial discipline was survival.",
+                "narrative_hook": "You learned to work by the clock, not the sun."
+            },
+            {
+                "id": "valued_union_solidarity",
+                "insight": "Workers had power only in numbers. Unions were illegal but essential - collective action was the only counter to capital.",
+                "narrative_hook": "You understood that alone you were nothing, but together you might be something."
+            },
+            {
+                "id": "recognized_reform_movements",
+                "insight": "Reform movements offered hope - abolition, suffrage, factory acts. Change was possible through organization and pressure.",
+                "narrative_hook": "You saw that even in industrial Britain, the future wasn't fixed."
+            },
+            {
+                "id": "navigated_class_boundaries",
+                "insight": "Victorian Britain had rigid class distinctions, but also mobility. Education, enterprise, or luck could move you up - or down.",
+                "narrative_hook": "You learned to read the subtle signals of class and navigate between them."
+            }
         ]
     },
     
@@ -1228,6 +1426,28 @@ visible - this is the first photographed war. No modern military equipment.""",
             "Ã°Å¸â€œâ€“ 'Soldier's Heart' by Gary Paulsen",
             "Ã°Å¸Å½Â¬ 'Glory' (1989 film about the 54th Massachusetts)",
             "Ã°Å¸Å’Â civilwar.org"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_border_state_complexity",
+                "insight": "Border states had divided loyalties - families split, neighbors became enemies. Survival meant reading the local situation carefully.",
+                "narrative_hook": "You learned that the war looked different depending on where you stood."
+            },
+            {
+                "id": "recognized_contraband_opportunity",
+                "insight": "Enslaved people who reached Union lines became 'contraband.' This legal fiction offered a path to freedom for those who could reach it.",
+                "narrative_hook": "You understood that war created opportunities that peace never had."
+            },
+            {
+                "id": "valued_community_networks",
+                "insight": "Survival depended on community - sharing information, resources, and protection. Isolation was dangerous.",
+                "narrative_hook": "Your connections to community kept you alive when institutions failed."
+            },
+            {
+                "id": "understood_total_war",
+                "insight": "This war targeted civilians and infrastructure. Sherman's march showed that modern war had no limits - adapt or perish.",
+                "narrative_hook": "You learned that in this war, there was no safe distance from the front."
+            }
         ]
     },
     
@@ -1356,6 +1576,28 @@ A German soldier visible in the distance.""",
             "Ã°Å¸â€œâ€“ 'Number the Stars' by Lois Lowry (fiction, ages 9+)",
             "Ã°Å¸Å½Â¬ 'Anne Frank: Parallel Stories' documentary (2019)",
             "Ã°Å¸Å’Â annefrank.org - Virtual tour of the hiding place"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_occupation_rules",
+                "insight": "Nazi occupation had its own terrible logic. Understanding the rules - curfews, papers, restrictions - was basic survival.",
+                "narrative_hook": "You learned the rhythm of occupation - when to hide, when to move, when to be invisible."
+            },
+            {
+                "id": "valued_resistance_networks",
+                "insight": "Resistance required trust networks built over time. One wrong contact meant death - but isolation meant helplessness.",
+                "narrative_hook": "You understood that resistance was a web, not a single thread."
+            },
+            {
+                "id": "recognized_collaboration_spectrum",
+                "insight": "Collaboration ranged from survival to enthusiasm. Most people fell somewhere in between - judging others was easier than facing the same choices.",
+                "narrative_hook": "You learned that moral clarity was a luxury most couldn't afford."
+            },
+            {
+                "id": "understood_documentation_power",
+                "insight": "Papers meant everything - the right documents meant life, the wrong ones meant death. Forgery became an essential skill.",
+                "narrative_hook": "You understood that in occupied Europe, identity was written on paper."
+            }
         ]
     },
     
@@ -1483,6 +1725,28 @@ Rationing posters visible. Sense of wartime urgency and purpose.""",
             "Ã°Å¸â€œâ€“ 'The War That Saved My Life' by Kimberly Brubaker Bradley",
             "Ã°Å¸Å½Â¬ 'Come See the Paradise' (1990 film about internment)",
             "Ã°Å¸Å’Â Densho.org - Japanese American WWII history"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_island_warfare",
+                "insight": "Island warfare meant total commitment - no retreat, no reinforcement. Every position was held to the last or lost entirely.",
+                "narrative_hook": "You learned that in the Pacific, every island was a world unto itself."
+            },
+            {
+                "id": "recognized_cultural_clash",
+                "insight": "Japanese and American military cultures were radically different. Surrender was shameful to one, sensible to the other - miscommunication killed.",
+                "narrative_hook": "You saw how cultural assumptions became matters of life and death."
+            },
+            {
+                "id": "valued_jungle_knowledge",
+                "insight": "The jungle was neutral but unforgiving. Those who learned its ways - water, shelter, food, disease - survived. Others didn't.",
+                "narrative_hook": "You learned that the jungle killed more men than bullets did."
+            },
+            {
+                "id": "understood_supply_lines",
+                "insight": "Pacific war was a logistics war. Whoever controlled supply lines controlled the outcome - starving enemies into submission.",
+                "narrative_hook": "You understood that in the Pacific, beans and bullets mattered more than bravery."
+            }
         ]
     },
     
@@ -1607,6 +1871,28 @@ aesthetic - no modern vehicles.""",
             "Ã°Å¸Å½Â¬ 'Partition: 1947' (2017 film)",
             "Ã°Å¸Å½Â¬ 'Train to Pakistan' (1998 film)",
             "Ã°Å¸Å’Â 1947partitionarchive.org - Oral histories"
+        ],
+        "wisdom_paths": [
+            {
+                "id": "understood_communal_geography",
+                "insight": "Mixed neighborhoods became death traps; homogeneous ones offered safety. Knowing the religious makeup of each area was survival knowledge.",
+                "narrative_hook": "You learned to read the religious geography of every street and village."
+            },
+            {
+                "id": "valued_mixed_friendships",
+                "insight": "Relationships across religious lines could mean protection when violence came. A Hindu neighbor might hide a Muslim friend, or vice versa.",
+                "narrative_hook": "Your friendships across the divide became your lifeline when everything else failed."
+            },
+            {
+                "id": "recognized_early_warning_signs",
+                "insight": "Violence had patterns - rumors, small incidents, gathering crowds. Those who recognized the signs and moved early survived.",
+                "narrative_hook": "You learned to read the signs that preceded the storm."
+            },
+            {
+                "id": "understood_refugee_reality",
+                "insight": "Millions walked hundreds of miles with nothing. Those who planned, who had resources hidden, who knew the routes - they had a chance.",
+                "narrative_hook": "You understood that in partition, preparation meant survival."
+            }
         ]
     }
 ]
