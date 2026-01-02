@@ -627,16 +627,24 @@ def get_staying_ending_prompt(game_state: GameState, era: dict) -> str:
             else:
                 relationships_context += f"  - {rel}\n"
     
-    # Conditional "Ripple" section for high belonging/legacy
+    # Conditional "Ripple" content for high belonging/legacy (no separate header - weave into narrative)
     ripple_instruction = ""
     if belonging_value >= 40 or legacy_value >= 40:
         ripple_instruction = """
-4. THE RIPPLE (2-3 sentences): Show impact beyond what they directly saw.
+   [RIPPLE - weave into the ending naturally, no separate header] (2-3 sentences):
+   Show impact beyond what they directly saw.
    - NOT "what you missed" but "you mattered beyond what you knew"
    - A stranger helped because of their example
    - A tradition that started with them, continuing
-   - Someone they never met, affected by their choices
-   This is CONDITIONAL - only include if their belonging or legacy was significant."""
+   - Someone they never met, affected by their choices"""
+
+    # Build wisdom moments context for historical footnotes
+    wisdom_context = ""
+    wisdom_events = game_state.get_events_by_type("wisdom") if hasattr(game_state, 'get_events_by_type') else []
+    if wisdom_events:
+        wisdom_context = "\nWISDOM MOMENTS FROM THIS PLAYTHROUGH (use in Historical Footnotes):\n"
+        for w in wisdom_events[:5]:  # Cap at 5
+            wisdom_context += f"  - {w.get('id', 'unknown insight')}\n"
 
     return f"""THE PLAYER HAS CHOSEN TO STAY FOREVER.
 
@@ -652,33 +660,47 @@ NARRATIVE FOCUS: {config['focus']}
 EMOTIONAL ARC: {config['emotional_arc']}
 {era_ghosts}
 {relationships_context}
+{wisdom_context}
 
-Write their ending with these sections:
+Write their ending with ONLY these section headers (use the exact text in quotes):
 
-1. THE CHOICE (1 paragraph)
-   The window closing, the device going silent, the choice becoming permanent.
-   This moment should feel like release, not loss.
+**This is home now**
+(1 paragraph) The window closing, the device going silent, the choice becoming permanent.
+This moment should feel like release, not loss.
 
-2. THE LIFE (2-3 paragraphs)
-   {config['years_after_guidance']}
-   
-   Be SPECIFIC. Use names. Reference actual events from the playthrough.
-   Show time passing - seasons, years, aging.
-   Era-appropriate details of how life unfolds here.
+**The life you built**
+(3-4 paragraphs) {config['years_after_guidance']}
 
-3. THE END (1 paragraph)
-   How their story concludes - years or decades later.
-   {config['ending_imagery']}
+Be SPECIFIC. Use names. Reference actual events from the playthrough.
+Show time passing - seasons, years, aging.
+Era-appropriate details of how life unfolds here.
+
+Seamlessly continue into how their story concludes - years or decades later.
+{config['ending_imagery']}
 {ripple_instruction}
 
+**Historical Footnotes**
+(1-2 paragraphs) Switch to an educational tone - speak directly as the narrator/game.
+
+What did the player actually learn about this era that's historically true?
+- Reference any wisdom moments listed above if present
+- Social structures, economic realities, daily life details
+- Why certain choices worked or didn't in this specific historical context
+- Connect their fictional journey to real historical facts about {era['name']}
+
+Tone: Like a museum placard or documentary epilogue. Informative, not preachy.
+This section should leave the player feeling they learned something real about history.
+
 CRITICAL GUIDELINES:
-- Make it feel EARNED based on everything that came before
+- Use ONLY these three headers: "This is home now", "The life you built", "Historical Footnotes"
+- Format headers with ** on each side (markdown bold)
+- Make the narrative feel EARNED based on everything that came before
 - Reference specific relationships, achievements, and choices from the playthrough
 - The ending should feel like arrival, not settling
-- Match the tone to the ending type: {config['tone']}
-- Keep total length around 400-500 words
+- Match the tone to the ending type (except Historical Footnotes which is educational): {config['tone']}
+- Keep total length around 500-600 words
 
-This is the end of the game. Make it resonate.
+This is the end of the game. Make it resonate AND educate.
 
 <anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>"""
 
