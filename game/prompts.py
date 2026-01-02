@@ -375,18 +375,26 @@ CHOICE ORDER (window turn {window_turn_number} of 3 - player has time to decide)
 Note: [A] leaves. Both [B] and [C] continue the game while window stays open."""
 
     else:
-        # Window not open - standard choice format
+        # Window NOT open - standard choice format
+        # IMPORTANT: Explicitly tell AI NOT to mention time machine
+        window_note = """
+TIME MACHINE STATUS: The device is SILENT. The window is NOT open.
+DO NOT mention the time machine, device, leaving this era, departing, or traveling to another time in ANY of the choices.
+The player cannot use the time machine right now - it is completely irrelevant to this turn.
+All three choices must focus ONLY on the player's current situation in this era."""
+        
         choice_format = """
 CHOICE DESIGN (CRITICAL):
 - ALL choices must be viable paths forward - no "give up" or "accept death" options
 - At least ONE choice should reward HISTORICAL KNOWLEDGE of this era
 - Historically clever choices should feel like: "If you know this era, here's your angle"
 - Examples: Appeal to local customs, leverage social structures, reference religion/prophecy
+- DO NOT include any choices about the time machine, leaving, or traveling to another time - THE WINDOW IS CLOSED
 
 STRUCTURE:
-[A] Choice A
-[B] Choice B  
-[C] Choice C"""
+[A] Choice A (about current situation ONLY)
+[B] Choice B (about current situation ONLY)
+[C] Choice C (about current situation ONLY)"""
 
     return f"""The player chose: [{choice}]
 Dice roll: {roll}/20 - {luck}
