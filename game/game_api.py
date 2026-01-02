@@ -1117,8 +1117,8 @@ class GameAPI:
             if not response:
                 response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
             
-            # Store ending narrative (strip any event tags that leaked through)
-            self._ending_narrative = strip_event_tags(response)
+            # Store ending narrative (raw - tags stripped before display)
+            self._ending_narrative = response
             
             # Record in history
             if self.current_game:
@@ -1218,7 +1218,7 @@ class GameAPI:
             "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era,
-            "ending_narrative": score.ending_narrative
+            "ending_narrative": strip_event_tags(score.ending_narrative) if score.ending_narrative else None
         }
         
         # Add AoA data if available
