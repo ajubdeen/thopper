@@ -91,11 +91,11 @@ STARTING_ITEMS = [
     {
         "id": "knife",
         "name": "Swiss Army Knife",
-        "description": "Multi-tool with blade, screwdriver, scissors, can opener, tweezers",
+        "description": "Compact folding knife with multiple tools",
         "uses": None,  # Durable
-        "utility": "Useful compact multi-tool for cutting, repairs, and practical tasks",
+        "utility": "Useful for cutting, minor repairs, and practical tasks",
         "risk": "Theft target in early eras, questions about craftsmanship origin",
-        "hooks": ["craft", "repair", "defend", "impress artisans", "medical"],
+        "hooks": ["cut", "repair", "craft", "practical tasks"],
         "from_era": None,
         "era_context": {
             # How remarkable AND what are its limits?
@@ -115,30 +115,28 @@ STARTING_ITEMS = [
     {
         "id": "phone_kit",
         "name": "Smartphone + Solar Charger",
-        "description": "Modern smartphone with offline Wikipedia, camera, flashlight, calculator, maps, compass, and foldable solar charger to keep it powered",
+        "description": "Modern smartphone with offline Wikipedia and solar charger",
         "uses": None,  # Renewable with solar
-        "utility": "Encyclopedic knowledge, light source, mirror, camera for records, calculator, compass",
+        "utility": "Private access to encyclopedic knowledge - the player's secret advantage",
         "risk": "Obviously impossible technology - extremely dangerous to reveal in any pre-2000 era",
-        "hooks": ["reference knowledge", "flashlight", "photograph", "calculate", "navigate"],
+        "hooks": ["consult Wikipedia privately", "verify historical facts", "recall medical knowledge", "check names and dates"],
         "features": [
-            "Wikipedia offline - encyclopedic knowledge of history, science, medicine",
-            "Camera - record images, use as mirror",
-            "Flashlight - bright LED light",
-            "Calculator - complex math instantly",
-            "Compass app - navigation",
-            "Maps - though only shows modern geography",
-            "Clock - keeps accurate time",
-            "Solar charger - renewable power as long as there's sun"
+            "Wikipedia offline - encyclopedic knowledge of history, science, medicine, people (PRIMARY USE)",
+            "Solar charger - renewable power as long as there's sun",
+            "Camera - record images, use as mirror (rare use)",
+            "Flashlight - only when no fire/torches available (edge case)",
+            "Compass - only when genuinely lost in wilderness (edge case)",
+            "Calculator - complex math instantly (rare use)",
+            "Maps - though only shows modern geography (limited use)"
         ],
         "from_era": None,
         "era_context": {
             # The smartphone remains alien/impossible until post-2000
-            "ancient": "Alien artifact - glowing rectangle with moving images. Could be divine or demonic. Extremely dangerous to reveal.",
-            "medieval": "Witchcraft evidence - no framework to understand it. Hide it.",
-            "early_modern": "Impossible magic - even sophisticated observers cannot comprehend it.",
-            "industrial": "Impossible technology - might be seen as experimental device, but far beyond current science.",
-            "modern": "Impossible future tech - obviously advanced beyond anything that exists. Spy equipment or secret military tech.",
-            # Note: even in 1990, a modern smartphone would seem 20 years ahead of its time
+            "ancient": "Alien artifact if revealed. But privately: an oracle of infinite knowledge.",
+            "medieval": "Witchcraft evidence if seen. But privately: the player knows things no one else could.",
+            "early_modern": "Impossible to explain if discovered. But privately: a secret library.",
+            "industrial": "Would be confiscated and studied. But privately: encyclopedic advantage.",
+            "modern": "Spy equipment if found. But privately: still invaluable for historical knowledge.",
         },
     },
 ]

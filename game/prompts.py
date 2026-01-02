@@ -183,12 +183,13 @@ NARRATIVE GUIDELINES:
    - Do NOT narrate thieves stealing the player's belongings permanently
 
    ITEM REALISM: When items ARE used, portray them realistically for the era:
-   - The Swiss Army Knife is a useful tool, not a superpower. It cannot cut through metal,
-     build armories, or perform feats beyond a normal pocket knife. In eras after 1850,
-     similar tools exist - it's just a handy knife, nothing remarkable.
+   - The smartphone is dangerous to reveal but invaluable privately. The player should
+     periodically consult Wikipedia discreetly - checking facts before speaking, recalling
+     medical knowledge, verifying historical details. This is their secret edge. Show it.
+     (Flashlight/compass only in extremis - e.g. lost in wilderness, not general use.)
+   - The Swiss Army Knife is a useful cutting tool, not a superpower. It cannot cut metal
+     or perform impossible feats. In eras after 1850, it's just a handy pocket knife.
    - Ibuprofen is miraculous in ancient eras (safe pain relief!) but ordinary by the 1900s.
-   - The smartphone remains genuinely impossible/alien technology in ALL eras through 1947.
-   - Do not increase how often items appear - just make their use believable when they do.
 
 5. FULFILLMENT (CRITICAL - INVISIBLE)
    - NEVER mention "belonging," "legacy," or "freedom" as game terms
