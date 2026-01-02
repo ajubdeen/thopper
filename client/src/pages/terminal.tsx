@@ -938,6 +938,22 @@ export default function GamePage() {
             <div className="max-w-md mx-auto py-4 space-y-6">
               <h2 className="text-2xl font-bold text-amber-400 text-center">Journey Complete</h2>
               
+              {finalScore?.ending_narrative && (
+                <div className="prose prose-invert prose-sm max-w-none">
+                  <div className="text-gray-300 leading-relaxed whitespace-pre-wrap" data-testid="text-ending-narrative">
+                    {finalScore.ending_narrative}
+                  </div>
+                </div>
+              )}
+              
+              <Button 
+                onClick={restartGame}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-4"
+                data-testid="button-play-again"
+              >
+                Play Again
+              </Button>
+              
               {finalScore && (
                 <Card className="bg-gray-900 border-gray-700">
                   <CardContent className="p-4 space-y-4">
@@ -984,14 +1000,6 @@ export default function GamePage() {
                   </CardContent>
                 </Card>
               )}
-              
-              <Button 
-                onClick={restartGame}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white py-4"
-                data-testid="button-play-again"
-              >
-                Play Again
-              </Button>
             </div>
           </ScrollArea>
         )}

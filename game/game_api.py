@@ -1217,7 +1217,8 @@ class GameAPI:
             },
             "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
-            "final_era": score.final_era
+            "final_era": score.final_era,
+            "ending_narrative": score.ending_narrative
         }
         
         # Add AoA data if available
