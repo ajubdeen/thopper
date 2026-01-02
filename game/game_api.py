@@ -1117,8 +1117,8 @@ class GameAPI:
             if not response:
                 response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
             
-            # Store ending narrative
-            self._ending_narrative = response
+            # Store ending narrative (strip any event tags that leaked through)
+            self._ending_narrative = strip_event_tags(response)
             
             # Record in history
             if self.current_game:
