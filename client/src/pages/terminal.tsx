@@ -276,7 +276,8 @@ export default function GamePage() {
         break;
         
       case "game_end":
-        setPhase("ended");
+        // Don't change phase yet - wait for final_score
+        // This allows the loading indicator to show during narrative generation
         setIsLoading(false);
         break;
         
