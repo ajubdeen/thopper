@@ -360,6 +360,7 @@ export default function GamePage() {
     setChoices([]);
     setShowEraSummary(false);
     setIsLoading(true);
+    setLoadingMessage(choiceId === 'Q' ? "Preparing your debrief..." : "The story unfolds...");
     socketRef.current?.emit('choose', { choice: choiceId });
   };
 
