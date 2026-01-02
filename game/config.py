@@ -75,20 +75,42 @@ STARTING_ITEMS = [
         "name": "Bottle of Ibuprofen",
         "description": "100 tablets of 200mg ibuprofen",
         "uses": 100,
-        "utility": "Reduce fever, ease pain, reduce inflammation - seems miraculous",
+        "utility": "Reduce fever, ease pain, reduce inflammation",
         "risk": "Can't cure infections, supplies run out, overdose danger",
         "hooks": ["heal", "trade", "gain trust", "save someone important"],
         "from_era": None,  # Modern item
+        "era_context": {
+            # How remarkable is this item in different periods?
+            "ancient": "Miraculous - reliable pain/fever relief without opium. Seems like divine medicine.",
+            "medieval": "Very valuable - safer than available alternatives. Clean pills are unusual.",
+            "early_modern": "Valuable - still superior to most remedies, but less dramatic.",
+            "industrial": "Moderate - aspirin invented 1897, morphine common. Good but not miraculous.",
+            "modern": "Unremarkable - it's just over-the-counter medicine.",
+        },
     },
     {
         "id": "knife",
         "name": "Swiss Army Knife",
         "description": "Multi-tool with blade, screwdriver, scissors, can opener, tweezers",
         "uses": None,  # Durable
-        "utility": "Superior cutting tool, versatile, compact",
-        "risk": "Theft target, questions about craftsmanship origin",
+        "utility": "Useful compact multi-tool for cutting, repairs, and practical tasks",
+        "risk": "Theft target in early eras, questions about craftsmanship origin",
         "hooks": ["craft", "repair", "defend", "impress artisans", "medical"],
         "from_era": None,
+        "era_context": {
+            # How remarkable AND what are its limits?
+            "ancient": "Novel - good steel is rare, folding mechanism clever. But it's a knife, not a superpower. Cannot cut bronze/iron easily.",
+            "medieval": "Moderate - good smiths exist. Compact design is main novelty. It's a useful tool, nothing more.",
+            "early_modern": "Low - pocket knives are common. Just a nice portable tool.",
+            "industrial": "Minimal - mass-produced pocket knives widely available. Unremarkable.",
+            "modern": "None - Swiss Army Knives exist (invented 1891). Just a pocket knife.",
+        },
+        "physical_limits": [
+            "Can cut: leather, cloth, rope, wood, food, soft metals (lead, tin)",
+            "Can score but NOT cut through: copper, bronze, iron, steel",
+            "Blade dulls with heavy use, especially on hard materials",
+            "One knife, one user - limited throughput for any task",
+        ],
     },
     {
         "id": "phone_kit",
@@ -96,8 +118,8 @@ STARTING_ITEMS = [
         "description": "Modern smartphone with offline Wikipedia, camera, flashlight, calculator, maps, compass, and foldable solar charger to keep it powered",
         "uses": None,  # Renewable with solar
         "utility": "Encyclopedic knowledge, light source, mirror, camera for records, calculator, compass",
-        "risk": "Obviously impossible technology - extremely dangerous to reveal",
-        "hooks": ["reference knowledge", "flashlight", "photograph", "calculate", "navigate", "prove otherworldly origin", "trade as magical artifact"],
+        "risk": "Obviously impossible technology - extremely dangerous to reveal in any pre-2000 era",
+        "hooks": ["reference knowledge", "flashlight", "photograph", "calculate", "navigate"],
         "features": [
             "Wikipedia offline - encyclopedic knowledge of history, science, medicine",
             "Camera - record images, use as mirror",
@@ -109,6 +131,15 @@ STARTING_ITEMS = [
             "Solar charger - renewable power as long as there's sun"
         ],
         "from_era": None,
+        "era_context": {
+            # The smartphone remains alien/impossible until post-2000
+            "ancient": "Alien artifact - glowing rectangle with moving images. Could be divine or demonic. Extremely dangerous to reveal.",
+            "medieval": "Witchcraft evidence - no framework to understand it. Hide it.",
+            "early_modern": "Impossible magic - even sophisticated observers cannot comprehend it.",
+            "industrial": "Impossible technology - might be seen as experimental device, but far beyond current science.",
+            "modern": "Impossible future tech - obviously advanced beyond anything that exists. Spy equipment or secret military tech.",
+            # Note: even in 1990, a modern smartphone would seem 20 years ahead of its time
+        },
     },
 ]
 
