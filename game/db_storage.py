@@ -274,3 +274,149 @@ class DatabaseGameHistory:
             return histories[0] if histories else None
         except Exception:
             return None
+
+
+class DatabaseAoAStorage:
+    """
+    Database storage for Annals of Anachron entries via Express API.
+    Implements the same interface as AoAStorage from scoring.py.
+    """
+    
+    def __init__(self, api_base: str = None):
+        self.api_base = api_base or API_BASE_URL
+    
+    def save_entry(self, entry) -> bool:
+        """Save an AoA entry to database"""
+        try:
+            entry_dict = entry.to_dict() if hasattr(entry, 'to_dict') else entry
+            
+            response = requests.post(
+                f"{self.api_base}/api/aoa",
+                json={
+                    "entryId": entry_dict.get("entry_id", ""),
+                    "userId": entry_dict.get("user_id", ""),
+                    "gameId": entry_dict.get("game_id", ""),
+                    "playerName": entry_dict.get("player_name", ""),
+                    "characterName": entry_dict.get("character_name", ""),
+                    "finalEra": entry_dict.get("final_era", ""),
+                    "finalEraYear": entry_dict.get("final_era_year", 0),
+                    "erasVisited": entry_dict.get("eras_visited", 0),
+                    "turnsSurvived": entry_dict.get("turns_survived", 0),
+                    "endingType": entry_dict.get("ending_type", ""),
+                    "belongingScore": entry_dict.get("belonging_score", 0),
+                    "legacyScore": entry_dict.get("legacy_score", 0),
+                    "freedomScore": entry_dict.get("freedom_score", 0),
+                    "totalScore": entry_dict.get("total_score", 0),
+                    "keyNpcs": entry_dict.get("key_npcs", []),
+                    "definingMoments": entry_dict.get("defining_moments", []),
+                    "wisdomMoments": entry_dict.get("wisdom_moments", []),
+                    "itemsUsed": entry_dict.get("items_used", []),
+                    "playerNarrative": entry_dict.get("player_narrative", ""),
+                    "historianNarrative": entry_dict.get("historian_narrative", ""),
+                },
+                timeout=15
+            )
+            return response.status_code == 200
+        except Exception as e:
+            print(f"Save AoA entry error: {e}")
+            return False
+    
+    def get_entry(self, entry_id: str):
+        """Get a specific entry by ID"""
+        try:
+            response = requests.get(
+                f"{self.api_base}/api/aoa/entry/{entry_id}",
+                timeout=10
+            )
+            if response.status_code != 200:
+                return None
+            
+            data = response.json()
+            return self._dict_to_entry(data)
+        except Exception:
+            return None
+    
+    def get_user_entries(self, user_id: str, limit: int = 20, offset: int = 0) -> List:
+        """Get entries for a user with pagination"""
+        try:
+            response = requests.get(
+                f"{self.api_base}/api/aoa/user/{user_id}?limit={limit}&offset={offset}",
+                timeout=10
+            )
+            if response.status_code != 200:
+                return []
+            
+            data = response.json()
+            entries_data = data.get("entries", [])
+            return [self._dict_to_entry(e) for e in entries_data]
+        except Exception:
+            return []
+    
+    def get_recent_entries(self, limit: int = 20, offset: int = 0) -> List:
+        """Get recent entries (for public feed) with pagination"""
+        try:
+            response = requests.get(
+                f"{self.api_base}/api/aoa/recent?limit={limit}&offset={offset}",
+                timeout=10
+            )
+            if response.status_code != 200:
+                return []
+            
+            data = response.json()
+            entries_data = data.get("entries", [])
+            return [self._dict_to_entry(e) for e in entries_data]
+        except Exception:
+            return []
+    
+    def count_user_entries(self, user_id: str) -> int:
+        """Count total entries for a user"""
+        try:
+            response = requests.get(
+                f"{self.api_base}/api/aoa/count?userId={user_id}",
+                timeout=10
+            )
+            if response.status_code != 200:
+                return 0
+            return response.json().get("count", 0)
+        except Exception:
+            return 0
+    
+    def count_all_entries(self) -> int:
+        """Count total entries"""
+        try:
+            response = requests.get(
+                f"{self.api_base}/api/aoa/count",
+                timeout=10
+            )
+            if response.status_code != 200:
+                return 0
+            return response.json().get("count", 0)
+        except Exception:
+            return 0
+    
+    def _dict_to_entry(self, data: dict):
+        """Convert API response dict to AoAEntry object"""
+        from scoring import AoAEntry
+        return AoAEntry(
+            entry_id=data.get("entry_id", ""),
+            user_id=data.get("user_id", ""),
+            game_id=data.get("game_id", ""),
+            player_name=data.get("player_name", ""),
+            character_name=data.get("character_name", ""),
+            final_era=data.get("final_era", ""),
+            final_era_year=data.get("final_era_year", 0),
+            eras_visited=data.get("eras_visited", 0),
+            turns_survived=data.get("turns_survived", 0),
+            ending_type=data.get("ending_type", ""),
+            belonging_score=data.get("belonging_score", 0),
+            legacy_score=data.get("legacy_score", 0),
+            freedom_score=data.get("freedom_score", 0),
+            key_npcs=data.get("key_npcs", []),
+            defining_moments=data.get("defining_moments", []),
+            wisdom_moments=data.get("wisdom_moments", []),
+            items_used=data.get("items_used", []),
+            player_narrative=data.get("player_narrative", ""),
+            historian_narrative=data.get("historian_narrative", ""),
+            created_at=data.get("created_at", ""),
+            total_score=data.get("total_score", 0),
+        )

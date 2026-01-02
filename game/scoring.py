@@ -546,6 +546,15 @@ class JSONAoAStorage(AoAStorage):
         return len(self.entries)
 
 
+def _get_default_aoa_storage():
+    """Get the default AoA storage backend (database if available, else JSON)"""
+    try:
+        from db_storage import DatabaseAoAStorage
+        return DatabaseAoAStorage()
+    except Exception:
+        return JSONAoAStorage()
+
+
 class AnnalsOfAnachron:
     """
     Manages the Annals of Anachron - a collection of completed journeys.
@@ -554,7 +563,7 @@ class AnnalsOfAnachron:
     """
     
     def __init__(self, storage: AoAStorage = None):
-        self.storage = storage or JSONAoAStorage()
+        self.storage = storage or _get_default_aoa_storage()
     
     def create_entry(self, game_state, score: Score) -> Optional[AoAEntry]:
         """

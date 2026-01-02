@@ -78,3 +78,40 @@ export const gameHistories = pgTable(
 export const insertGameHistorySchema = createInsertSchema(gameHistories).omit({ id: true });
 export type InsertGameHistory = z.infer<typeof insertGameHistorySchema>;
 export type GameHistory = typeof gameHistories.$inferSelect;
+
+export const aoaEntries = pgTable(
+  "aoa_entries",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    entryId: varchar("entry_id").notNull().unique(),
+    userId: varchar("user_id").notNull(),
+    gameId: varchar("game_id"),
+    playerName: varchar("player_name"),
+    characterName: varchar("character_name"),
+    finalEra: varchar("final_era"),
+    finalEraYear: integer("final_era_year"),
+    erasVisited: integer("eras_visited").default(0),
+    turnsSurvived: integer("turns_survived").default(0),
+    endingType: varchar("ending_type"),
+    belongingScore: integer("belonging_score").default(0),
+    legacyScore: integer("legacy_score").default(0),
+    freedomScore: integer("freedom_score").default(0),
+    totalScore: integer("total_score").default(0),
+    keyNpcs: jsonb("key_npcs").default([]),
+    definingMoments: jsonb("defining_moments").default([]),
+    wisdomMoments: jsonb("wisdom_moments").default([]),
+    itemsUsed: jsonb("items_used").default([]),
+    playerNarrative: text("player_narrative"),
+    historianNarrative: text("historian_narrative"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_aoa_user").on(table.userId),
+    index("idx_aoa_created").on(table.createdAt),
+    index("idx_aoa_entry_id").on(table.entryId),
+  ]
+);
+
+export const insertAoaEntrySchema = createInsertSchema(aoaEntries).omit({ id: true, createdAt: true });
+export type InsertAoaEntry = z.infer<typeof insertAoaEntrySchema>;
+export type AoaEntry = typeof aoaEntries.$inferSelect;

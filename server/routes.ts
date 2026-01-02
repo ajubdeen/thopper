@@ -195,5 +195,179 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/aoa", async (req: Request, res: Response) => {
+    try {
+      const entry = req.body;
+      if (!entry.entryId || !entry.userId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const result = await storage.saveAoaEntry({
+        entryId: entry.entryId,
+        userId: entry.userId,
+        gameId: entry.gameId || null,
+        playerName: entry.playerName || null,
+        characterName: entry.characterName || null,
+        finalEra: entry.finalEra || null,
+        finalEraYear: entry.finalEraYear || null,
+        erasVisited: entry.erasVisited || 0,
+        turnsSurvived: entry.turnsSurvived || 0,
+        endingType: entry.endingType || null,
+        belongingScore: entry.belongingScore || 0,
+        legacyScore: entry.legacyScore || 0,
+        freedomScore: entry.freedomScore || 0,
+        totalScore: entry.totalScore || 0,
+        keyNpcs: entry.keyNpcs || [],
+        definingMoments: entry.definingMoments || [],
+        wisdomMoments: entry.wisdomMoments || [],
+        itemsUsed: entry.itemsUsed || [],
+        playerNarrative: entry.playerNarrative || null,
+        historianNarrative: entry.historianNarrative || null,
+      });
+      res.json({ success: true, id: result.id });
+    } catch (error) {
+      console.error("Save AoA entry error:", error);
+      res.status(500).json({ error: "Failed to save AoA entry" });
+    }
+  });
+
+  app.get("/api/aoa/entry/:entryId", async (req: Request, res: Response) => {
+    try {
+      const { entryId } = req.params;
+      const result = await storage.getAoaEntry(entryId);
+      if (!result) {
+        return res.status(404).json({ error: "Entry not found" });
+      }
+      res.json({
+        entry_id: result.entryId,
+        user_id: result.userId,
+        game_id: result.gameId,
+        player_name: result.playerName,
+        character_name: result.characterName,
+        final_era: result.finalEra,
+        final_era_year: result.finalEraYear,
+        eras_visited: result.erasVisited,
+        turns_survived: result.turnsSurvived,
+        ending_type: result.endingType,
+        belonging_score: result.belongingScore,
+        legacy_score: result.legacyScore,
+        freedom_score: result.freedomScore,
+        total_score: result.totalScore,
+        key_npcs: result.keyNpcs,
+        defining_moments: result.definingMoments,
+        wisdom_moments: result.wisdomMoments,
+        items_used: result.itemsUsed,
+        player_narrative: result.playerNarrative,
+        historian_narrative: result.historianNarrative,
+        created_at: result.createdAt?.toISOString(),
+      });
+    } catch (error) {
+      console.error("Get AoA entry error:", error);
+      res.status(500).json({ error: "Failed to get AoA entry" });
+    }
+  });
+
+  app.get("/api/aoa/user/:userId", async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const entries = await storage.getUserAoaEntries(userId, limit, offset);
+      const total = await storage.countUserAoaEntries(userId);
+      
+      res.json({
+        entries: entries.map(e => ({
+          entry_id: e.entryId,
+          user_id: e.userId,
+          game_id: e.gameId,
+          player_name: e.playerName,
+          character_name: e.characterName,
+          final_era: e.finalEra,
+          final_era_year: e.finalEraYear,
+          eras_visited: e.erasVisited,
+          turns_survived: e.turnsSurvived,
+          ending_type: e.endingType,
+          belonging_score: e.belongingScore,
+          legacy_score: e.legacyScore,
+          freedom_score: e.freedomScore,
+          total_score: e.totalScore,
+          key_npcs: e.keyNpcs,
+          defining_moments: e.definingMoments,
+          wisdom_moments: e.wisdomMoments,
+          items_used: e.itemsUsed,
+          player_narrative: e.playerNarrative,
+          historian_narrative: e.historianNarrative,
+          created_at: e.createdAt?.toISOString(),
+        })),
+        total,
+        limit,
+        offset,
+        has_more: offset + entries.length < total,
+      });
+    } catch (error) {
+      console.error("Get user AoA entries error:", error);
+      res.status(500).json({ error: "Failed to get user AoA entries" });
+    }
+  });
+
+  app.get("/api/aoa/recent", async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const entries = await storage.getRecentAoaEntries(limit, offset);
+      const total = await storage.countAllAoaEntries();
+      
+      res.json({
+        entries: entries.map(e => ({
+          entry_id: e.entryId,
+          user_id: e.userId,
+          game_id: e.gameId,
+          player_name: e.playerName,
+          character_name: e.characterName,
+          final_era: e.finalEra,
+          final_era_year: e.finalEraYear,
+          eras_visited: e.erasVisited,
+          turns_survived: e.turnsSurvived,
+          ending_type: e.endingType,
+          belonging_score: e.belongingScore,
+          legacy_score: e.legacyScore,
+          freedom_score: e.freedomScore,
+          total_score: e.totalScore,
+          key_npcs: e.keyNpcs,
+          defining_moments: e.definingMoments,
+          wisdom_moments: e.wisdomMoments,
+          items_used: e.itemsUsed,
+          player_narrative: e.playerNarrative,
+          historian_narrative: e.historianNarrative,
+          created_at: e.createdAt?.toISOString(),
+        })),
+        total,
+        limit,
+        offset,
+        has_more: offset + entries.length < total,
+      });
+    } catch (error) {
+      console.error("Get recent AoA entries error:", error);
+      res.status(500).json({ error: "Failed to get recent AoA entries" });
+    }
+  });
+
+  app.get("/api/aoa/count", async (req: Request, res: Response) => {
+    try {
+      const userId = req.query.userId as string;
+      let count: number;
+      if (userId) {
+        count = await storage.countUserAoaEntries(userId);
+      } else {
+        count = await storage.countAllAoaEntries();
+      }
+      res.json({ count });
+    } catch (error) {
+      console.error("Count AoA entries error:", error);
+      res.status(500).json({ error: "Failed to count AoA entries" });
+    }
+  });
+
   return httpServer;
 }
