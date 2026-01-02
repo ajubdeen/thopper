@@ -68,14 +68,20 @@ export async function registerRoutes(
     try {
       const { userId } = req.params;
       const games = await storage.listUserGames(userId);
-      res.json(games.map(g => ({
-        game_id: g.gameId,
-        player_name: g.playerName,
-        current_era: g.currentEra,
-        phase: g.phase,
-        saved_at: g.savedAt?.toISOString(),
-        started_at: g.startedAt?.toISOString(),
-      })));
+      res.json(games.map(g => {
+        const state = g.state as Record<string, unknown> | null;
+        const timeMachine = state?.time_machine as Record<string, unknown> | null;
+        const totalTurns = timeMachine?.total_turns as number | null;
+        return {
+          game_id: g.gameId,
+          player_name: g.playerName,
+          current_era: g.currentEra,
+          phase: g.phase,
+          total_turns: totalTurns ?? 0,
+          saved_at: g.savedAt?.toISOString(),
+          started_at: g.startedAt?.toISOString(),
+        };
+      }));
     } catch (error) {
       console.error("List games error:", error);
       res.status(500).json({ error: "Failed to list games" });

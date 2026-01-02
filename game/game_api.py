@@ -596,7 +596,8 @@ class GameAPI:
                 "year_display": year_str,
                 "location": self.current_era['location'],
                 "time_in_era": self.state.current_era.time_in_era_description,
-                "turns_in_era": self.state.current_era.turns_in_era
+                "turns_in_era": self.state.current_era.turns_in_era + 1,
+                "era_number": self.state.eras_count
             }
         
         # Device status
@@ -922,7 +923,10 @@ class GameAPI:
             "year": year,
             "year_display": year_str,
             "location": self.current_era['location'],
-            "device_display": self.state.time_machine.display.get_display_text()
+            "device_display": self.state.time_machine.display.get_display_text(),
+            "era_number": self.state.eras_count,
+            "turn_in_era": (self.state.current_era.turns_in_era + 1) if self.state.current_era else 1,
+            "time_in_era": self.state.current_era.time_in_era_description if self.state.current_era else "just arrived"
         })
         
         # Era summary for every era arrival
@@ -1207,6 +1211,11 @@ class GameAPI:
         status_data = status_map.get(indicator, status_map[IndicatorState.DARK])
         status_data["window_active"] = self.state.time_machine.window_active
         status_data["window_turns_remaining"] = self.state.time_machine.window_turns_remaining
+        
+        if self.state.current_era:
+            status_data["era_number"] = self.state.eras_count
+            status_data["turn_in_era"] = self.state.current_era.turns_in_era + 1
+            status_data["time_in_era"] = self.state.current_era.time_in_era_description
         
         return emit(MessageType.DEVICE_STATUS, status_data)
     

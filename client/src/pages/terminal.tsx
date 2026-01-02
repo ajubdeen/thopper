@@ -45,6 +45,25 @@ interface EraInfo {
   year_display: string;
   location: string;
   time_in_era?: string;
+  era_number?: number;
+  turn_in_era?: number;
+}
+
+function getOrdinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function getEraOrdinal(n: number): string {
+  const words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
+  if (n >= 1 && n <= 10) return words[n - 1];
+  return getOrdinal(n);
+}
+
+function getProgressDescription(turnInEra: number, timeInEra: string): string {
+  if (turnInEra === 1) return "you just landed";
+  return timeInEra + " in";
 }
 
 interface SavedGame {
@@ -124,7 +143,19 @@ export default function GamePage() {
         break;
         
       case "game_resumed":
-        setCurrentEra(msg.data.era || null);
+        if (msg.data.era) {
+          setCurrentEra({
+            name: msg.data.era.name,
+            year: msg.data.era.year,
+            year_display: msg.data.era.year_display,
+            location: msg.data.era.location,
+            era_number: msg.data.era.era_number,
+            turn_in_era: msg.data.era.turns_in_era,
+            time_in_era: msg.data.era.time_in_era
+          });
+        } else {
+          setCurrentEra(null);
+        }
         setPhase("gameplay");
         break;
         
@@ -174,7 +205,10 @@ export default function GamePage() {
           name: msg.data.era_name,
           year: msg.data.year,
           year_display: msg.data.year_display,
-          location: msg.data.location
+          location: msg.data.location,
+          era_number: msg.data.era_number,
+          turn_in_era: msg.data.turn_in_era,
+          time_in_era: msg.data.time_in_era
         });
         setNarrative("");
         setShowEraSummary(true);
@@ -205,6 +239,14 @@ export default function GamePage() {
         
       case "device_status":
         setDeviceStatus(msg.data);
+        if (msg.data.era_number !== undefined) {
+          setCurrentEra(prev => prev ? {
+            ...prev,
+            era_number: msg.data.era_number,
+            turn_in_era: msg.data.turn_in_era,
+            time_in_era: msg.data.time_in_era
+          } : prev);
+        }
         break;
         
       case "window_open":
@@ -770,8 +812,13 @@ export default function GamePage() {
             {currentEra && (
               <div className="flex-shrink-0 py-2 border-b border-gray-800">
                 <div className="text-center">
-                  <h2 className="text-lg font-semibold text-amber-400">{currentEra.name}</h2>
-                  <p className="text-sm text-gray-500">{currentEra.location} - {currentEra.year_display}</p>
+                  <h2 className="text-lg font-semibold text-amber-400" data-testid="text-era-name">{currentEra.name}</h2>
+                  <p className="text-sm text-gray-500" data-testid="text-era-location">{currentEra.location} - {currentEra.year_display}</p>
+                  {currentEra.era_number !== undefined && (
+                    <p className="text-sm text-gray-500" data-testid="text-era-progress">
+                      Your {getEraOrdinal(currentEra.era_number)} era. {getOrdinal(currentEra.turn_in_era ?? 1)} turn - {getProgressDescription(currentEra.turn_in_era ?? 1, currentEra.time_in_era ?? "just arrived")}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
