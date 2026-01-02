@@ -721,21 +721,12 @@ def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
     """
     Prompt for when player quits the game after playing 3+ turns.
     
-    Lighter than stay-forever ending but still provides:
-    - Brief narrative closure (~10 sentences)
-    - Historical Footnotes (educational value)
+    Brief recap of journey so far + historical footnotes.
+    No time machine references, no future projection.
     """
     
     time_in_era = game_state.current_era.time_in_era_description if game_state.current_era else "moments"
     character_name = game_state.current_era.character_name if game_state.current_era else "the traveler"
-    total_turns = game_state.total_turns
-    
-    # Build era history context
-    era_ghosts = ""
-    if len(game_state.era_history) >= 1:
-        era_ghosts = "\nPREVIOUS ERAS (reference if meaningful):\n"
-        for h in game_state.era_history[-3:]:
-            era_ghosts += f"  - {h['era_name']}: was called {h.get('character_name', 'unnamed')}, spent {h['turns']} turns\n"
     
     # Build relationships context
     relationships_context = ""
@@ -763,54 +754,35 @@ def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
     year = era['year']
     year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
 
-    return f"""THE PLAYER HAS CHOSEN TO ABANDON THEIR JOURNEY.
-
-After {time_in_era} in {era['name']}, they set down the device and walk away.
-The journey ends not with arrival, but with departure.
+    return f"""SUMMARIZE THIS PLAYER'S JOURNEY.
 
 CHARACTER: {character_name}
 ERA: {era['name']} ({year_str})
-TOTAL TURNS PLAYED: {total_turns}
-{era_ghosts}
+TIME SPENT: {time_in_era}
 {relationships_context}
 {wisdom_context}
 
-Write their ending with ONLY these section headers (use the exact text in quotes):
+Write a brief summary with these two sections:
 
-**The journey ends**
-(10 sentences - one substantial paragraph)
-
-Write a melancholy but dignified closing narrative. This is not guilt-tripping or preachy.
-Some journeys end before the destination is found - that's not failure, it's reality.
-
-Include:
-- The moment of setting down the device
-- A brief reflection on what they experienced (reference specific names/events if available)
-- What might have been, hinted at but not belabored
-- A closing image that feels complete despite the incompleteness
-
-Tone: Wistful, respectful, honest. Like the final paragraph of a book about someone who left.
+**Your journey**
+(4-5 sentences) Summarize what happened during their time in {era['name']}.
+- Who they were (their identity as {character_name})
+- Key people they met (use names from above if available)
+- What they experienced or accomplished
+Write in past tense. This is a recap, not a continuation.
 
 **Historical Footnotes**
-(1-2 paragraphs) Switch to an educational tone - speak directly as the narrator/game.
+(1 short paragraph) Educational content about {era['name']}.
+- What was historically happening in {year_str}
+- Social realities the player glimpsed
+- Reference any wisdom moments above if present
 
-What could they have learned if they'd stayed longer in {era['name']}?
-- Reference any wisdom moments listed above if present
-- Social structures, economic realities, daily life details they were beginning to glimpse
-- Historical context: what was happening in {year_str} that shaped this world
-- What opportunities existed in this era for someone trying to build a life
-
-Tone: Like a museum placard or documentary epilogue. Informative, engaging, not preachy.
-This section should leave the player curious - maybe they'll try this era again.
-
-CRITICAL GUIDELINES:
-- Use ONLY these two headers: "The journey ends", "Historical Footnotes"
-- Format headers with ** on each side (markdown bold)
-- Don't moralize about quitting - respect the player's choice
-- Reference specific relationships or events from the playthrough if available
-- Keep total length around 300-350 words
-
-<anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>"""
+CRITICAL RULES:
+- DO NOT mention any device, time machine, or time travel
+- DO NOT project into the future or speculate what might have happened
+- DO NOT include any XML tags like <anchors> or <character_name> in your response
+- Keep total length under 150 words
+- Use ONLY these two headers with ** markdown bold"""
 
 
 def get_leaving_prompt(game_state: GameState) -> str:
