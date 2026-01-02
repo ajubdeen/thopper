@@ -540,41 +540,148 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
 
 
 def get_staying_ending_prompt(game_state: GameState, era: dict) -> str:
-    """Prompt for when player chooses to stay permanently"""
+    """
+    Prompt for when player chooses to stay permanently.
+    
+    Uses differentiated configs per ending type to shape the narrative's
+    tone, focus, and emotional arc.
+    """
     
     ending_type = game_state.fulfillment.get_ending_type()
     time_in_era = game_state.current_era.time_in_era_description if game_state.current_era else "some time"
+    character_name = game_state.current_era.character_name if game_state.current_era else "the traveler"
     
-    ending_contexts = {
-        "complete": "They achieved something rare: belonging, legacy, AND freedom. A full life.",
-        "balanced": "They found two of the three great fulfillments. A good life.",
-        "belonging": "They found their people. Community. Home. That was enough.",
-        "legacy": "They built something that will outlast them. They mattered here.",
-        "freedom": "They found freedom on their own terms. Unburdened. At peace.",
-        "searching": "They chose to stay, though fulfillment was incomplete. Perhaps it will come."
+    # Get fulfillment values for conditional content
+    fulfillment = game_state.fulfillment.get_narrative_state()
+    belonging_value = fulfillment['belonging']['value']
+    legacy_value = fulfillment['legacy']['value']
+    freedom_value = fulfillment['freedom']['value']
+    
+    # Differentiated ending configurations
+    ENDING_CONFIGS = {
+        "complete": {
+            "context": "They achieved something rare: belonging, legacy, AND freedom. A full life.",
+            "tone": "serene, triumphant, golden",
+            "focus": "the wholeness of what they built - people, purpose, and peace all intertwined",
+            "emotional_arc": "From displacement to completeness. Every thread of their life here woven together.",
+            "years_after_guidance": "Show how all three pillars support each other - the people they love witness their legacy, their freedom lets them choose how to spend their days. This is rare. Make it feel earned.",
+            "ending_imagery": "A life that needed nothing more. Contentment without regret."
+        },
+        "balanced": {
+            "context": "They found two of the three great fulfillments. A good life, with one quiet absence.",
+            "tone": "warm but wistful, accepting",
+            "focus": "what they achieved AND the gentle acknowledgment of what they didn't",
+            "emotional_arc": "From displacement to contentment, with wisdom about tradeoffs.",
+            "years_after_guidance": "Show the richness of what they have, but let there be a small moment where they wonder about the road not taken. Not regret - just awareness.",
+            "ending_imagery": "A life well-lived, even if not complete in every dimension."
+        },
+        "belonging": {
+            "context": "They found their people. Community. Home. That was enough.",
+            "tone": "warm, generational, rooted",
+            "focus": "the web of relationships - faces, names, shared moments, being known",
+            "emotional_arc": "From stranger to family. The transformation from outsider to someone who belongs.",
+            "years_after_guidance": "Focus on PEOPLE. Children growing, neighbors becoming friends, being present for births and deaths and ordinary days. The texture of being woven into a community.",
+            "ending_imagery": "Surrounded by people who would miss them. That was the whole point."
+        },
+        "legacy": {
+            "context": "They built something that will outlast them. They mattered here.",
+            "tone": "proud, immortal through works, forward-looking",
+            "focus": "what they created or changed - the thing that carries their mark into the future",
+            "emotional_arc": "From nobody to someone whose work echoes forward.",
+            "years_after_guidance": "Show the WORK - the building, the knowledge passed on, the institution founded, the change set in motion. Others carrying forward what they started. Their name attached to something lasting.",
+            "ending_imagery": "The work continues after they're gone. That was the whole point."
+        },
+        "freedom": {
+            "context": "They found freedom on their own terms. Unburdened. At peace.",
+            "tone": "quiet, solitary but not lonely, unburdened",
+            "focus": "autonomy, self-determination, escape from systems that constrain",
+            "emotional_arc": "From trapped (in time, in circumstance) to genuinely free.",
+            "years_after_guidance": "Show the SPACE they've carved out - days that belong to them, choices made without obligation, the lightness of answering to no one. This isn't loneliness; it's sovereignty.",
+            "ending_imagery": "No one owns their time. No one commands their path. That was the whole point."
+        },
+        "searching": {
+            "context": "They chose to stay, though fulfillment was incomplete. Perhaps it will come.",
+            "tone": "bittersweet, hopeful uncertainty, unfinished",
+            "focus": "the choice itself - staying despite not having found what they sought",
+            "emotional_arc": "From searching to... still searching, but choosing to search HERE.",
+            "years_after_guidance": "Don't pretend they found happiness. Show them making peace with staying, finding small moments of meaning, hoping that time will bring what they haven't yet found. Honest, not tragic.",
+            "ending_imagery": "The journey continues, just in one place now. Maybe that's enough."
+        }
     }
     
-    return f"""THE PLAYER HAS CHOSEN TO STAY.
+    config = ENDING_CONFIGS.get(ending_type, ENDING_CONFIGS["searching"])
+    
+    # Build era history context for referencing past lives
+    era_ghosts = ""
+    if len(game_state.era_history) >= 1:
+        era_ghosts = "\nPREVIOUS LIVES (reference sparingly, as memory/dreams):\n"
+        for h in game_state.era_history[-3:]:  # Last 3 eras max
+            era_ghosts += f"  - {h['era_name']}: was called {h.get('character_name', 'unnamed')}, spent {h['turns']} turns\n"
+    
+    # Build key relationships context
+    relationships_context = ""
+    if game_state.current_era and game_state.current_era.relationships:
+        relationships_context = "\nKEY RELATIONSHIPS TO REFERENCE:\n"
+        for rel in game_state.current_era.relationships[:5]:
+            if isinstance(rel, dict):
+                relationships_context += f"  - {rel.get('name', 'Unknown')}: {rel.get('relationship', '')}\n"
+            else:
+                relationships_context += f"  - {rel}\n"
+    
+    # Conditional "Ripple" section for high belonging/legacy
+    ripple_instruction = ""
+    if belonging_value >= 40 or legacy_value >= 40:
+        ripple_instruction = """
+4. THE RIPPLE (2-3 sentences): Show impact beyond what they directly saw.
+   - NOT "what you missed" but "you mattered beyond what you knew"
+   - A stranger helped because of their example
+   - A tradition that started with them, continuing
+   - Someone they never met, affected by their choices
+   This is CONDITIONAL - only include if their belonging or legacy was significant."""
+
+    return f"""THE PLAYER HAS CHOSEN TO STAY FOREVER.
 
 After {time_in_era} in {era['name']}, they let the window close for the last time.
 The device goes dark and cold. The journey is over.
 
-Ending type: {ending_type}
-Context: {ending_contexts.get(ending_type, ending_contexts['searching'])}
+CHARACTER: {character_name}
+ENDING TYPE: {ending_type}
+CONTEXT: {config['context']}
 
-Write their ending:
+NARRATIVE TONE: {config['tone']}
+NARRATIVE FOCUS: {config['focus']}
+EMOTIONAL ARC: {config['emotional_arc']}
+{era_ghosts}
+{relationships_context}
 
-1. THE MOMENT: The window closing, the choice becoming permanent (1 paragraph)
-2. THE YEARS AFTER: What their life becomes - be specific, earned, true to what they built (2 paragraphs)
-3. THE END: How their story concludes - years or decades later (1 paragraph)
+Write their ending with these sections:
 
-Make it feel EARNED based on everything that came before. Reference specific relationships,
-achievements, and choices from the playthrough.
+1. THE CHOICE (1 paragraph)
+   The window closing, the device going silent, the choice becoming permanent.
+   This moment should feel like release, not loss.
+
+2. THE LIFE (2-3 paragraphs)
+   {config['years_after_guidance']}
+   
+   Be SPECIFIC. Use names. Reference actual events from the playthrough.
+   Show time passing - seasons, years, aging.
+   Era-appropriate details of how life unfolds here.
+
+3. THE END (1 paragraph)
+   How their story concludes - years or decades later.
+   {config['ending_imagery']}
+{ripple_instruction}
+
+CRITICAL GUIDELINES:
+- Make it feel EARNED based on everything that came before
+- Reference specific relationships, achievements, and choices from the playthrough
+- The ending should feel like arrival, not settling
+- Match the tone to the ending type: {config['tone']}
+- Keep total length around 400-500 words
 
 This is the end of the game. Make it resonate.
 
-<anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>
-ENDING_TYPE: {ending_type}"""
+<anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>"""
 
 
 def get_leaving_prompt(game_state: GameState) -> str:
