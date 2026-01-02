@@ -166,6 +166,10 @@ class GameState:
     # Unified event log for ending generation (persists across eras)
     game_events: List[Dict] = field(default_factory=list)
     
+    # Snapshot of can_stay_meaningfully when window opened (prevents race condition)
+    # This ensures choice B behavior matches what was displayed to the player
+    window_can_stay_snapshot: Optional[bool] = None
+    
     def start_game(self, player_name: str, mode: GameMode, region: RegionPreference = RegionPreference.WORLDWIDE):
         """Initialize a new game"""
         self.player_name = player_name
@@ -199,6 +203,9 @@ class GameState:
         self.time_machine.window_turns_remaining = 0
         self.time_machine.turns_since_last_window = 0
         self.time_machine._accumulated_probability = 0.0
+        
+        # Clear can_stay snapshot - ensures next window gets fresh value
+        self.window_can_stay_snapshot = None
         
         # Track era if not already tracked (travel() may have added it)
         if era["id"] not in self.time_machine.eras_visited:
@@ -298,9 +305,14 @@ class GameState:
         if window_opened:
             events["window_opened"] = True
             self.phase = GamePhase.WINDOW_OPEN
+            # Snapshot can_stay at window open time to prevent race condition
+            # This ensures choice B matches what the AI generated
+            self.window_can_stay_snapshot = self.can_stay_meaningfully
         elif was_active and not self.time_machine.window_active:
             events["window_closed"] = True
             self.phase = GamePhase.LIVING
+            # Clear snapshot when window closes
+            self.window_can_stay_snapshot = None
         elif self.time_machine.window_active and self.time_machine.window_turns_remaining == 1:
             events["window_closing"] = True
         
@@ -335,6 +347,8 @@ class GameState:
     def choose_to_travel(self):
         """Player chooses to use the window"""
         self.phase = GamePhase.TRAVELING
+        # Clear snapshot when leaving - ensures next window gets fresh value
+        self.window_can_stay_snapshot = None
     
     def complete_travel(self, new_era: Dict):
         """Complete travel to new era"""
@@ -442,6 +456,9 @@ class GameState:
             # Era history
             "era_history": self.era_history,
             
+            # Window can_stay snapshot (for race condition prevention)
+            "window_can_stay_snapshot": self.window_can_stay_snapshot,
+            
             # Time machine state
             "time_machine": {
                 "turns_since_last_window": self.time_machine.turns_since_last_window,
@@ -524,6 +541,9 @@ class GameState:
         
         # Era history
         state.era_history = data.get("era_history", [])
+        
+        # Window can_stay snapshot (for race condition prevention)
+        state.window_can_stay_snapshot = data.get("window_can_stay_snapshot")
         
         # Time machine state
         tm_data = data.get("time_machine", {})

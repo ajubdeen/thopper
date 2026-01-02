@@ -754,7 +754,13 @@ class GameAPI:
             if choice == 'A':  # Leave this era (A is always leave when window is open)
                 yield from self._handle_leaving()
                 return
-            if choice == 'B' and self.state.can_stay_meaningfully:  # Stay forever
+            # Use the snapshot from when window opened to prevent race condition
+            # This ensures choice B matches what was displayed to the player
+            can_stay_at_window_open = self.state.window_can_stay_snapshot
+            if can_stay_at_window_open is None:
+                # Fallback for old saves without snapshot
+                can_stay_at_window_open = self.state.can_stay_meaningfully
+            if choice == 'B' and can_stay_at_window_open:  # Stay forever
                 yield from self._handle_stay_forever()
                 return
             # Otherwise B and C are continue options - fall through to normal turn
