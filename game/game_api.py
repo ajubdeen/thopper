@@ -42,7 +42,7 @@ from eras import ERAS, get_era_by_id
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
     get_window_prompt, get_staying_ending_prompt, get_leaving_prompt,
-    get_historian_narrative_prompt
+    get_historian_narrative_prompt, get_quit_ending_prompt
 )
 from scoring import calculate_score, Leaderboard, AoAEntry, AnnalsOfAnachron
 from db_storage import DatabaseSaveManager, DatabaseLeaderboardStorage, DatabaseGameHistory
@@ -1097,15 +1097,44 @@ class GameAPI:
             ]
         })
         
-        # Record quit
-        if self.current_game:
-            self.history.add_narrative(self.current_game, "[Journey abandoned]")
+        # Generate quit narrative for players who played 3+ turns
+        # This provides narrative closure and historical education
+        if self.state.total_turns >= 3 and self.current_era and self.narrator:
+            yield emit(MessageType.LOADING, {"message": "Recording your journey..."})
+            
+            prompt = get_quit_ending_prompt(self.state, self.current_era)
+            response = ""
+            
+            # Stream the narrative
+            generator = self.narrator.generate_streaming(prompt)
+            try:
+                while True:
+                    msg = next(generator)
+                    yield msg
+            except StopIteration as e:
+                response = e.value if e.value else ""
+            
+            if not response:
+                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            
+            # Store ending narrative
+            self._ending_narrative = response
+            
+            # Record in history
+            if self.current_game:
+                self.history.add_narrative(self.current_game, "[Journey abandoned]\n" + response)
+        else:
+            # Quick quit for players with < 3 turns - no narrative generation
+            self._ending_narrative = ""
+            if self.current_game:
+                self.history.add_narrative(self.current_game, "[Journey abandoned]")
         
         # End the game
         self.state.end_game()
         
         # Calculate and emit score
-        yield from self._emit_final_score(ending_type_override="abandoned")
+        ending_narrative = getattr(self, '_ending_narrative', '')
+        yield from self._emit_final_score(ending_type_override="abandoned", ending_narrative=ending_narrative)
         
         # Delete save file (game is complete)
         self.save_manager.delete_game(self.user_id, self.game_id)

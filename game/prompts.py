@@ -717,6 +717,102 @@ This is the end of the game. Make it resonate AND educate.
 <anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>"""
 
 
+def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
+    """
+    Prompt for when player quits the game after playing 3+ turns.
+    
+    Lighter than stay-forever ending but still provides:
+    - Brief narrative closure (~10 sentences)
+    - Historical Footnotes (educational value)
+    """
+    
+    time_in_era = game_state.current_era.time_in_era_description if game_state.current_era else "moments"
+    character_name = game_state.current_era.character_name if game_state.current_era else "the traveler"
+    total_turns = game_state.total_turns
+    
+    # Build era history context
+    era_ghosts = ""
+    if len(game_state.era_history) >= 1:
+        era_ghosts = "\nPREVIOUS ERAS (reference if meaningful):\n"
+        for h in game_state.era_history[-3:]:
+            era_ghosts += f"  - {h['era_name']}: was called {h.get('character_name', 'unnamed')}, spent {h['turns']} turns\n"
+    
+    # Build relationships context
+    relationships_context = ""
+    relationship_events = game_state.get_events_by_type("relationship") if hasattr(game_state, 'get_events_by_type') else []
+    if relationship_events:
+        relationships_context = "\nPEOPLE THEY MET:\n"
+        seen_names = set()
+        for rel in relationship_events:
+            name = rel.get('name', 'Unknown')
+            if name not in seen_names:
+                seen_names.add(name)
+                relationships_context += f"  - {name}\n"
+            if len(seen_names) >= 5:
+                break
+    
+    # Build wisdom moments context
+    wisdom_context = ""
+    wisdom_events = game_state.get_events_by_type("wisdom") if hasattr(game_state, 'get_events_by_type') else []
+    if wisdom_events:
+        wisdom_context = "\nWISDOM ENCOUNTERED:\n"
+        for w in wisdom_events[:5]:
+            wisdom_context += f"  - {w.get('id', 'unknown insight')}\n"
+    
+    # Format year
+    year = era['year']
+    year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
+
+    return f"""THE PLAYER HAS CHOSEN TO ABANDON THEIR JOURNEY.
+
+After {time_in_era} in {era['name']}, they set down the device and walk away.
+The journey ends not with arrival, but with departure.
+
+CHARACTER: {character_name}
+ERA: {era['name']} ({year_str})
+TOTAL TURNS PLAYED: {total_turns}
+{era_ghosts}
+{relationships_context}
+{wisdom_context}
+
+Write their ending with ONLY these section headers (use the exact text in quotes):
+
+**The journey ends**
+(10 sentences - one substantial paragraph)
+
+Write a melancholy but dignified closing narrative. This is not guilt-tripping or preachy.
+Some journeys end before the destination is found - that's not failure, it's reality.
+
+Include:
+- The moment of setting down the device
+- A brief reflection on what they experienced (reference specific names/events if available)
+- What might have been, hinted at but not belabored
+- A closing image that feels complete despite the incompleteness
+
+Tone: Wistful, respectful, honest. Like the final paragraph of a book about someone who left.
+
+**Historical Footnotes**
+(1-2 paragraphs) Switch to an educational tone - speak directly as the narrator/game.
+
+What could they have learned if they'd stayed longer in {era['name']}?
+- Reference any wisdom moments listed above if present
+- Social structures, economic realities, daily life details they were beginning to glimpse
+- Historical context: what was happening in {year_str} that shaped this world
+- What opportunities existed in this era for someone trying to build a life
+
+Tone: Like a museum placard or documentary epilogue. Informative, engaging, not preachy.
+This section should leave the player curious - maybe they'll try this era again.
+
+CRITICAL GUIDELINES:
+- Use ONLY these two headers: "The journey ends", "Historical Footnotes"
+- Format headers with ** on each side (markdown bold)
+- Don't moralize about quitting - respect the player's choice
+- Reference specific relationships or events from the playthrough if available
+- Keep total length around 300-350 words
+
+<anchors>belonging[+0] legacy[+0] freedom[+0]</anchors>"""
+
+
 def get_leaving_prompt(game_state: GameState) -> str:
     """Prompt for when player chooses to leave"""
     
