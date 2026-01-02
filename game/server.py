@@ -15,15 +15,35 @@ Supports:
 
 import os
 import sys
+import re
 import logging
 from flask import Flask, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit as raw_emit
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def markdown_bold_to_ansi(text: str) -> str:
+    """Convert markdown **bold** to ANSI bold escape codes for terminal display."""
+    if not text:
+        return text
+    return re.sub(r'\*\*([^*]+)\*\*', r'\033[1m\1\033[0m', text)
+
+
+def emit(event: str, data: dict):
+    """Wrapper for emit that converts markdown bold to ANSI in narrative messages."""
+    if event == 'message' and isinstance(data, dict):
+        msg_type = data.get('type', '')
+        if msg_type in ('narrative', 'narrative_chunk') and 'data' in data:
+            msg_data = data['data']
+            if isinstance(msg_data, dict) and 'text' in msg_data:
+                msg_data['text'] = markdown_bold_to_ansi(msg_data['text'])
+    raw_emit(event, data)
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET') or os.urandom(24).hex()
