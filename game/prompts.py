@@ -721,28 +721,11 @@ def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
     """
     Prompt for when player quits the game after playing 3+ turns.
     
-    Brief recap of journey so far + historical footnotes.
-    No time machine references, no future projection.
+    Provides historical footnotes about the era they were in.
+    No time machine references, no player-specific content.
     """
     
-    time_in_era = game_state.current_era.time_in_era_description if game_state.current_era else "moments"
-    character_name = game_state.current_era.character_name if game_state.current_era else "the traveler"
-    
-    # Build relationships context
-    relationships_context = ""
-    relationship_events = game_state.get_events_by_type("relationship") if hasattr(game_state, 'get_events_by_type') else []
-    if relationship_events:
-        relationships_context = "\nPEOPLE THEY MET:\n"
-        seen_names = set()
-        for rel in relationship_events:
-            name = rel.get('name', 'Unknown')
-            if name not in seen_names:
-                seen_names.add(name)
-                relationships_context += f"  - {name}\n"
-            if len(seen_names) >= 5:
-                break
-    
-    # Build wisdom moments context
+    # Build wisdom moments context (optional educational enhancement)
     wisdom_context = ""
     wisdom_events = game_state.get_events_by_type("wisdom") if hasattr(game_state, 'get_events_by_type') else []
     if wisdom_events:
@@ -754,35 +737,24 @@ def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
     year = era['year']
     year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
 
-    return f"""SUMMARIZE THIS PLAYER'S JOURNEY.
+    return f"""PROVIDE HISTORICAL CONTEXT FOR THIS ERA.
 
-CHARACTER: {character_name}
 ERA: {era['name']} ({year_str})
-TIME SPENT: {time_in_era}
-{relationships_context}
 {wisdom_context}
 
-Write a brief summary with these two sections:
-
-**Your journey**
-(4-5 sentences) Summarize what happened during their time in {era['name']}.
-- Who they were (their identity as {character_name})
-- Key people they met (use names from above if available)
-- What they experienced or accomplished
-Write in past tense. This is a recap, not a continuation.
+Write a single section:
 
 **Historical Footnotes**
-(1 short paragraph) Educational content about {era['name']}.
+(1-2 short paragraphs) Educational content about {era['name']}.
 - What was historically happening in {year_str}
-- Social realities the player glimpsed
+- Social realities, daily life, key events of this period
 - Reference any wisdom moments above if present
 
 CRITICAL RULES:
-- DO NOT mention any device, time machine, or time travel
-- DO NOT project into the future or speculate what might have happened
+- DO NOT mention any player, character, device, time machine, or time travel
 - DO NOT include any XML tags like <anchors> or <character_name> in your response
-- Keep total length under 150 words
-- Use ONLY these two headers with ** markdown bold"""
+- Keep total length under 100 words
+- Use ONLY this header with ** markdown bold"""
 
 
 def get_leaving_prompt(game_state: GameState) -> str:
