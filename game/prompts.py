@@ -742,19 +742,17 @@ def get_quit_ending_prompt(game_state: GameState, era: dict) -> str:
 ERA: {era['name']} ({year_str})
 {wisdom_context}
 
-Write a single section:
-
-**Historical Footnotes**
-(1-2 short paragraphs) Educational content about {era['name']}.
+Write 1-2 short paragraphs of educational content about {era['name']}:
 - What was historically happening in {year_str}
 - Social realities, daily life, key events of this period
 - Reference any wisdom moments above if present
 
 CRITICAL RULES:
+- DO NOT include any headers or section titles
 - DO NOT mention any player, character, device, time machine, or time travel
-- DO NOT include any XML tags like <anchors> or <character_name> in your response
+- DO NOT include any XML tags like <anchors> or <character_name>
 - Keep total length under 100 words
-- Use ONLY this header with ** markdown bold"""
+- Write plain prose only, no markdown formatting"""
 
 
 def get_leaving_prompt(game_state: GameState) -> str:
