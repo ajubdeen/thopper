@@ -112,6 +112,7 @@ export default function GamePage() {
   const [regionOptions, setRegionOptions] = useState<any[]>([]);
   const [finalScore, setFinalScore] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("The story unfolds...");
   const [waitingAction, setWaitingAction] = useState<string | null>(null);
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -221,6 +222,7 @@ export default function GamePage() {
         
       case "loading":
         setIsLoading(true);
+        setLoadingMessage(msg.data.message || "The story unfolds...");
         break;
         
       case "narrative":
@@ -859,7 +861,7 @@ export default function GamePage() {
                 {isLoading && (
                   <div className="flex items-center gap-3 text-amber-400/80 mt-4">
                     <Compass className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
-                    <span>The story unfolds...</span>
+                    <span>{loadingMessage}</span>
                   </div>
                 )}
                 
