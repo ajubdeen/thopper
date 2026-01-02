@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, Trophy, Play, RotateCcw, User } from "lucide-react";
+import { LogOut, Trophy, Play, RotateCcw, User, Compass } from "lucide-react";
 
 type GamePhase = 
   | "connecting"
@@ -353,7 +353,10 @@ export default function GamePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+        <div className="flex items-center gap-3 text-amber-400/80">
+          <Compass className="w-6 h-6 animate-spin" style={{ animationDuration: '3s' }} />
+          <span>Loading...</span>
+        </div>
       </div>
     );
   }
@@ -750,7 +753,12 @@ export default function GamePage() {
                   disabled={isLoading}
                   data-testid="button-start-adventure"
                 >
-                  {isLoading ? "Traveling in time..." : "See where you've landed..."}
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
+                      Traveling in time...
+                    </span>
+                  ) : "See where you've landed..."}
                 </Button>
               )}
             </div>
@@ -802,8 +810,8 @@ export default function GamePage() {
                 </div>
                 
                 {isLoading && (
-                  <div className="flex items-center gap-2 text-gray-500 mt-4">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                  <div className="flex items-center gap-3 text-amber-400/80 mt-4">
+                    <Compass className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
                     <span>The story unfolds...</span>
                   </div>
                 )}
@@ -848,7 +856,12 @@ export default function GamePage() {
                   disabled={isLoading}
                   data-testid="button-continue-era"
                 >
-                  {isLoading ? "Traveling in time..." : "Continue to next era..."}
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
+                      Traveling in time...
+                    </span>
+                  ) : "Continue to next era..."}
                 </Button>
               </div>
             )}
@@ -861,7 +874,12 @@ export default function GamePage() {
                   disabled={isLoading}
                   data-testid="button-continue-score"
                 >
-                  {isLoading ? "Calculating..." : "Continue to see your score..."}
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Compass className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
+                      Calculating...
+                    </span>
+                  ) : "Continue to see your score..."}
                 </Button>
               </div>
             )}
