@@ -617,15 +617,19 @@ def get_staying_ending_prompt(game_state: GameState, era: dict) -> str:
         for h in game_state.era_history[-3:]:  # Last 3 eras max
             era_ghosts += f"  - {h['era_name']}: was called {h.get('character_name', 'unnamed')}, spent {h['turns']} turns\n"
     
-    # Build key relationships context
+    # Build key relationships context from event log (not current_era.relationships)
     relationships_context = ""
-    if game_state.current_era and game_state.current_era.relationships:
+    relationship_events = game_state.get_events_by_type("relationship") if hasattr(game_state, 'get_events_by_type') else []
+    if relationship_events:
         relationships_context = "\nKEY RELATIONSHIPS TO REFERENCE:\n"
-        for rel in game_state.current_era.relationships[:5]:
-            if isinstance(rel, dict):
-                relationships_context += f"  - {rel.get('name', 'Unknown')}: {rel.get('relationship', '')}\n"
-            else:
-                relationships_context += f"  - {rel}\n"
+        seen_names = set()
+        for rel in relationship_events:
+            name = rel.get('name', 'Unknown')
+            if name not in seen_names:
+                seen_names.add(name)
+                relationships_context += f"  - {name}\n"
+            if len(seen_names) >= 5:
+                break
     
     # Conditional "Ripple" content for high belonging/legacy (no separate header - weave into narrative)
     ripple_instruction = ""

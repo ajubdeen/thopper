@@ -1019,6 +1019,14 @@ class GameAPI:
     
     def _handle_stay_forever(self) -> Generator[Dict, None, None]:
         """Handle player choosing to stay forever"""
+        # Debug logging for ending data flow verification
+        print(f"DEBUG ENDING - Anchors: B={self.state.fulfillment.belonging.value}, L={self.state.fulfillment.legacy.value}, F={self.state.fulfillment.freedom.value}")
+        print(f"DEBUG ENDING - Ending type: {self.state.fulfillment.get_ending_type()}")
+        print(f"DEBUG ENDING - Total events: {len(self.state.game_events)}")
+        print(f"DEBUG ENDING - Event types: {set(e['type'] for e in self.state.game_events)}")
+        print(f"DEBUG ENDING - Relationships: {self.state.get_events_by_type('relationship')}")
+        print(f"DEBUG ENDING - Wisdom: {self.state.get_events_by_type('wisdom')}")
+        
         yield emit(MessageType.STAYING_FOREVER, {
             "title": "A NEW HOME",
             "messages": [
