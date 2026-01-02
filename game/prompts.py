@@ -552,10 +552,9 @@ def get_staying_ending_prompt(game_state: GameState, era: dict) -> str:
     character_name = game_state.current_era.character_name if game_state.current_era else "the traveler"
     
     # Get fulfillment values for conditional content
-    fulfillment = game_state.fulfillment.get_narrative_state()
-    belonging_value = fulfillment['belonging']['value']
-    legacy_value = fulfillment['legacy']['value']
-    freedom_value = fulfillment['freedom']['value']
+    belonging_value = game_state.fulfillment.belonging.value
+    legacy_value = game_state.fulfillment.legacy.value
+    freedom_value = game_state.fulfillment.freedom.value
     
     # Differentiated ending configurations
     ENDING_CONFIGS = {
