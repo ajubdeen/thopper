@@ -163,6 +163,9 @@ class GameState:
     # AI conversation history for current era (needed for narrative continuity)
     conversation_history: List[Dict] = field(default_factory=list)
     
+    # Unified event log for ending generation (persists across eras)
+    game_events: List[Dict] = field(default_factory=list)
+    
     def start_game(self, player_name: str, mode: GameMode, region: RegionPreference = RegionPreference.WORLDWIDE):
         """Initialize a new game"""
         self.player_name = player_name
@@ -204,12 +207,59 @@ class GameState:
         # Clear conversation history for new era
         self.conversation_history = []
         
+        # Note: game_events is NOT cleared - it persists across eras
+        # to capture the full journey for ending generation
+        
         self.phase = GamePhase.ARRIVAL
     
     def set_last_turn(self, narrative: str, choices: List[Dict]):
         """Store the last narrative and choices for session resume"""
         self.last_narrative = narrative
         self.last_choices = choices
+    
+    # =========================================================================
+    # GAME EVENTS LOG - for ending generation
+    # =========================================================================
+    
+    def log_event(self, event_type: str, **kwargs):
+        """
+        Log a game event for later use in ending generation.
+        
+        Event types:
+        - "relationship": NPC interaction {name: str}
+        - "defining_moment": Large anchor shift {anchor: str, delta: int, context: str}
+        - "wisdom": Player demonstrated historical understanding {id: str, insight: str}
+        - "item_use": Player used an item {item_id: str, context: str}
+        - "era_arrival": Arrived in new era {era_id: str, era_name: str}
+        - "character_named": Player given a name {name: str}
+        
+        All events automatically include:
+        - turn: current total turn count
+        - era_id: current era (if any)
+        """
+        event = {
+            "type": event_type,
+            "turn": self.total_turns,
+            "era_id": self.current_era.era_id if self.current_era else None,
+            **kwargs
+        }
+        self.game_events.append(event)
+    
+    def get_events_by_type(self, event_type: str) -> List[Dict]:
+        """Retrieve all events of a specific type."""
+        return [e for e in self.game_events if e["type"] == event_type]
+    
+    def get_recent_events(self, count: int = 10) -> List[Dict]:
+        """Get the most recent events across all types."""
+        return self.game_events[-count:] if self.game_events else []
+    
+    def get_events_for_era(self, era_id: str) -> List[Dict]:
+        """Get all events that occurred in a specific era."""
+        return [e for e in self.game_events if e.get("era_id") == era_id]
+    
+    # =========================================================================
+    # TURN AND PHASE MANAGEMENT
+    # =========================================================================
     
     def check_and_advance_turn(self) -> Dict[str, Any]:
         """
@@ -441,7 +491,10 @@ class GameState:
             # Session resume data
             "last_narrative": self.last_narrative,
             "last_choices": self.last_choices,
-            "conversation_history": self.conversation_history
+            "conversation_history": self.conversation_history,
+            
+            # Event log for ending generation
+            "game_events": self.game_events
         }
     
     @classmethod
@@ -518,5 +571,8 @@ class GameState:
         state.last_narrative = data.get("last_narrative", "")
         state.last_choices = data.get("last_choices", [])
         state.conversation_history = data.get("conversation_history", [])
+        
+        # Event log
+        state.game_events = data.get("game_events", [])
         
         return state
