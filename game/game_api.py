@@ -1097,9 +1097,8 @@ class GameAPI:
             ]
         })
         
-        # Generate quit narrative for players who played 3+ turns
-        # This provides narrative closure and historical education
-        if self.state.total_turns >= 3 and self.current_era and self.narrator:
+        # Generate quit narrative with historical context
+        if self.current_era and self.narrator:
             yield emit(MessageType.LOADING, {"message": "Preparing your debrief..."})
             
             prompt = get_quit_ending_prompt(self.state, self.current_era)
@@ -1124,7 +1123,6 @@ class GameAPI:
             if self.current_game:
                 self.history.add_narrative(self.current_game, "[Journey abandoned]\n" + response)
         else:
-            # Quick quit for players with < 3 turns - no narrative generation
             self._ending_narrative = ""
             if self.current_game:
                 self.history.add_narrative(self.current_game, "[Journey abandoned]")
