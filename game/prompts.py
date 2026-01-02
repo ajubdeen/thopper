@@ -6,11 +6,13 @@ AI prompts for the narrative system, updated for:
 - Time machine windows
 - Modern items
 - Multi-era journeys
+- Event tracking for enhanced endings
 """
 
 from game_state import GameState, GameMode, GamePhase
 from items import get_items_prompt_section
 from fulfillment import get_anchor_detection_prompt
+from event_parsing import get_event_tracking_prompt
 
 
 def get_system_prompt(game_state: GameState, era: dict) -> str:
@@ -75,6 +77,9 @@ TONE: Mature mode (18+) - unflinching historical realism:
     
     # Anchor detection (hidden from player)
     anchor_prompt = get_anchor_detection_prompt()
+    
+    # Event tracking (hidden from player)
+    event_prompt = get_event_tracking_prompt()
     
     # Era history for context
     era_history = ""
@@ -147,6 +152,8 @@ The items listed in the INVENTORY section are the TRUE items the player has - do
 being permanently lost or destroyed. They can be temporarily unavailable in a scene, but they persist.
 
 {anchor_prompt}
+
+{event_prompt}
 
 NARRATIVE GUIDELINES:
 
@@ -254,6 +261,10 @@ REQUIREMENTS:
 5. Give the player character a name appropriate to how locals might interpret them
 6. End with 3 choices
 
+IMPORTANT - CHARACTER NAME:
+When you give the player a name, also include this hidden tag:
+<character_name>TheName</character_name>
+
 CHOICE DESIGN:
 - All choices must be viable survival paths - no "give up" options
 - At least ONE choice should reward understanding of THIS specific era
@@ -272,9 +283,10 @@ FORMAT:
 [B] Second choice  
 [C] Third choice
 
+<character_name>TheName</character_name>
 <anchors>belonging[0] legacy[0] freedom[0]</anchors>
 
-IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices, not inline with any choice.
+IMPORTANT: Put the event tags and <anchors> tag on their own lines AFTER all three choices, not inline with any choice.
 
 Keep under 300 words. Drop them right into it."""
 
@@ -413,11 +425,15 @@ Narrate the outcome of their choice, incorporating the luck factor. Be specific 
 
 Then continue the story and present 3 new choices.
 
+EVENT TRACKING:
+- If any NPC becomes significant this turn (named, interacted with meaningfully), include: <key_npc>NPCName</key_npc>
+- If the player's choice demonstrates historical understanding, include: <wisdom>brief_description</wisdom>
+
 {choice_format}
 
 <anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>
 
-IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices.
+IMPORTANT: Put all event tags and the <anchors> tag on their own lines AFTER all three choices.
 
 Maintain continuity. Reference what came before. Build relationships and consequences."""
 

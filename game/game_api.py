@@ -34,6 +34,10 @@ from game_state import GameState, GameMode, GamePhase, RegionPreference
 from time_machine import select_random_era, IndicatorState
 from fulfillment import parse_anchor_adjustments, strip_anchor_tags
 from items import parse_item_usage
+from event_parsing import (
+    parse_character_name, parse_key_npcs, parse_wisdom_moment,
+    strip_event_tags, check_defining_moment
+)
 from eras import ERAS, get_era_by_id
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
@@ -166,7 +170,10 @@ class NarrativeEngine:
         """Make streaming API call, yield chunks, return full response"""
         response = ""
         buffer = ""
-        in_anchor_tag = False
+        in_hidden_tag = False
+        
+        # Tags that should be hidden from the player
+        hidden_tag_patterns = ['<anchors>', '<character_name>', '<key_npc>', '<wisdom>']
         
         try:
             with self.client.messages.stream(
@@ -179,33 +186,47 @@ class NarrativeEngine:
                     response += text
                     buffer += text
                     
-                    # Handle anchor tag hiding
-                    if '<anchors>' in buffer:
-                        before_tag = buffer.split('<anchors>')[0]
-                        if before_tag:
-                            yield emit(MessageType.NARRATIVE_CHUNK, {"text": before_tag})
-                        buffer = '<anchors>' + buffer.split('<anchors>', 1)[1]
-                        in_anchor_tag = True
+                    # Check for any hidden tag opening
+                    for tag_start in hidden_tag_patterns:
+                        if tag_start in buffer and not in_hidden_tag:
+                            before_tag = buffer.split(tag_start)[0]
+                            if before_tag:
+                                yield emit(MessageType.NARRATIVE_CHUNK, {"text": before_tag})
+                            buffer = tag_start + buffer.split(tag_start, 1)[1]
+                            in_hidden_tag = True
+                            break
                     
-                    if in_anchor_tag and '</anchors>' in buffer:
-                        after_tag = buffer.split('</anchors>', 1)[1] if '</anchors>' in buffer else ''
-                        buffer = after_tag
-                        in_anchor_tag = False
+                    # Check for tag closing
+                    if in_hidden_tag:
+                        # Check for any closing tag
+                        closing_tags = ['</anchors>', '</character_name>', '</key_npc>', '</wisdom>']
+                        for close_tag in closing_tags:
+                            if close_tag in buffer:
+                                after_tag = buffer.split(close_tag, 1)[1] if close_tag in buffer else ''
+                                buffer = after_tag
+                                in_hidden_tag = False
+                                break
                     
                     # Emit non-tag content
-                    if not in_anchor_tag and '<' not in buffer:
+                    if not in_hidden_tag and '<' not in buffer:
                         if buffer:
                             yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
                         buffer = ""
-                    elif not in_anchor_tag and '<' in buffer and '>' in buffer:
-                        if '<anchors>' not in buffer:
+                    elif not in_hidden_tag and '<' in buffer and '>' in buffer:
+                        # Check if this is a hidden tag
+                        is_hidden = any(tag in buffer for tag in hidden_tag_patterns)
+                        if not is_hidden:
                             yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
                             buffer = ""
             
-            # Emit remaining buffer
-            if buffer and not in_anchor_tag:
-                clean_buffer = re.sub(r'<anchors>.*?</anchors>', '', buffer, flags=re.DOTALL)
-                if clean_buffer:
+            # Emit remaining buffer after cleaning all hidden tags
+            if buffer and not in_hidden_tag:
+                clean_buffer = buffer
+                clean_buffer = re.sub(r'<anchors>.*?</anchors>', '', clean_buffer, flags=re.DOTALL)
+                clean_buffer = re.sub(r'<character_name>.*?</character_name>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+                clean_buffer = re.sub(r'<key_npc>.*?</key_npc>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+                clean_buffer = re.sub(r'<wisdom>.*?</wisdom>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+                if clean_buffer.strip():
                     yield emit(MessageType.NARRATIVE_CHUNK, {"text": clean_buffer})
                     
         except Exception as e:
@@ -845,8 +866,15 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, response)
         
-        # Process response
-        self._process_response(response)
+        # Process response (with is_arrival=True to capture character name)
+        self._process_response(response, is_arrival=True)
+        
+        # Log era arrival event
+        self.state.log_event(
+            "era_arrival",
+            era_id=self.current_era['id'],
+            era_name=self.current_era['name']
+        )
         
         # Parse and emit choices
         choices = self._parse_choices(response)
@@ -1045,26 +1073,57 @@ class GameAPI:
         
         return emit(MessageType.DEVICE_STATUS, status_data)
     
-    def _process_response(self, response: str):
-        """Process AI response - extract anchors and item usage"""
+    def _process_response(self, response: str, is_arrival: bool = False):
+        """Process AI response - extract anchors, items, and log events"""
         # Parse anchor adjustments
         adjustments = parse_anchor_adjustments(response)
         for anchor, delta in adjustments.items():
             if delta != 0:
                 self.state.fulfillment.adjust(anchor, delta, "choice")
         
+        # Check for defining moment (large anchor shift)
+        defining = check_defining_moment(adjustments)
+        if defining:
+            anchor_name, delta = defining
+            self.state.log_event(
+                "defining_moment",
+                anchor=anchor_name,
+                delta=delta
+            )
+        
         # Parse item usage
         used_items = parse_item_usage(response, self.state.inventory)
         for item_id in used_items:
             self.state.inventory.use_item(item_id)
+            self.state.log_event("item_use", item_id=item_id)
         
-        # Store event
+        # Parse character name (primarily on arrival)
+        if is_arrival:
+            char_name = parse_character_name(response)
+            if char_name:
+                if self.state.current_era:
+                    self.state.current_era.character_name = char_name
+                self.state.log_event("character_named", name=char_name)
+        
+        # Parse key NPCs
+        npcs = parse_key_npcs(response)
+        for npc_name in npcs:
+            self.state.log_event("relationship", name=npc_name)
+        
+        # Parse wisdom moments
+        wisdom_id = parse_wisdom_moment(response)
+        if wisdom_id:
+            self.state.log_event("wisdom", id=wisdom_id)
+        
+        # Store turn event in era state
         if self.state.current_era:
             self.state.current_era.events.append(f"Turn {self.state.current_era.turns_in_era}")
     
     def _parse_choices(self, response: str) -> List[Dict]:
         """Extract choices from response"""
+        # Strip both anchor tags and event tags
         clean_response = strip_anchor_tags(response)
+        clean_response = strip_event_tags(clean_response)
         
         choices = []
         for line in clean_response.split('\n'):
