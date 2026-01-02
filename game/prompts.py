@@ -799,16 +799,14 @@ These names should appear in the historian's account."""
     if aoa_entry.wisdom_moments:
         wisdom_context = f"""
 HISTORICAL INSIGHTS THEY DEMONSTRATED:
-They showed unusual understanding of: {', '.join(aoa_entry.wisdom_moments[:3])}
-The historian might note this as evidence of their mysterious origins."""
+They showed unusual understanding of: {', '.join(aoa_entry.wisdom_moments[:3])}"""
     
     # Build items context
     items_context = ""
     if aoa_entry.items_used:
         items_context = f"""
-MYSTERIOUS ARTIFACTS:
-Local accounts mention strange objects: {', '.join(aoa_entry.items_used[:3])}
-The historian puzzles over these anachronistic references."""
+ARTIFACTS MENTIONED IN RECORDS:
+Local accounts mention unusual objects: {', '.join(aoa_entry.items_used[:3])}"""
     
     # Ending type shapes the historian's interpretation
     HISTORIAN_ANGLES = {
@@ -846,24 +844,14 @@ The historian puzzles over these anachronistic references."""
     
     angle = HISTORIAN_ANGLES.get(aoa_entry.ending_type, HISTORIAN_ANGLES["searching"])
     
-    # Previous eras add mystery
-    eras_mystery = ""
-    if aoa_entry.eras_visited > 1:
-        eras_mystery = f"""
-FRAGMENTARY EVIDENCE OF EARLIER LIVES:
-The historian has found {aoa_entry.eras_visited - 1} other fragmentary accounts across different eras
-that may reference the same individual - similar descriptions, similar mysterious origins.
-This should be mentioned as scholarly speculation, not certainty."""
-
-    return f"""Write a HISTORIAN'S ACCOUNT of a mysterious figure who appeared in {aoa_entry.final_era} around {year_str}.
+    return f"""Write a HISTORIAN'S ACCOUNT of a figure who appeared in {aoa_entry.final_era} around {year_str}.
 
 THE HISTORIAN'S PERSPECTIVE:
 You are a scholar writing centuries after the events, piecing together fragmentary evidence:
 - Local records, oral traditions, archaeological hints
 - The account should feel like genuine historical writing
 - Third person, past tense, scholarly but engaging
-- Acknowledge gaps in the record
-- Note anomalies without explaining them (the reader knows the truth)
+- Let strangeness speak for itself - do not dwell on mysteries or anomalies
 
 THE SUBJECT:
 Name in records: {aoa_entry.character_name or "unknown (records vary)"}
@@ -873,32 +861,27 @@ Years documented: approximately {aoa_entry.turns_survived // 7} years of local r
 
 HISTORIAN'S THESIS: This was {angle['thesis']}.
 TONE: {angle['tone']}
-CENTRAL MYSTERY: {angle['mystery']}
 {npc_context}
 {moments_context}
 {wisdom_context}
 {items_context}
-{eras_mystery}
 
 STRUCTURE:
 1. OPENING (1-2 sentences): Introduce the subject as historians do - "Among the fragmentary records of [era]..." or "Local tradition in [place] speaks of..."
 
-2. THE ARRIVAL (1 paragraph): What the historical record shows about their appearance. Note the mystery of their origins. Contemporary accounts describe confusion about where they came from.
+2. THE ARRIVAL (1 paragraph): What the historical record shows about their appearance - an outsider who arrived with no clear lineage.
 
 3. THE LIFE (2-3 paragraphs): What they did, who they knew, how they lived. Use the NPC names. Reference the defining moments as things the historical record preserved. The historian interprets these through the lens of {angle['tone']}.
 
-4. THE LEGACY (1 paragraph): What traces they left. How they're remembered (or forgotten). The historian's assessment of their significance.
-
-5. SCHOLARLY NOTE (1-2 sentences): The historian acknowledging the mysteries - the anachronistic details, the gaps, the things that don't quite fit the era. End with something like "Further research may illuminate..." or "The full truth, as with so much of history, remains elusive."
+4. THE LEGACY (1 paragraph): What traces they left. How they're remembered. A life well-lived, told straight.
 
 CRITICAL GUIDELINES:
-- Write as a REAL historian would - citations implied, uncertainty acknowledged
+- Write as a REAL historian would - scholarly but engaging
 - NEVER break the frame - the historian doesn't know about time travel
-- Anomalies are noted as puzzles, not explained
 - Names and relationships from the player's journey should appear
 - The tone should match the ending type: {angle['tone']}
 - Keep to 300-400 words
-- This should feel like something you'd read in a history book or museum placard
+- This should feel like something you'd read in a history book
 
 The player ending narrative (for reference, do NOT copy - transform into historian voice):
 {aoa_entry.player_narrative[:500] if aoa_entry.player_narrative else "[No player narrative available]"}...
