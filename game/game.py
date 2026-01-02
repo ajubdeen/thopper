@@ -44,9 +44,10 @@ from items import Inventory, parse_item_usage
 from eras import ERAS
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
-    get_window_prompt, get_staying_ending_prompt, get_leaving_prompt
+    get_window_prompt, get_staying_ending_prompt, get_leaving_prompt,
+    get_historian_narrative_prompt
 )
-from scoring import Score, Leaderboard, calculate_score, GameHistory
+from scoring import Score, Leaderboard, calculate_score, GameHistory, AoAEntry, AnnalsOfAnachron
 
 
 # =============================================================================
@@ -787,13 +788,17 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         self.state.choose_to_stay(is_final=True)
         self.state.end_game()
         
-        # Calculate and display score
-        self._show_final_score()
+        # Calculate and display score, passing the ending narrative for AoA
+        self._show_final_score(ending_narrative=response)
     
-    def _show_final_score(self, ending_type_override: str = None):
-        """Display final score"""
+    def _show_final_score(self, ending_type_override: str = None, ending_narrative: str = ""):
+        """Display final score and create Annals of Anachron entry if qualified"""
         # Calculate score
-        score = calculate_score(self.state, ending_type_override=ending_type_override)
+        score = calculate_score(
+            self.state, 
+            ending_type_override=ending_type_override,
+            ending_narrative=ending_narrative
+        )
         
         # Save to game history
         if self.current_game:
@@ -803,6 +808,25 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         leaderboard = Leaderboard()
         leaderboard.add_score(score)
         
+        # Create Annals of Anachron entry if qualified
+        aoa_entry = None
+        annals = AnnalsOfAnachron()
+        
+        try:
+            aoa_entry = annals.create_entry(self.state, score)
+            
+            if aoa_entry and self.narrator and self.narrator.client:
+                # Generate historian narrative using AI
+                print(f"\n{Colors.DIM}Recording your story in the Annals of Anachron...{Colors.END}")
+                historian_prompt = get_historian_narrative_prompt(aoa_entry)
+                historian_narrative = self.narrator.generate(historian_prompt, stream=False)
+                aoa_entry.historian_narrative = historian_narrative
+                
+                # Save to annals
+                annals.save_entry(aoa_entry)
+        except Exception:
+            pass  # Don't fail if AoA creation fails
+        
         input(f"\n{Colors.DIM}Press Enter to see your journey's score...{Colors.END}")
         
         clear_screen()
@@ -810,6 +834,11 @@ IMPORTANT: Put the <anchors> tag on its own line AFTER all three choices."""
         
         # Show score breakdown
         print(score.get_breakdown_display())
+        
+        # Show AoA qualification
+        if aoa_entry:
+            print(f"\n{Colors.GREEN}Your journey has been recorded in the Annals of Anachron.{Colors.END}")
+            print(f"{Colors.DIM}{aoa_entry.get_share_text()}{Colors.END}")
         
         print(f"\n{Colors.DIM}Thank you for playing Anachron.{Colors.END}")
     

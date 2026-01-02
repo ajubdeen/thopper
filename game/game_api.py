@@ -41,9 +41,10 @@ from event_parsing import (
 from eras import ERAS, get_era_by_id
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
-    get_window_prompt, get_staying_ending_prompt, get_leaving_prompt
+    get_window_prompt, get_staying_ending_prompt, get_leaving_prompt,
+    get_historian_narrative_prompt
 )
-from scoring import calculate_score, Leaderboard
+from scoring import calculate_score, Leaderboard, AoAEntry, AnnalsOfAnachron
 from db_storage import DatabaseSaveManager, DatabaseLeaderboardStorage, DatabaseGameHistory
 
 
@@ -93,6 +94,8 @@ class MessageType:
     # User data
     USER_GAMES = "user_games"
     LEADERBOARD = "leaderboard"
+    ANNALS = "annals"
+    ANNALS_ENTRY = "annals_entry"
 
 
 def emit(msg_type: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -654,6 +657,85 @@ class GameAPI:
             "scores": scores
         })
     
+    def get_annals(self, user_only: bool = False, limit: int = 20, offset: int = 0) -> Generator[Dict, None, None]:
+        """
+        Get Annals of Anachron entries with pagination.
+        
+        Args:
+            user_only: If True, only return entries for current user
+            limit: Number of entries per page (max 20)
+            offset: Pagination offset
+        """
+        annals = AnnalsOfAnachron()
+        
+        if user_only:
+            result = annals.get_user_archive(self.user_id, limit=min(limit, 20), offset=offset)
+        else:
+            result = annals.get_public_feed(limit=min(limit, 20), offset=offset)
+        
+        # Convert entries to dicts for JSON serialization
+        entries_data = []
+        for entry in result['entries']:
+            entries_data.append({
+                "entry_id": entry.entry_id,
+                "player_name": entry.player_name,
+                "character_name": entry.character_name,
+                "final_era": entry.final_era,
+                "final_era_year": entry.final_era_year,
+                "ending_type": entry.ending_type,
+                "total_score": entry.total_score,
+                "share_text": entry.get_share_text(),
+                "created_at": entry.created_at
+            })
+        
+        yield emit(MessageType.ANNALS, {
+            "user_only": user_only,
+            "user_id": self.user_id if user_only else None,
+            "entries": entries_data,
+            "total": result['total'],
+            "limit": result['limit'],
+            "offset": result['offset'],
+            "has_more": result['has_more']
+        })
+    
+    def get_annals_entry(self, entry_id: str) -> Generator[Dict, None, None]:
+        """
+        Get a single Annals entry by ID (for detail view / sharing).
+        """
+        annals = AnnalsOfAnachron()
+        entry = annals.get_entry(entry_id)
+        
+        if not entry:
+            yield emit(MessageType.ERROR, {
+                "message": "Entry not found",
+                "entry_id": entry_id
+            })
+            return
+        
+        yield emit(MessageType.ANNALS_ENTRY, {
+            "entry_id": entry.entry_id,
+            "player_name": entry.player_name,
+            "character_name": entry.character_name,
+            "final_era": entry.final_era,
+            "final_era_year": entry.final_era_year,
+            "eras_visited": entry.eras_visited,
+            "turns_survived": entry.turns_survived,
+            "ending_type": entry.ending_type,
+            "belonging_score": entry.belonging_score,
+            "legacy_score": entry.legacy_score,
+            "freedom_score": entry.freedom_score,
+            "total_score": entry.total_score,
+            "key_npcs": entry.key_npcs,
+            "defining_moments": entry.defining_moments,
+            "wisdom_moments": entry.wisdom_moments,
+            "items_used": entry.items_used,
+            "player_narrative": entry.player_narrative,
+            "historian_narrative": entry.historian_narrative,
+            "share_text": entry.get_share_text(),
+            "og_description": entry.get_og_description(),
+            "created_at": entry.created_at
+        })
+    
     # =========================================================================
     # GAMEPLAY
     # =========================================================================
@@ -1011,7 +1093,7 @@ class GameAPI:
         self.save_manager.delete_game(self.user_id, self.game_id)
     
     def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = "") -> Generator[Dict, None, None]:
-        """Calculate and emit final score"""
+        """Calculate and emit final score, and create Annals of Anachron entry if qualified"""
         score = calculate_score(
             self.state, 
             ending_type_override=ending_type_override,
@@ -1028,7 +1110,42 @@ class GameAPI:
         leaderboard = Leaderboard(storage=DatabaseLeaderboardStorage())
         rank = leaderboard.add_score(score)
         
-        yield emit(MessageType.FINAL_SCORE, {
+        # Create Annals of Anachron entry if qualified
+        aoa_entry = None
+        aoa_data = None
+        annals = AnnalsOfAnachron()
+        
+        try:
+            aoa_entry = annals.create_entry(self.state, score)
+            
+            if aoa_entry:
+                # Generate historian narrative using AI
+                historian_prompt = get_historian_narrative_prompt(aoa_entry)
+                historian_narrative = self.narrator.generate(historian_prompt)
+                aoa_entry.historian_narrative = historian_narrative
+                
+                # Save to annals
+                annals.save_entry(aoa_entry)
+                
+                # Prepare AoA data for response
+                aoa_data = {
+                    "entry_id": aoa_entry.entry_id,
+                    "qualified": True,
+                    "share_text": aoa_entry.get_share_text(),
+                    "historian_narrative": aoa_entry.historian_narrative,
+                    "character_name": aoa_entry.character_name,
+                    "final_era": aoa_entry.final_era,
+                    "final_era_year": aoa_entry.final_era_year
+                }
+        except Exception as e:
+            # Don't fail the whole score display if AoA fails
+            aoa_data = {
+                "qualified": False,
+                "reason": "Error creating entry"
+            }
+        
+        # Build response data
+        response_data = {
             "total": score.total,
             "rank": rank,
             "breakdown": {
@@ -1054,7 +1171,13 @@ class GameAPI:
             "summary": score.get_narrative_summary(),
             "blurb": score.get_blurb(),
             "final_era": score.final_era
-        })
+        }
+        
+        # Add AoA data if available
+        if aoa_data:
+            response_data["annals"] = aoa_data
+        
+        yield emit(MessageType.FINAL_SCORE, response_data)
     
     def _get_device_status(self) -> Dict:
         """Get device status message"""
@@ -1206,3 +1329,11 @@ class GameSession:
     def leaderboard(self, global_board: bool = True) -> List[Dict]:
         """Get leaderboard"""
         return list(self.api.get_leaderboard(global_board))
+    
+    def annals(self, user_only: bool = False, limit: int = 20, offset: int = 0) -> List[Dict]:
+        """Get Annals of Anachron entries"""
+        return list(self.api.get_annals(user_only, limit, offset))
+    
+    def annals_entry(self, entry_id: str) -> List[Dict]:
+        """Get a single Annals entry"""
+        return list(self.api.get_annals_entry(entry_id))

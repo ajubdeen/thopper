@@ -721,3 +721,153 @@ The player selected "leave." They left. Instantly. The emotion is in the LOSS, n
 Keep it under 100 words total.
 
 <anchors>belonging[-20] legacy[-10] freedom[+5]</anchors>"""
+
+
+# =============================================================================
+# ANNALS OF ANACHRON - HISTORIAN NARRATIVE
+# =============================================================================
+
+def get_historian_narrative_prompt(aoa_entry) -> str:
+    """
+    Generate prompt for the "historian" narrative - a third-person account
+    of the traveler's life for the Annals of Anachron (shareable version).
+    
+    This reads like a historical document written centuries later by a scholar
+    who pieced together the story from fragmentary evidence.
+    
+    Args:
+        aoa_entry: AoAEntry object with journey data
+    """
+    
+    # Format the year appropriately
+    year = aoa_entry.final_era_year
+    year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
+    
+    # Build NPC context
+    npc_context = ""
+    if aoa_entry.key_npcs:
+        npc_context = f"""
+KEY FIGURES IN THEIR LIFE:
+{chr(10).join(f'  - {name}' for name in aoa_entry.key_npcs[:5])}
+These names should appear in the historian's account."""
+    
+    # Build defining moments context
+    moments_context = ""
+    if aoa_entry.defining_moments:
+        moments_context = "\nDEFINING MOMENTS (integrate naturally):\n"
+        for moment in aoa_entry.defining_moments[:3]:
+            anchor = moment.get('anchor', '')
+            delta = moment.get('delta', 0)
+            direction = "grew" if delta > 0 else "diminished"
+            moments_context += f"  - Their sense of {anchor} {direction} significantly\n"
+    
+    # Build wisdom context
+    wisdom_context = ""
+    if aoa_entry.wisdom_moments:
+        wisdom_context = f"""
+HISTORICAL INSIGHTS THEY DEMONSTRATED:
+They showed unusual understanding of: {', '.join(aoa_entry.wisdom_moments[:3])}
+The historian might note this as evidence of their mysterious origins."""
+    
+    # Build items context
+    items_context = ""
+    if aoa_entry.items_used:
+        items_context = f"""
+MYSTERIOUS ARTIFACTS:
+Local accounts mention strange objects: {', '.join(aoa_entry.items_used[:3])}
+The historian puzzles over these anachronistic references."""
+    
+    # Ending type shapes the historian's interpretation
+    HISTORIAN_ANGLES = {
+        "complete": {
+            "thesis": "a stranger who became central to their community, leaving marks on people, institutions, and local memory",
+            "tone": "admiring, slightly awed",
+            "mystery": "How did an outsider achieve what locals rarely could?"
+        },
+        "balanced": {
+            "thesis": "a figure who found purpose if not perfection, whose choices reveal the tradeoffs of transplanted lives",
+            "tone": "thoughtful, analytical",
+            "mystery": "What drove them to stay? What did they sacrifice?"
+        },
+        "belonging": {
+            "thesis": "someone adopted into the community so thoroughly that their foreign origins became footnote rather than identity",
+            "tone": "warm, human-focused",
+            "mystery": "The records show a family, neighbors, a life - but where did they come from?"
+        },
+        "legacy": {
+            "thesis": "a builder, teacher, or innovator whose works outlasted their mysterious origins",
+            "tone": "focused on achievements, institutional",
+            "mystery": "Their methods seemed ahead of their time. How did they know?"
+        },
+        "freedom": {
+            "thesis": "a figure who carved out autonomy in an era that rarely permitted it, living on their own terms",
+            "tone": "respectful of independence, slightly distant",
+            "mystery": "They answered to no one. In that era, how?"
+        },
+        "searching": {
+            "thesis": "a wanderer who stopped wandering, though perhaps never fully arrived",
+            "tone": "melancholic, speculative",
+            "mystery": "They stayed, but the records suggest they were always looking for something"
+        }
+    }
+    
+    angle = HISTORIAN_ANGLES.get(aoa_entry.ending_type, HISTORIAN_ANGLES["searching"])
+    
+    # Previous eras add mystery
+    eras_mystery = ""
+    if aoa_entry.eras_visited > 1:
+        eras_mystery = f"""
+FRAGMENTARY EVIDENCE OF EARLIER LIVES:
+The historian has found {aoa_entry.eras_visited - 1} other fragmentary accounts across different eras
+that may reference the same individual - similar descriptions, similar mysterious origins.
+This should be mentioned as scholarly speculation, not certainty."""
+
+    return f"""Write a HISTORIAN'S ACCOUNT of a mysterious figure who appeared in {aoa_entry.final_era} around {year_str}.
+
+THE HISTORIAN'S PERSPECTIVE:
+You are a scholar writing centuries after the events, piecing together fragmentary evidence:
+- Local records, oral traditions, archaeological hints
+- The account should feel like genuine historical writing
+- Third person, past tense, scholarly but engaging
+- Acknowledge gaps in the record
+- Note anomalies without explaining them (the reader knows the truth)
+
+THE SUBJECT:
+Name in records: {aoa_entry.character_name or "unknown (records vary)"}
+Era: {aoa_entry.final_era}
+Time period: {year_str}
+Years documented: approximately {aoa_entry.turns_survived // 7} years of local records
+
+HISTORIAN'S THESIS: This was {angle['thesis']}.
+TONE: {angle['tone']}
+CENTRAL MYSTERY: {angle['mystery']}
+{npc_context}
+{moments_context}
+{wisdom_context}
+{items_context}
+{eras_mystery}
+
+STRUCTURE:
+1. OPENING (1-2 sentences): Introduce the subject as historians do - "Among the fragmentary records of [era]..." or "Local tradition in [place] speaks of..."
+
+2. THE ARRIVAL (1 paragraph): What the historical record shows about their appearance. Note the mystery of their origins. Contemporary accounts describe confusion about where they came from.
+
+3. THE LIFE (2-3 paragraphs): What they did, who they knew, how they lived. Use the NPC names. Reference the defining moments as things the historical record preserved. The historian interprets these through the lens of {angle['tone']}.
+
+4. THE LEGACY (1 paragraph): What traces they left. How they're remembered (or forgotten). The historian's assessment of their significance.
+
+5. SCHOLARLY NOTE (1-2 sentences): The historian acknowledging the mysteries - the anachronistic details, the gaps, the things that don't quite fit the era. End with something like "Further research may illuminate..." or "The full truth, as with so much of history, remains elusive."
+
+CRITICAL GUIDELINES:
+- Write as a REAL historian would - citations implied, uncertainty acknowledged
+- NEVER break the frame - the historian doesn't know about time travel
+- Anomalies are noted as puzzles, not explained
+- Names and relationships from the player's journey should appear
+- The tone should match the ending type: {angle['tone']}
+- Keep to 300-400 words
+- This should feel like something you'd read in a history book or museum placard
+
+The player ending narrative (for reference, do NOT copy - transform into historian voice):
+{aoa_entry.player_narrative[:500] if aoa_entry.player_narrative else "[No player narrative available]"}...
+
+Write the historian's account now."""
