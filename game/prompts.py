@@ -765,8 +765,7 @@ def get_historian_narrative_prompt(aoa_entry) -> str:
     Generate prompt for the "historian" narrative - a third-person account
     of the traveler's life for the Annals of Anachron (shareable version).
     
-    This reads like a historical document written centuries later by a scholar
-    who pieced together the story from fragmentary evidence.
+    Written in the voice of a master raconteur - mythic, proud, intriguing.
     
     Args:
         aoa_entry: AoAEntry object with journey data
@@ -776,114 +775,144 @@ def get_historian_narrative_prompt(aoa_entry) -> str:
     year = aoa_entry.final_era_year
     year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
     
-    # Build NPC context
+    # Build context for the AI (internal use, not for output)
     npc_context = ""
     if aoa_entry.key_npcs:
         npc_context = f"""
-KEY FIGURES IN THEIR LIFE:
+RELATIONSHIPS TO WEAVE IN (generalize roles, keep names only for spouse/family):
 {chr(10).join(f'  - {name}' for name in aoa_entry.key_npcs[:5])}
-These names should appear in the historian's account."""
+Generalize: "Cardinal X" becomes "church leadership", "Lord Y" becomes "the local lord"
+Keep names for: spouse, children, close family"""
     
     # Build defining moments context
     moments_context = ""
     if aoa_entry.defining_moments:
-        moments_context = "\nDEFINING MOMENTS (integrate naturally):\n"
+        moments_context = "\nKEY ACHIEVEMENTS (weave naturally, do not list):\n"
         for moment in aoa_entry.defining_moments[:3]:
             anchor = moment.get('anchor', '')
             delta = moment.get('delta', 0)
             direction = "grew" if delta > 0 else "diminished"
             moments_context += f"  - Their sense of {anchor} {direction} significantly\n"
     
-    # Build wisdom context
+    # Build wisdom context  
     wisdom_context = ""
     if aoa_entry.wisdom_moments:
         wisdom_context = f"""
-HISTORICAL INSIGHTS THEY DEMONSTRATED:
-They showed unusual understanding of: {', '.join(aoa_entry.wisdom_moments[:3])}"""
+UNUSUAL CAPABILITIES (hint at, don't explain):
+{', '.join(aoa_entry.wisdom_moments[:3])}"""
     
     # Build items context
     items_context = ""
     if aoa_entry.items_used:
         items_context = f"""
-ARTIFACTS MENTIONED IN RECORDS:
-Local accounts mention unusual objects: {', '.join(aoa_entry.items_used[:3])}"""
+ARTIFACTS (mention only if essential):
+{', '.join(aoa_entry.items_used[:3])}"""
     
-    # Ending type shapes the historian's interpretation
+    # Ending type shapes tone
     HISTORIAN_ANGLES = {
         "complete": {
-            "thesis": "a stranger who became central to their community, leaving marks on people, institutions, and local memory",
+            "hook": "rose from nowhere to reshape",
             "tone": "admiring, slightly awed",
-            "mystery": "How did an outsider achieve what locals rarely could?"
+            "closing_theme": "understood something the age could not"
         },
         "balanced": {
-            "thesis": "a figure who found purpose if not perfection, whose choices reveal the tradeoffs of transplanted lives",
-            "tone": "thoughtful, analytical",
-            "mystery": "What drove them to stay? What did they sacrifice?"
+            "hook": "found purpose where others found only survival",
+            "tone": "thoughtful, respectful",
+            "closing_theme": "built something real in borrowed time"
         },
         "belonging": {
-            "thesis": "someone adopted into the community so thoroughly that their foreign origins became footnote rather than identity",
+            "hook": "became so thoroughly one of them that origins ceased to matter",
             "tone": "warm, human-focused",
-            "mystery": "The records show a family, neighbors, a life - but where did they come from?"
+            "closing_theme": "proved that home is chosen, not inherited"
         },
         "legacy": {
-            "thesis": "a builder, teacher, or innovator whose works outlasted their mysterious origins",
-            "tone": "focused on achievements, institutional",
-            "mystery": "Their methods seemed ahead of their time. How did they know?"
+            "hook": "left marks that would outlast empires",
+            "tone": "focused on achievements",
+            "closing_theme": "understood that ideas outlast bloodlines"
         },
         "freedom": {
-            "thesis": "a figure who carved out autonomy in an era that rarely permitted it, living on their own terms",
-            "tone": "respectful of independence, slightly distant",
-            "mystery": "They answered to no one. In that era, how?"
+            "hook": "carved out autonomy in an age that rarely permitted it",
+            "tone": "respectful of independence",
+            "closing_theme": "answered to no one, and thrived"
         },
         "searching": {
-            "thesis": "a wanderer who stopped wandering, though perhaps never fully arrived",
-            "tone": "melancholic, speculative",
-            "mystery": "They stayed, but the records suggest they were always looking for something"
+            "hook": "stopped wandering, though perhaps never fully arrived",
+            "tone": "melancholic but dignified",
+            "closing_theme": "found enough, if not everything"
         }
     }
     
     angle = HISTORIAN_ANGLES.get(aoa_entry.ending_type, HISTORIAN_ANGLES["searching"])
     
-    return f"""Write a HISTORIAN'S ACCOUNT of a figure who appeared in {aoa_entry.final_era} around {year_str}.
+    return f"""Write an ANNALS OF ANACHRON entry for a figure who appeared in {aoa_entry.final_era} around {year_str}.
 
-THE HISTORIAN'S PERSPECTIVE:
-You are a scholar writing centuries after the events, piecing together fragmentary evidence:
-- Local records, oral traditions, archaeological hints
-- The account should feel like genuine historical writing
-- Third person, past tense, scholarly but engaging
-- Let strangeness speak for itself - do not dwell on mysteries or anomalies
+YOU ARE A MASTER RACONTEUR, not a dry historian. Your goal:
+- Make the player feel PROUD of the life they lived
+- Make others INTRIGUED and IMPRESSED
+- Let strangeness hum underneath - never explain it
+- Write with FLAIR, not academic caution
 
 THE SUBJECT:
-Name in records: {aoa_entry.character_name or "unknown (records vary)"}
+Name: {aoa_entry.character_name or "unknown"}
 Era: {aoa_entry.final_era}
 Time period: {year_str}
-Years documented: approximately {aoa_entry.turns_survived // 7} years of local records
+Years in era: approximately {aoa_entry.turns_survived // 7} years
 
-HISTORIAN'S THESIS: This was {angle['thesis']}.
+NARRATIVE HOOK: This was someone who {angle['hook']}.
 TONE: {angle['tone']}
+CLOSING THEME: {angle['closing_theme']}
 {npc_context}
 {moments_context}
 {wisdom_context}
 {items_context}
 
 STRUCTURE:
-1. OPENING (1-2 sentences): Introduce the subject as historians do - "Among the fragmentary records of [era]..." or "Local tradition in [place] speaks of..."
 
-2. THE ARRIVAL (1 paragraph): What the historical record shows about their appearance - an outsider who arrived with no clear lineage.
+1. TITLE (one evocative line):
+   Format: "The [Role] Who [Achievement]" - e.g., "The Clerk Who Rebuilt France"
+   Make it memorable, specific to their story.
 
-3. THE LIFE (2-3 paragraphs): What they did, who they knew, how they lived. Use the NPC names. Reference the defining moments as things the historical record preserved. The historian interprets these through the lens of {angle['tone']}.
+2. THE STORY (4-5 paragraphs, ~200 words total):
+   
+   Opening: One sentence establishing the hook. "In the chaos of X, a man/woman called Y rose from nowhere to..."
+   
+   Arrival: One paragraph. First appearance in records - "unnervingly capable", "recognized something in him/her". 
+   The local lord, church leadership, the garrison commander - USE ROLES NOT NAMES (except spouse/family).
+   
+   Rise: One paragraph. "What followed was unprecedented." Key relationships and achievements.
+   For spouse: "He found love with [Name], a [role] with whom he built a life that would have seemed impossible mere seasons before."
+   For others: generalize to roles.
+   
+   Legacy: One paragraph. What they built, what spread, what endured.
+   
+   Closing: One resonant line. "Perhaps he understood what the dying age could not: that [closing_theme]."
 
-4. THE LEGACY (1 paragraph): What traces they left. How they're remembered. A life well-lived, told straight.
+STYLE RULES:
+- VIVID language: "unnervingly capable", "bound his patron's loyalty for life", "no easy mark"
+- NO hedging: not "suggests" or "appears to have been" - state it as fact
+- NO dwelling on mystery: strangeness speaks for itself
+- GENERALIZE NPCs to roles (except spouse/family who keep names)
+- Personal relationships get WARMTH: "found love with", "built a life together"
+- End with a line that resonates, not summarizes
 
-CRITICAL GUIDELINES:
-- Write as a REAL historian would - scholarly but engaging
-- NEVER break the frame - the historian doesn't know about time travel
-- Names and relationships from the player's journey should appear
-- The tone should match the ending type: {angle['tone']}
-- Keep to 300-400 words
-- This should feel like something you'd read in a history book
+FORBIDDEN:
+- "continues to puzzle scholars"
+- "anachronistic", "mysterious origins" (stated explicitly)
+- "further research may illuminate"
+- Listing achievements - weave them into narrative
+- Names for non-family NPCs
 
-The player ending narrative (for reference, do NOT copy - transform into historian voice):
-{aoa_entry.player_narrative[:500] if aoa_entry.player_narrative else "[No player narrative available]"}...
+The player ending narrative (extract Historical Footnotes section for the history section below):
+{aoa_entry.player_narrative if aoa_entry.player_narrative else "[No player narrative available]"}
 
-Write the historian's account now."""
+Write the entry now. Title first, then story, then history section.
+
+---
+
+After the story, add this section:
+
+**What We Learn About History**
+
+Find the "Historical Footnotes" section from the player narrative above and convert to 3rd person.
+Keep the educational content intact - just change "you" to "he/she/they" and "your" to "his/her/their".
+This section teaches real history through the character's journey."""
