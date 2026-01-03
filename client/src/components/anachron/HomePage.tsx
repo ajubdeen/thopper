@@ -4,6 +4,9 @@ import { SteampunkButton } from "./SteampunkButton";
 import { SavedTimelineCard } from "./SavedTimelineCard";
 import { Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 
+import bgSimple from "@assets/anachron-bg-simple.png";
+import bgFull from "@assets/anachron-bg-full.png";
+
 interface HomePageProps {
   savedGames?: TimelineSave[];
   onNewGame?: () => void;
@@ -35,9 +38,8 @@ export function HomePage({
   return (
     <div className="anachron-container">
       <div 
-        className={`anachron-background ${
-          hasSavedGames ? 'anachron-background-full' : 'anachron-background-simple'
-        }`}
+        className="anachron-background"
+        style={{ backgroundImage: `url(${hasSavedGames ? bgFull : bgSimple})` }}
       />
       <div className="anachron-vignette" />
 
