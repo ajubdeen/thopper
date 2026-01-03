@@ -198,3 +198,38 @@ MODES = {
 
 TEXT_SPEED = 0.012  # Seconds per character for typewriter effect
 SHOW_DEVICE_STATUS = True  # Show time machine indicator in UI
+
+# =============================================================================
+# DEBUG SETTINGS (Development Only)
+# =============================================================================
+
+import os
+
+# Set DEBUG_ERA to a valid era ID to force that era (e.g., "cold_war_germany")
+# Only works when DEBUG_MODE is also True
+DEBUG_MODE = os.environ.get("DEBUG_MODE", "").lower() == "true"
+DEBUG_ERA = os.environ.get("DEBUG_ERA", "")
+
+# Valid era IDs for validation (prevents arbitrary input)
+VALID_ERA_IDS = [
+    "ancient_egypt",
+    "classical_athens", 
+    "han_dynasty",
+    "viking_age",
+    "medieval_plague",
+    "aztec_empire",
+    "mughal_india",
+    "american_revolution",
+    "industrial_britain",
+    "civil_war",
+    "indian_partition",
+    "ww2_europe",
+    "ww2_pacific",
+    "cold_war_germany",
+]
+
+def get_debug_era_id():
+    """Returns validated debug era ID or None if not in debug mode"""
+    if DEBUG_MODE and DEBUG_ERA and DEBUG_ERA in VALID_ERA_IDS:
+        return DEBUG_ERA
+    return None
