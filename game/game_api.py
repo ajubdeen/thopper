@@ -1229,8 +1229,63 @@ class GameAPI:
         aoa_data = None
         annals = AnnalsOfAnachron()
         
+        # =====================================================================
+        # DEBUG: AoA Entry Creation Check
+        # =====================================================================
+        print("=" * 60)
+        print("DEBUG: AOA ENTRY DATA CHECK")
+        print("=" * 60)
+        
+        # 1. Score data that feeds into AoA
+        print(f"Score - turns_survived: {score.turns_survived}")
+        print(f"Score - eras_visited: {score.eras_visited}")
+        print(f"Score - ending_type: {score.ending_type}")
+        print(f"Score - total: {score.total}")
+        print(f"Score - fulfillment: {score.belonging_score + score.legacy_score + score.freedom_score}")
+        print(f"Score - ending_narrative length: {len(score.ending_narrative) if score.ending_narrative else 0}")
+        print("-" * 40)
+        
+        # 2. Qualification check (thresholds)
+        from scoring import AOA_THRESHOLDS
+        total_fulfillment = score.belonging_score + score.legacy_score + score.freedom_score
+        print(f"Qualification thresholds:")
+        print(f"  min_turns: {AOA_THRESHOLDS['min_turns']} (have: {score.turns_survived})")
+        print(f"  min_eras: {AOA_THRESHOLDS['min_eras']} (have: {score.eras_visited})")
+        print(f"  min_fulfillment: {AOA_THRESHOLDS['min_fulfillment']} (have: {total_fulfillment})")
+        print(f"  excluded_endings: {AOA_THRESHOLDS['excluded_endings']} (have: {score.ending_type})")
+        print("-" * 40)
+        
+        # 3. Character name from current era
+        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
+        era_year = self.state.current_era.era_year if self.state.current_era else 0
+        print(f"Character name: {char_name}")
+        print(f"Era year: {era_year}")
+        print("-" * 40)
+        
+        # 4. Key events for AoA
+        relationship_events = self.state.get_events_by_type("relationship")
+        wisdom_events = self.state.get_events_by_type("wisdom")
+        item_events = self.state.get_events_by_type("item_use")
+        defining_events = self.state.get_events_by_type("defining_moment")
+        print(f"Relationship events: {len(relationship_events)}")
+        print(f"Wisdom events: {len(wisdom_events)}")
+        print(f"Item use events: {len(item_events)}")
+        print(f"Defining moment events: {len(defining_events)}")
+        print("=" * 60)
+        # END DEBUG
+        
         try:
             aoa_entry = annals.create_entry(self.state, score)
+            
+            # DEBUG: AoA entry result
+            if aoa_entry:
+                print("DEBUG: AoA entry CREATED successfully")
+                print(f"  entry_id: {aoa_entry.entry_id}")
+                print(f"  character_name: {aoa_entry.character_name}")
+                print(f"  key_npcs: {aoa_entry.key_npcs}")
+                print(f"  wisdom_moments: {aoa_entry.wisdom_moments}")
+            else:
+                print("DEBUG: AoA entry NOT created (did not qualify)")
             
             if aoa_entry:
                 # Generate historian narrative using AI
