@@ -623,11 +623,18 @@ class GameAPI:
         
         # Emit the last choices if available
         if self.state.last_choices:
+            # Use snapshot for can_stay_forever to match validation logic
+            can_stay_snapshot = self.state.window_can_stay_snapshot
+            if can_stay_snapshot is None:
+                can_stay_snapshot = self.state.can_stay_meaningfully
+            
+            window_active = self.state.time_machine.window_active
+            
             yield emit(MessageType.CHOICES, {
                 "choices": self.state.last_choices,
-                "can_quit": not (self.state.phase == GamePhase.WINDOW_OPEN and self.state.can_stay_meaningfully),
-                "window_open": self.state.time_machine.window_active,
-                "can_stay_forever": self.state.can_stay_meaningfully and self.state.time_machine.window_active,
+                "can_quit": not (window_active and can_stay_snapshot),
+                "window_open": window_active,
+                "can_stay_forever": can_stay_snapshot if window_active else False,
                 "is_resume": True
             })
         
@@ -750,21 +757,55 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices (when window is already open)
-        if self.state.phase == GamePhase.WINDOW_OPEN:
+        # Check for special window choices (when window is active)
+        # Use window_active as the source of truth - this must match what UI uses
+        window_is_active = self.state.time_machine.window_active
+        
+        if window_is_active:
             if choice == 'A':  # Leave this era (A is always leave when window is open)
                 yield from self._handle_leaving()
                 return
+            
             # Use the snapshot from when window opened to prevent race condition
             # This ensures choice B matches what was displayed to the player
             can_stay_at_window_open = self.state.window_can_stay_snapshot
             if can_stay_at_window_open is None:
                 # Fallback for old saves without snapshot
                 can_stay_at_window_open = self.state.can_stay_meaningfully
-            if choice == 'B' and can_stay_at_window_open:  # Stay forever
-                yield from self._handle_stay_forever()
-                return
-            # Otherwise B and C are continue options - fall through to normal turn
+            
+            if choice == 'B':
+                if can_stay_at_window_open:  # Stay forever
+                    yield from self._handle_stay_forever()
+                    return
+                else:
+                    # Player clicked Stay but doesn't qualify - re-emit choices with current state
+                    yield emit(MessageType.ERROR, {
+                        "message": "You haven't built enough connections to stay here permanently. Continue exploring to build your fulfillment."
+                    })
+                    # Compute fresh choices from current state
+                    fresh_can_stay = self.state.window_can_stay_snapshot or self.state.can_stay_meaningfully
+                    yield emit(MessageType.CHOICES, {
+                        "choices": self.state.last_choices or [],
+                        "can_quit": not fresh_can_stay,
+                        "window_open": self.state.time_machine.window_active,
+                        "can_stay_forever": fresh_can_stay if self.state.time_machine.window_active else False
+                    })
+                    return
+            # Otherwise C is continue option - fall through to normal turn
+        elif choice == 'B':
+            # Safety check: B was selected but window isn't active - this shouldn't happen
+            # but if it does, handle it gracefully with fresh state
+            yield emit(MessageType.ERROR, {
+                "message": "The time window is not currently open."
+            })
+            # Emit fresh choices from current state
+            yield emit(MessageType.CHOICES, {
+                "choices": self.state.last_choices or [],
+                "can_quit": True,
+                "window_open": False,
+                "can_stay_forever": False
+            })
+            return
         
         # Roll dice for this turn
         roll = random.randint(1, 20)
@@ -774,27 +815,33 @@ class GameAPI:
         
         yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
         
+        # Use authoritative event data for window state
+        window_just_opened = events["window_opened"]
+        window_active_after_turn = events["window_active_after_turn"]
+        can_stay_snapshot = events["can_stay_snapshot"]
+        if can_stay_snapshot is None:
+            can_stay_snapshot = self.state.can_stay_meaningfully
+        
         # Generate ONE narrative based on what happened
-        if events["window_opened"]:
+        if window_just_opened:
             # Window just opened - use window prompt (includes choice outcome)
             self.state.phase = GamePhase.WINDOW_OPEN
             
             yield emit(MessageType.WINDOW_OPEN, {
                 "message": "THE WINDOW IS OPEN",
-                "can_stay_meaningfully": self.state.can_stay_meaningfully,
-                "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
+                "can_stay_meaningfully": can_stay_snapshot,
+                "stay_message": "You've built something here. You could stay forever..." if can_stay_snapshot else None
             })
             
             prompt = get_window_prompt(self.state, choice, roll)
             history_prefix = "[The time machine window opens]\n"
-            can_quit = not self.state.can_stay_meaningfully
-            window_open = True
+            can_quit = not can_stay_snapshot
         else:
             # Normal turn - use turn prompt
             prompt = get_turn_prompt(self.state, choice, roll)
             history_prefix = ""
-            can_quit = True
-            window_open = False
+            # can_quit depends on whether window is still active after this turn
+            can_quit = True if not window_active_after_turn else not can_stay_snapshot
         
         response = ""
         
@@ -825,11 +872,13 @@ class GameAPI:
         # Store for session resume
         self.state.set_last_turn(response, choices)
         
+        # Use authoritative event data for CHOICES payload
+        # This ensures UI and backend use the same source of truth
         yield emit(MessageType.CHOICES, {
             "choices": choices,
             "can_quit": can_quit,
-            "window_open": window_open,
-            "can_stay_forever": self.state.can_stay_meaningfully if window_open else False
+            "window_open": window_active_after_turn,
+            "can_stay_forever": can_stay_snapshot if window_active_after_turn else False
         })
         
         # Handle window closing/closed messages (for turns where window was already open)

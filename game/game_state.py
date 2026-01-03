@@ -280,16 +280,23 @@ class GameState:
         - window_closing: bool - Window is on its last turn
         - window_closed: bool - Window just closed (player let it expire)
         - window_already_open: bool - Window was already open before this turn
+        - window_was_active_before: bool - Window was active before advance_turn ran
+        - window_active_after_turn: bool - Window is active after advance_turn (authoritative for CHOICES)
+        - can_stay_snapshot: bool - Snapshot of can_stay_meaningfully for this window
         """
         events = {
             "window_opened": False,
             "window_closing": False,
             "window_closed": False,
-            "window_already_open": False
+            "window_already_open": False,
+            "window_was_active_before": False,
+            "window_active_after_turn": False,
+            "can_stay_snapshot": None
         }
         
         # Track if window was already open
         was_active = self.time_machine.window_active
+        events["window_was_active_before"] = was_active
         if was_active:
             events["window_already_open"] = True
         
@@ -315,6 +322,10 @@ class GameState:
             self.window_can_stay_snapshot = None
         elif self.time_machine.window_active and self.time_machine.window_turns_remaining == 1:
             events["window_closing"] = True
+        
+        # Set authoritative post-turn window state for CHOICES payload
+        events["window_active_after_turn"] = self.time_machine.window_active
+        events["can_stay_snapshot"] = self.window_can_stay_snapshot
         
         return events
     
