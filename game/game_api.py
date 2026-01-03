@@ -1044,13 +1044,50 @@ class GameAPI:
     
     def _handle_stay_forever(self) -> Generator[Dict, None, None]:
         """Handle player choosing to stay forever"""
-        # Debug logging for ending data flow verification
-        print(f"DEBUG ENDING - Anchors: B={self.state.fulfillment.belonging.value}, L={self.state.fulfillment.legacy.value}, F={self.state.fulfillment.freedom.value}")
-        print(f"DEBUG ENDING - Ending type: {self.state.fulfillment.get_ending_type()}")
-        print(f"DEBUG ENDING - Total events: {len(self.state.game_events)}")
-        print(f"DEBUG ENDING - Event types: {set(e['type'] for e in self.state.game_events)}")
-        print(f"DEBUG ENDING - Relationships: {self.state.get_events_by_type('relationship')}")
-        print(f"DEBUG ENDING - Wisdom: {self.state.get_events_by_type('wisdom')}")
+        # =====================================================================
+        # DEBUG: Verify data flow to ending prompt
+        # =====================================================================
+        print("=" * 60)
+        print("DEBUG: ENDING DATA FLOW CHECK")
+        print("=" * 60)
+        
+        # 1. Anchor values (should be non-zero after real gameplay)
+        print(f"Belonging: {self.state.fulfillment.belonging.value}")
+        print(f"Legacy: {self.state.fulfillment.legacy.value}")
+        print(f"Freedom: {self.state.fulfillment.freedom.value}")
+        print(f"Ending type: {self.state.fulfillment.get_ending_type()}")
+        print("-" * 40)
+        
+        # 2. Event log (should have entries)
+        print(f"Total events logged: {len(self.state.game_events)}")
+        print(f"Event types: {set(e['type'] for e in self.state.game_events)}")
+        print("-" * 40)
+        
+        # 3. Key NPCs (should have names if <key_npc> tags were parsed)
+        relationship_events = self.state.get_events_by_type("relationship")
+        print(f"Relationship events: {len(relationship_events)}")
+        npc_names = [e.get('name') for e in relationship_events[:5]]
+        print(f"NPC names: {npc_names}")
+        print("-" * 40)
+        
+        # 4. Wisdom moments (should have IDs if <wisdom> tags were parsed)
+        wisdom_events = self.state.get_events_by_type("wisdom")
+        print(f"Wisdom events: {len(wisdom_events)}")
+        wisdom_ids = [e.get('id') for e in wisdom_events[:5]]
+        print(f"Wisdom IDs: {wisdom_ids}")
+        print("-" * 40)
+        
+        # 5. Character name (should be set from arrival)
+        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
+        print(f"Character name: {char_name}")
+        print("-" * 40)
+        
+        # 6. Era info
+        if self.current_era:
+            print(f"Current era: {self.current_era.get('name', 'Unknown')}")
+            print(f"Time in era: {self.state.current_era.time_in_era_description if self.state.current_era else 'Unknown'}")
+        print("=" * 60)
+        # END DEBUG
         
         yield emit(MessageType.STAYING_FOREVER, {
             "title": "A NEW HOME",
