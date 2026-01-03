@@ -11,6 +11,7 @@ Features:
 - User ID support for multi-user deployments
 - Save/load game state for session persistence
 - Resume functionality with full narrative/choice restoration
+- Intent-based choice resolution (not position-based)
 """
 
 import json
@@ -46,6 +47,10 @@ from prompts import (
 )
 from scoring import calculate_score, Leaderboard, AoAEntry, AnnalsOfAnachron
 from db_storage import DatabaseSaveManager, DatabaseLeaderboardStorage, DatabaseGameHistory
+from choice_intent import (
+    ChoiceIntent, detect_choice_intent, filter_choices, 
+    get_choice_intent_for_submission
+)
 
 
 # =============================================================================
@@ -401,6 +406,7 @@ class GameAPI:
     - User ID for multi-user deployments
     - Save/load for session persistence
     - Resume with full narrative restoration
+    - Intent-based choice resolution
     """
     
     def __init__(self, user_id: str = "default"):
@@ -621,20 +627,23 @@ class GameAPI:
                 "is_resume": True
             })
         
-        # Emit the last choices if available
+        # Re-filter choices for safety (in case save is from old version)
         if self.state.last_choices:
-            # Use snapshot for can_stay_forever to match validation logic
-            can_stay_snapshot = self.state.window_can_stay_snapshot
-            if can_stay_snapshot is None:
-                can_stay_snapshot = self.state.can_stay_meaningfully
-            
             window_active = self.state.time_machine.window_active
+            filtered_choices = filter_choices(
+                self.state.last_choices,
+                window_active,
+                self.state.can_stay_meaningfully
+            )
+            self.state.last_choices = filtered_choices
+            
+            can_stay_forever = self.state.can_stay_meaningfully and window_active
             
             yield emit(MessageType.CHOICES, {
-                "choices": self.state.last_choices,
-                "can_quit": not (window_active and can_stay_snapshot),
+                "choices": filtered_choices,
+                "can_quit": not can_stay_forever,
                 "window_open": window_active,
-                "can_stay_forever": can_stay_snapshot if window_active else False,
+                "can_stay_forever": can_stay_forever,
                 "is_resume": True
             })
         
@@ -745,11 +754,17 @@ class GameAPI:
         })
     
     # =========================================================================
-    # GAMEPLAY
+    # GAMEPLAY - CHOICE HANDLING
     # =========================================================================
     
     def make_choice(self, choice: str) -> Generator[Dict, None, None]:
-        """Process a player choice (A, B, C, or Q)"""
+        """
+        Process a player choice (A, B, C, or Q).
+        
+        Uses intent-based resolution - the choice text determines what happens,
+        not the position (A/B/C). This makes the system robust to AI generating
+        choices in any order.
+        """
         choice = choice.upper()
         
         # Handle quit
@@ -757,90 +772,90 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices (when window is active)
-        # Use window_active as the source of truth - this must match what UI uses
-        window_is_active = self.state.time_machine.window_active
+        # Validate choice ID
+        if choice not in ('A', 'B', 'C'):
+            yield emit(MessageType.ERROR, {"message": f"Invalid choice: {choice}"})
+            return
         
-        if window_is_active:
-            if choice == 'A':  # Leave this era (A is always leave when window is open)
-                yield from self._handle_leaving()
+        # Get intent from the stored choice text
+        window_open = self.state.time_machine.window_active
+        intent, choice_text = get_choice_intent_for_submission(
+            choice, 
+            self.state.last_choices,
+            window_open
+        )
+        
+        if intent is None:
+            yield emit(MessageType.ERROR, {"message": f"Choice {choice} not found"})
+            return
+        
+        # Route based on intent
+        if intent == ChoiceIntent.LEAVE_ERA:
+            yield from self._handle_leaving()
+            return
+        
+        if intent == ChoiceIntent.STAY_FOREVER:
+            # Double-check eligibility (should always pass if filter worked)
+            if not self.state.can_stay_meaningfully:
+                yield emit(MessageType.ERROR, {
+                    "message": "You haven't built enough to stay permanently."
+                })
+                yield from self._re_emit_choices()
                 return
-            
-            # Use the snapshot from when window opened to prevent race condition
-            # This ensures choice B matches what was displayed to the player
-            can_stay_at_window_open = self.state.window_can_stay_snapshot
-            if can_stay_at_window_open is None:
-                # Fallback for old saves without snapshot
-                can_stay_at_window_open = self.state.can_stay_meaningfully
-            
-            if choice == 'B':
-                if can_stay_at_window_open:  # Stay forever
-                    yield from self._handle_stay_forever()
-                    return
-                else:
-                    # Player clicked Stay but doesn't qualify - re-emit choices with current state
-                    yield emit(MessageType.ERROR, {
-                        "message": "You haven't built enough connections to stay here permanently. Continue exploring to build your fulfillment."
-                    })
-                    # Compute fresh choices from current state
-                    fresh_can_stay = self.state.window_can_stay_snapshot or self.state.can_stay_meaningfully
-                    yield emit(MessageType.CHOICES, {
-                        "choices": self.state.last_choices or [],
-                        "can_quit": not fresh_can_stay,
-                        "window_open": self.state.time_machine.window_active,
-                        "can_stay_forever": fresh_can_stay if self.state.time_machine.window_active else False
-                    })
-                    return
-            # Otherwise C is continue option - fall through to normal turn
-        # When window is NOT active, all choices (A, B, C) are normal story choices
-        # Fall through to normal turn processing
+            yield from self._handle_stay_forever()
+            return
         
+        # Intent is CONTINUE_STORY - process as normal turn
+        yield from self._process_story_turn(choice)
+    
+    def _process_story_turn(self, choice: str) -> Generator[Dict, None, None]:
+        """
+        Process a normal story turn (not leave/stay-forever).
+        
+        This handles:
+        - Rolling dice
+        - Advancing the turn (which may open/close window)
+        - Generating narrative
+        - Processing response (anchors, items)
+        - Filtering and emitting choices
+        """
         # Roll dice for this turn
         roll = random.randint(1, 20)
         
-        # ADVANCE TURN FIRST - then generate appropriate narrative
+        # Advance turn - this may open or close the window
         events = self.state.advance_turn()
         
         yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
         
-        # Use authoritative event data for window state
+        # Determine which prompt to use based on what happened
         window_just_opened = events["window_opened"]
         window_active_after_turn = events["window_active_after_turn"]
-        can_stay_snapshot = events["can_stay_snapshot"]
-        if can_stay_snapshot is None:
-            can_stay_snapshot = self.state.can_stay_meaningfully
         
-        # Generate ONE narrative based on what happened
         if window_just_opened:
-            # Window just opened - use window prompt (includes choice outcome)
+            # Window just opened - use window prompt
             self.state.phase = GamePhase.WINDOW_OPEN
             
             yield emit(MessageType.WINDOW_OPEN, {
                 "message": "THE WINDOW IS OPEN",
-                "can_stay_meaningfully": can_stay_snapshot,
-                "stay_message": "You've built something here. You could stay forever..." if can_stay_snapshot else None
+                "can_stay_meaningfully": self.state.can_stay_meaningfully,
+                "stay_message": "You've built something here. You could stay forever..." if self.state.can_stay_meaningfully else None
             })
             
             prompt = get_window_prompt(self.state, choice, roll)
             history_prefix = "[The time machine window opens]\n"
-            can_quit = not can_stay_snapshot
         else:
             # Normal turn - use turn prompt
             prompt = get_turn_prompt(self.state, choice, roll)
             history_prefix = ""
-            # can_quit depends on whether window is still active after this turn
-            can_quit = True if not window_active_after_turn else not can_stay_snapshot
         
+        # Generate narrative
         response = ""
-        
-        # Stream the narrative - capture full response from generator
         generator = self.narrator.generate_streaming(prompt)
         try:
             while True:
                 msg = next(generator)
                 yield msg
         except StopIteration as e:
-            # Generator's return value contains the full response including anchor tags
             response = e.value if e.value else ""
         
         # Fallback if response is empty
@@ -851,26 +866,38 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, history_prefix + response)
         
-        # Process response (anchors, items)
+        # Process response (anchors, items) - this may change can_stay_meaningfully
         self._process_response(response)
         
-        # Parse and emit choices
-        choices = self._parse_choices(response)
+        # Parse choices from AI response
+        raw_choices = self._parse_choices(response)
         
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
+        # Filter choices - remove stay_forever if not eligible
+        # This is the safety layer in case AI generated invalid options
+        filtered_choices = filter_choices(
+            raw_choices,
+            window_active_after_turn,
+            self.state.can_stay_meaningfully
+        )
         
-        # Use authoritative event data for CHOICES payload
-        # This ensures UI and backend use the same source of truth
+        # Store filtered choices for next submission
+        self.state.set_last_turn(response, filtered_choices)
+        
+        # Determine if quit should be available
+        # Hide quit when stay_forever is an option (to avoid confusion)
+        can_stay_forever = self.state.can_stay_meaningfully and window_active_after_turn
+        can_quit = not can_stay_forever
+        
+        # Emit choices to frontend
         yield emit(MessageType.CHOICES, {
-            "choices": choices,
+            "choices": filtered_choices,
             "can_quit": can_quit,
             "window_open": window_active_after_turn,
-            "can_stay_forever": can_stay_snapshot if window_active_after_turn else False
+            "can_stay_forever": can_stay_forever
         })
         
-        # Handle window closing/closed messages (for turns where window was already open)
-        if not events["window_opened"]:
+        # Emit window status messages
+        if not window_just_opened:
             if events["window_closing"]:
                 yield emit(MessageType.WINDOW_CLOSING, {
                     "message": "The device pulses urgently. The window is closing..."
@@ -888,6 +915,18 @@ class GameAPI:
         if self.narrator:
             self.state.conversation_history = self.narrator.get_conversation_history()
         self.save_manager.save_game(self.user_id, self.game_id, self.state)
+    
+    def _re_emit_choices(self) -> Generator[Dict, None, None]:
+        """Re-emit the current choices after an error."""
+        window_open = self.state.time_machine.window_active
+        can_stay_forever = self.state.can_stay_meaningfully and window_open
+        
+        yield emit(MessageType.CHOICES, {
+            "choices": self.state.last_choices,
+            "can_quit": not can_stay_forever,
+            "window_open": window_open,
+            "can_stay_forever": can_stay_forever
+        })
     
     def get_current_state(self) -> Dict:
         """Get the current game state for frontend rendering"""
@@ -1020,14 +1059,19 @@ class GameAPI:
             era_name=self.current_era['name']
         )
         
-        # Parse and emit choices
-        choices = self._parse_choices(response)
+        # Parse choices and filter (window is always closed on arrival)
+        raw_choices = self._parse_choices(response)
+        filtered_choices = filter_choices(
+            raw_choices,
+            window_open=False,
+            can_stay_meaningfully=self.state.can_stay_meaningfully
+        )
         
         # Store for session resume
-        self.state.set_last_turn(response, choices)
+        self.state.set_last_turn(response, filtered_choices)
         
         yield emit(MessageType.CHOICES, {
-            "choices": choices,
+            "choices": filtered_choices,
             "can_quit": True
         })
         
