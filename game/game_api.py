@@ -1086,6 +1086,23 @@ class GameAPI:
         if self.current_era:
             print(f"Current era: {self.current_era.get('name', 'Unknown')}")
             print(f"Time in era: {self.state.current_era.time_in_era_description if self.state.current_era else 'Unknown'}")
+            print(f"Turns in era: {self.state.current_era.turns_in_era if self.state.current_era else 0}")
+        print("-" * 40)
+        
+        # 7. Era history (for "previous lives" context in prompt)
+        print(f"Era history count: {len(self.state.era_history)}")
+        for h in self.state.era_history[-3:]:
+            print(f"  - {h['era_name']}: {h.get('character_name', 'unnamed')}, {h['turns']} turns")
+        print("-" * 40)
+        
+        # 8. Conversation history (verify AI has full context)
+        print(f"Conversation messages: {len(self.narrator.messages) if self.narrator else 0}")
+        print("-" * 40)
+        
+        # 9. Ripple conditions (special content when belonging/legacy >= 40)
+        belonging_val = self.state.fulfillment.belonging.value
+        legacy_val = self.state.fulfillment.legacy.value
+        print(f"Ripple enabled: {belonging_val >= 40 or legacy_val >= 40}")
         print("=" * 60)
         # END DEBUG
         
