@@ -1,6 +1,6 @@
 """
 Era definitions for Anachron
-Full version: 13 eras spanning 3,000+ years of human history
+Full version: 14 eras spanning 3,000+ years of human history
 
 Each era includes:
 - Base content (used in all modes)
@@ -1750,8 +1750,166 @@ Rationing posters visible. Sense of wartime urgency and purpose.""",
         ]
     },
     
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ERA 13: COLD WAR EAST GERMANY - THE STASI STATE
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    {
+        "id": "cold_war_germany",
+        "name": "Cold War East Germany - The Stasi State",
+        "year": 1987,
+        "location": "East Germany (DDR)",
+        
+        "image_description": """An East Berlin street in the late 1980s. Drab concrete 
+apartment blocks (Plattenbau) line a wide avenue. A few Trabant cars in muted colors 
+are parked along the curb. People in practical, unfashionable clothing walk past 
+state-run shops with sparse window displays. A faded socialist propaganda poster 
+adorns a wall. In the distance, a watchtower is visible. A tram rattles past. 
+Gray sky, bare trees. No Western advertisements, no bright colors, no visible 
+luxury goods. A man in a leather jacket watches from a doorway.""",
+        
+        "guess_keywords": ["cold war", "east germany", "berlin wall", "stasi", "ddr",
+                          "1980s", "communist", "iron curtain", "gorbachev", "divided germany"],
+        
+        "key_events": [
+            "Germany is divided: the capitalist West (FRG) and communist East (DDR)",
+            "The Stasi (secret police) has informers everywhere - 1 in 63 citizens reports on neighbors",
+            "The Berlin Wall has stood for 26 years - escape attempts mean death",
+            "Gorbachev's reforms (glasnost, perestroika) are creating uncertainty in Moscow",
+            "Western television reaches most of East Germany - people see what they're missing"
+        ],
+        
+        "figures": [
+            "Erich Honecker - Hardline leader of the DDR, resisting Gorbachev's reforms",
+            "Stasi officers - The Ministry for State Security, watching everyone",
+            "Ordinary informers (IMs) - Your neighbor, colleague, even family member might report you",
+            "Dissidents - Small groups pushing for reform, risking imprisonment",
+            "Border guards - Young conscripts ordered to shoot escapees"
+        ],
+        
+        "hard_rules": {
+            "Lower": [
+                "Guaranteed job, housing, healthcare - but no choice in any of it",
+                "Exit visa applications mark you as disloyal - consequences at work",
+                "Less likely to be recruited as informer - but also watched less",
+                "Black market Western goods are risky but available"
+            ],
+            "Middle": [
+                "Career advancement requires Party membership and loyalty demonstrations",
+                "More likely to be pressured into informing on colleagues",
+                "Travel to 'fraternal socialist countries' possible, West nearly impossible",
+                "Children's university prospects depend on parents' political reliability"
+            ],
+            "Upper": [
+                "Party elite have access to Western goods, special shops (Intershops)",
+                "More visible, more watched, more pressure to demonstrate loyalty",
+                "Can lose everything overnight if deemed politically unreliable",
+                "Expected to actively promote the state, not just comply"
+            ],
+            "Female": [
+                "Women work - childcare is provided, equality is official policy",
+                "But leadership remains male; glass ceiling is real",
+                "Contraception and abortion available - unusual for Eastern Bloc",
+                "Expected to be both worker and homemaker"
+            ]
+        },
+        
+        # ADULT CONTENT ADDITIONS
+        "adult_hard_rules": {
+            "Lower": [
+                "Stasi interrogations use sleep deprivation, isolation, psychological torture",
+                "Political prisoners work in uranium mines with no protection",
+                "Informers destroy marriages, friendships, families"
+            ],
+            "Middle": [
+                "Refusal to inform can mean career destruction, children denied education",
+                "Blackmail using evidence of affairs, homosexuality, minor crimes",
+                "Nervous breakdowns common among those living double lives"
+            ],
+            "Female": [
+                "Stasi uses sexual relationships to recruit informers (Romeo agents in reverse)",
+                "Women in prison face sexual abuse from guards",
+                "Forced adoptions: children of 'political unreliables' given to loyal families"
+            ]
+        },
+        
+        "adult_events": [
+            "~140 people killed trying to cross the Wall; hundreds more at other borders",
+            "Political prisoners subjected to psychological torture designed to break them",
+            "Stasi collects smell samples from dissidents for tracking dogs",
+            "Suicides among those who discover spouse or friends were informers",
+            "Children incentivized to report parents' 'anti-state' comments"
+        ],
+        
+        "agency_windows": [
+            "Reliable mediocrity is safest - excellence attracts attention",
+            "Church groups offer rare space for honest conversation",
+            "Technical skills (engineering, medicine) provide some leverage",
+            "Understanding who the local informers are is survival knowledge",
+            "Western family connections can mean care packages - or suspicion"
+        ],
+        
+        "debrief_facts": [
+            "The Stasi employed 91,000 full-time staff and over 170,000 informers",
+            "After reunification, 111 km of Stasi files were discovered - on 6 million people",
+            "Over 140 people died trying to cross the Berlin Wall between 1961-1989",
+            "East Germany had the highest standard of living in the Eastern Bloc - but far below West Germany",
+            "When the Wall fell on November 9, 1989, it was due to a bureaucratic miscommunication",
+            "Many East Germans experienced 'Ostalgie' (nostalgia) for aspects of DDR life after reunification"
+        ],
+        
+        "real_people": [
+            {
+                "name": "Vera Lengsfeld (b. 1952)",
+                "description": "A dissident and peace activist who discovered after reunification that her own husband had been a Stasi informer throughout their marriage. She had been reported on by the person closest to her for years. She later became a member of parliament."
+            },
+            {
+                "name": "Chris Gueffroy (1968-1989)",
+                "description": "The last person shot trying to cross the Berlin Wall, killed in February 1989 at age 20 - just nine months before it fell. He and a friend tried to cross believing the order to shoot had been lifted. It hadn't."
+            },
+            {
+                "name": "Werner Stiller (b. 1947)",
+                "description": "A Stasi officer who defected to the West in 1979, smuggling out documents that exposed DDR espionage networks. His defection led to the arrest of numerous Western agents working for East Germany."
+            }
+        ],
+        
+        "resources": [
+            "📖 'Stasiland' by Anna Funder (oral histories of victims and perpetrators)",
+            "📖 'The File' by Timothy Garton Ash (historian reads his own Stasi file)",
+            "🎬 'The Lives of Others' (2006 film - Academy Award winner)",
+            "🎬 'Goodbye, Lenin!' (2003 film - tragicomedy about reunification)",
+            "🔍 bstu.de - The Stasi Records Agency (English available)"
+        ],
+        
+        "wisdom_paths": [
+            {
+                "id": "understood_informer_calculus",
+                "insight": "Trust was the scarcest resource in the DDR. The Stasi recruited through pressure, blackmail, and ideology. Learning to read who might inform - and why - was essential.",
+                "narrative_hook": "You learned to sense the invisible lines of surveillance that crisscrossed every workplace and neighborhood."
+            },
+            {
+                "id": "navigated_dual_consciousness",
+                "insight": "East Germans developed 'Doppeldenken' - thinking one thing, saying another. Survival meant maintaining two selves: the public citizen and the private person.",
+                "narrative_hook": "You mastered the art of the double life that everyone around you was also living."
+            },
+            {
+                "id": "recognized_system_cracks",
+                "insight": "By the late 1980s, the system was rotting from within. Those who read the signs - empty slogans, cynical officials, Moscow's wavering - could sense change coming.",
+                "narrative_hook": "You saw what true believers couldn't: that the state's confidence was hollow."
+            },
+            {
+                "id": "valued_small_freedoms",
+                "insight": "Dachas, church groups, private jokes, samizdat - tiny spaces of authenticity mattered enormously. These weren't escapes from real life; they were real life.",
+                "narrative_hook": "You found the hidden spaces where people could be themselves, however briefly."
+            },
+            {
+                "id": "understood_complicity_spectrum",
+                "insight": "Almost everyone was complicit somehow - informing, attending rallies, staying silent. Pure resistance was rare and costly. Most people lived in moral gray zones.",
+                "narrative_hook": "You learned that judging others was easy; facing the same choices yourself was harder."
+            }
+        ]
+    },
     # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-    # ERA 13: INDIAN INDEPENDENCE - PARTITION
+    # ERA 14: INDIAN INDEPENDENCE - PARTITION
     # Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
     {
         "id": "indian_partition",

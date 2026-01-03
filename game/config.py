@@ -20,6 +20,7 @@ EUROPEAN_ERA_IDS = [
     "civil_war",             # America (Western culture)
     "ww2_europe",            # Europe
     "ww2_pacific",           # American Home Front (Western culture)
+    "cold_war_germany",      # Cold War East Germany
 ]
 
 # All other eras are "worldwide/global"
