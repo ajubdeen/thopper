@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 # =============================================================================
 
 AOA_THRESHOLDS = {
-    "min_turns": 15,           # Minimum turns to qualify
+    "min_turns": 0,            # No minimum turns required
     "min_eras": 1,             # Minimum eras visited
     "min_fulfillment": 30,     # Minimum total fulfillment (belonging + legacy + freedom)
     "excluded_endings": ["abandoned"]  # Endings that don't qualify
