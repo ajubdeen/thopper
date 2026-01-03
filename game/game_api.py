@@ -792,20 +792,8 @@ class GameAPI:
                     })
                     return
             # Otherwise C is continue option - fall through to normal turn
-        elif choice == 'B':
-            # Safety check: B was selected but window isn't active - this shouldn't happen
-            # but if it does, handle it gracefully with fresh state
-            yield emit(MessageType.ERROR, {
-                "message": "The time window is not currently open."
-            })
-            # Emit fresh choices from current state
-            yield emit(MessageType.CHOICES, {
-                "choices": self.state.last_choices or [],
-                "can_quit": True,
-                "window_open": False,
-                "can_stay_forever": False
-            })
-            return
+        # When window is NOT active, all choices (A, B, C) are normal story choices
+        # Fall through to normal turn processing
         
         # Roll dice for this turn
         roll = random.randint(1, 20)
