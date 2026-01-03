@@ -12,22 +12,61 @@ Features:
 - Save/load game state for session persistence
 - Resume functionality with full narrative/choice restoration
 - Intent-based choice resolution (not position-based)
+- Comprehensive API error logging and handling
 """
 
 import json
 import random
 import re
 import os
+import logging
+import time
 from typing import Optional, Generator, Dict, Any, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+
+# Configure module logger
+logger = logging.getLogger('anachron.api')
+
+# Create a file handler for API errors (in addition to any root handlers)
+# This ensures API errors are captured even if root logging isn't configured
+_log_dir = os.environ.get('ANACHRON_LOG_DIR', 'logs')
+if not os.path.exists(_log_dir):
+    try:
+        os.makedirs(_log_dir)
+    except OSError:
+        _log_dir = '.'  # Fall back to current directory
+
+_api_log_file = os.path.join(_log_dir, 'anachron_api.log')
+_file_handler = logging.FileHandler(_api_log_file)
+_file_handler.setLevel(logging.DEBUG)
+_file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+))
+logger.addHandler(_file_handler)
+
+# Also log to console
+_console_handler = logging.StreamHandler()
+_console_handler.setLevel(logging.INFO)
+_console_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s'
+))
+logger.addHandler(_console_handler)
+
+logger.setLevel(logging.DEBUG)
 
 # Try to import anthropic
 try:
     import anthropic
     ANTHROPIC_AVAILABLE = True
+    logger.info("Anthropic SDK loaded successfully")
 except ImportError:
     ANTHROPIC_AVAILABLE = False
+    logger.warning("Anthropic SDK not available - running in demo mode")
 
 # Local imports
 from config import EUROPEAN_ERA_IDS, get_debug_era_id
@@ -95,6 +134,7 @@ class MessageType:
     WAITING_INPUT = "waiting_input"
     ERROR = "error"
     LOADING = "loading"
+    API_ERROR = "api_error"  # New: specific API error type
     
     # User data
     USER_GAMES = "user_games"
@@ -113,19 +153,101 @@ def emit(msg_type: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
 
 
 # =============================================================================
+# API ERROR LOGGING UTILITIES
+# =============================================================================
+
+def log_rate_limit_error(error: 'anthropic.RateLimitError', context: str = ""):
+    """Log detailed rate limit error information"""
+    error_details = {
+        "error_type": "RateLimitError",
+        "status_code": getattr(error, 'status_code', 429),
+        "context": context,
+        "message": str(error),
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Try to extract retry-after header
+    response = getattr(error, 'response', None)
+    if response:
+        headers = getattr(response, 'headers', {})
+        error_details["retry_after"] = headers.get('retry-after')
+        error_details["rate_limit_requests_remaining"] = headers.get('anthropic-ratelimit-requests-remaining')
+        error_details["rate_limit_tokens_remaining"] = headers.get('anthropic-ratelimit-tokens-remaining')
+        error_details["rate_limit_requests_reset"] = headers.get('anthropic-ratelimit-requests-reset')
+        error_details["request_id"] = headers.get('request-id')
+    
+    logger.error(f"RATE_LIMIT_ERROR: {json.dumps(error_details)}")
+    return error_details
+
+
+def log_api_connection_error(error: 'anthropic.APIConnectionError', context: str = ""):
+    """Log API connection errors"""
+    error_details = {
+        "error_type": "APIConnectionError",
+        "context": context,
+        "message": str(error),
+        "cause": str(error.__cause__) if error.__cause__ else None,
+        "timestamp": datetime.now().isoformat()
+    }
+    logger.error(f"API_CONNECTION_ERROR: {json.dumps(error_details)}")
+    return error_details
+
+
+def log_api_status_error(error: 'anthropic.APIStatusError', context: str = ""):
+    """Log API status errors (4xx, 5xx)"""
+    error_details = {
+        "error_type": type(error).__name__,
+        "status_code": getattr(error, 'status_code', None),
+        "context": context,
+        "message": str(error),
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    response = getattr(error, 'response', None)
+    if response:
+        headers = getattr(response, 'headers', {})
+        error_details["request_id"] = headers.get('request-id')
+    
+    logger.error(f"API_STATUS_ERROR: {json.dumps(error_details)}")
+    return error_details
+
+
+def log_generic_error(error: Exception, context: str = ""):
+    """Log any other errors"""
+    error_details = {
+        "error_type": type(error).__name__,
+        "context": context,
+        "message": str(error),
+        "timestamp": datetime.now().isoformat()
+    }
+    logger.error(f"GENERIC_ERROR: {json.dumps(error_details)}")
+    return error_details
+
+
+# =============================================================================
 # NARRATIVE ENGINE (JSON-based)
 # =============================================================================
 
 class NarrativeEngine:
     """Handles AI-generated narrative with JSON output"""
     
+    # Retry configuration
+    MAX_RETRIES = 3
+    BASE_RETRY_DELAY = 1.0  # seconds
+    
     def __init__(self, game_state: GameState):
         self.game_state = game_state
         self.messages = []
         self.system_prompt = ""
+        self.last_error = None  # Track last error for debugging
         
         if ANTHROPIC_AVAILABLE:
-            self.client = anthropic.Anthropic()
+            # Configure client with increased retries for rate limits
+            self.client = anthropic.Anthropic(
+                max_retries=3,  # SDK will auto-retry 429s with exponential backoff
+                timeout=120.0   # 2 minute timeout for long responses
+            )
+            logger.info("Anthropic client initialized with max_retries=3, timeout=120s")
         else:
             self.client = None
     
@@ -133,10 +255,12 @@ class NarrativeEngine:
         """Set up system prompt for current era"""
         self.system_prompt = get_system_prompt(self.game_state, era)
         self.messages = []
+        logger.debug(f"Era set: {era.get('name', 'Unknown')}")
     
     def restore_conversation(self, messages: List[Dict]):
         """Restore conversation history from saved state"""
         self.messages = messages
+        logger.debug(f"Conversation restored with {len(messages)} messages")
     
     def get_conversation_history(self) -> List[Dict]:
         """Get current conversation history for saving"""
@@ -148,8 +272,10 @@ class NarrativeEngine:
         Yields message dicts, returns full response.
         """
         self.messages.append({"role": "user", "content": user_prompt})
+        self.last_error = None
         
         if not self.client:
+            logger.warning("No API client - using demo response")
             response = self._demo_response(user_prompt)
             # Simulate streaming for demo mode
             words = response.split(' ')
@@ -157,7 +283,7 @@ class NarrativeEngine:
                 chunk = word + (' ' if i < len(words) - 1 else '')
                 yield emit(MessageType.NARRATIVE_CHUNK, {"text": chunk})
         else:
-            response = yield from self._api_call_streaming()
+            response = yield from self._api_call_streaming_with_retry(user_prompt)
         
         self.messages.append({"role": "assistant", "content": response})
         return response
@@ -165,13 +291,132 @@ class NarrativeEngine:
     def generate(self, user_prompt: str) -> str:
         """Generate narrative response (non-streaming)"""
         self.messages.append({"role": "user", "content": user_prompt})
+        self.last_error = None
         
         if not self.client:
+            logger.warning("No API client - using demo response")
             response = self._demo_response(user_prompt)
         else:
-            response = self._api_call()
+            response = self._api_call_with_retry(user_prompt)
         
         self.messages.append({"role": "assistant", "content": response})
+        return response
+    
+    def _api_call_streaming_with_retry(self, user_prompt: str) -> Generator[Dict, None, str]:
+        """
+        Make streaming API call with comprehensive error handling.
+        Yields message dicts, returns full response.
+        """
+        last_error_details = None
+        
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                response = yield from self._api_call_streaming()
+                
+                # Validate we got a real response
+                if response and len(response.strip()) > 50:
+                    return response
+                else:
+                    logger.warning(f"API returned empty/short response on attempt {attempt + 1}")
+                    if attempt < self.MAX_RETRIES - 1:
+                        continue
+                    
+            except anthropic.RateLimitError as e:
+                last_error_details = log_rate_limit_error(e, f"streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                # Get retry delay from header or calculate exponential backoff
+                retry_after = last_error_details.get('retry_after')
+                if retry_after:
+                    delay = float(retry_after)
+                else:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    logger.info(f"Rate limited - waiting {delay}s before retry {attempt + 2}")
+                    yield emit(MessageType.LOADING, {
+                        "message": f"High demand - retrying in {int(delay)}s...",
+                        "retry_attempt": attempt + 1
+                    })
+                    time.sleep(delay)
+                    continue
+                    
+            except anthropic.APIConnectionError as e:
+                last_error_details = log_api_connection_error(e, f"streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    logger.info(f"Connection error - waiting {delay}s before retry {attempt + 2}")
+                    yield emit(MessageType.LOADING, {
+                        "message": "Connection issue - retrying...",
+                        "retry_attempt": attempt + 1
+                    })
+                    time.sleep(delay)
+                    continue
+                    
+            except anthropic.APIStatusError as e:
+                last_error_details = log_api_status_error(e, f"streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                # Don't retry 4xx errors (except 429 which is handled above)
+                if 400 <= e.status_code < 500:
+                    logger.error(f"Client error {e.status_code} - not retrying")
+                    break
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    logger.info(f"Server error - waiting {delay}s before retry {attempt + 2}")
+                    yield emit(MessageType.LOADING, {
+                        "message": "Server issue - retrying...",
+                        "retry_attempt": attempt + 1
+                    })
+                    time.sleep(delay)
+                    continue
+                    
+            except Exception as e:
+                last_error_details = log_generic_error(e, f"streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+        
+        # All retries exhausted - emit error and use contextual fallback
+        logger.error(f"All {self.MAX_RETRIES} API attempts failed")
+        
+        # Emit user-facing error with details
+        error_msg = "The story couldn't be generated. "
+        if last_error_details:
+            error_type = last_error_details.get('error_type', 'Unknown')
+            if error_type == 'RateLimitError':
+                error_msg += "Service is experiencing high demand. "
+            elif error_type == 'APIConnectionError':
+                error_msg += "Connection issue occurred. "
+            else:
+                error_msg += "A technical issue occurred. "
+            
+            # Include request_id for support if available
+            request_id = last_error_details.get('request_id')
+            if request_id:
+                error_msg += f"(ref: {request_id[:8]})"
+        
+        yield emit(MessageType.API_ERROR, {
+            "message": error_msg,
+            "recoverable": True,
+            "error_type": last_error_details.get('error_type') if last_error_details else "Unknown"
+        })
+        
+        # Return contextual fallback response
+        response = self._contextual_fallback_response(user_prompt)
+        
+        # Stream the fallback response
+        words = response.split(' ')
+        for i, word in enumerate(words):
+            chunk = word + (' ' if i < len(words) - 1 else '')
+            yield emit(MessageType.NARRATIVE_CHUNK, {"text": chunk})
+        
         return response
     
     def _api_call_streaming(self) -> Generator[Dict, None, str]:
@@ -183,107 +428,191 @@ class NarrativeEngine:
         # Tags that should be hidden from the player
         hidden_tag_patterns = ['<anchors>', '<character_name>', '<key_npc>', '<wisdom>']
         
-        try:
-            with self.client.messages.stream(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1500,
-                system=self.system_prompt,
-                messages=self.messages
-            ) as api_stream:
-                for text in api_stream.text_stream:
-                    response += text
-                    buffer += text
-                    
-                    # Check for any hidden tag opening
-                    for tag_start in hidden_tag_patterns:
-                        if tag_start in buffer and not in_hidden_tag:
-                            before_tag = buffer.split(tag_start)[0]
-                            if before_tag:
-                                yield emit(MessageType.NARRATIVE_CHUNK, {"text": before_tag})
-                            buffer = tag_start + buffer.split(tag_start, 1)[1]
-                            in_hidden_tag = True
+        with self.client.messages.stream(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1500,
+            system=self.system_prompt,
+            messages=self.messages
+        ) as api_stream:
+            for text in api_stream.text_stream:
+                response += text
+                buffer += text
+                
+                # Check for any hidden tag opening
+                for tag_start in hidden_tag_patterns:
+                    if tag_start in buffer and not in_hidden_tag:
+                        before_tag = buffer.split(tag_start)[0]
+                        if before_tag:
+                            yield emit(MessageType.NARRATIVE_CHUNK, {"text": before_tag})
+                        buffer = tag_start + buffer.split(tag_start, 1)[1]
+                        in_hidden_tag = True
+                        break
+                
+                # Check for tag closing
+                if in_hidden_tag:
+                    # Check for any closing tag
+                    closing_tags = ['</anchors>', '</character_name>', '</key_npc>', '</wisdom>']
+                    for close_tag in closing_tags:
+                        if close_tag in buffer:
+                            after_tag = buffer.split(close_tag, 1)[1] if close_tag in buffer else ''
+                            buffer = after_tag
+                            in_hidden_tag = False
                             break
-                    
-                    # Check for tag closing
-                    if in_hidden_tag:
-                        # Check for any closing tag
-                        closing_tags = ['</anchors>', '</character_name>', '</key_npc>', '</wisdom>']
-                        for close_tag in closing_tags:
-                            if close_tag in buffer:
-                                after_tag = buffer.split(close_tag, 1)[1] if close_tag in buffer else ''
-                                buffer = after_tag
-                                in_hidden_tag = False
-                                break
-                    
-                    # Emit non-tag content
-                    if not in_hidden_tag and '<' not in buffer:
-                        if buffer:
-                            yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
+                
+                # Emit non-tag content
+                if not in_hidden_tag and '<' not in buffer:
+                    if buffer:
+                        yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
+                    buffer = ""
+                elif not in_hidden_tag and '<' in buffer and '>' in buffer:
+                    # Check if this is a hidden tag
+                    is_hidden = any(tag in buffer for tag in hidden_tag_patterns)
+                    if not is_hidden:
+                        yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
                         buffer = ""
-                    elif not in_hidden_tag and '<' in buffer and '>' in buffer:
-                        # Check if this is a hidden tag
-                        is_hidden = any(tag in buffer for tag in hidden_tag_patterns)
-                        if not is_hidden:
-                            yield emit(MessageType.NARRATIVE_CHUNK, {"text": buffer})
-                            buffer = ""
-            
-            # Emit remaining buffer after cleaning all hidden tags
-            if buffer and not in_hidden_tag:
-                clean_buffer = buffer
-                clean_buffer = re.sub(r'<anchors>.*?</anchors>', '', clean_buffer, flags=re.DOTALL)
-                clean_buffer = re.sub(r'<character_name>.*?</character_name>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
-                clean_buffer = re.sub(r'<key_npc>.*?</key_npc>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
-                clean_buffer = re.sub(r'<wisdom>.*?</wisdom>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
-                if clean_buffer.strip():
-                    yield emit(MessageType.NARRATIVE_CHUNK, {"text": clean_buffer})
-                    
-        except Exception as e:
-            yield emit(MessageType.ERROR, {"message": str(e)})
-            response = self._demo_response("")
         
+        # Emit remaining buffer after cleaning all hidden tags
+        if buffer and not in_hidden_tag:
+            clean_buffer = buffer
+            clean_buffer = re.sub(r'<anchors>.*?</anchors>', '', clean_buffer, flags=re.DOTALL)
+            clean_buffer = re.sub(r'<character_name>.*?</character_name>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+            clean_buffer = re.sub(r'<key_npc>.*?</key_npc>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+            clean_buffer = re.sub(r'<wisdom>.*?</wisdom>', '', clean_buffer, flags=re.DOTALL | re.IGNORECASE)
+            if clean_buffer.strip():
+                yield emit(MessageType.NARRATIVE_CHUNK, {"text": clean_buffer})
+        
+        logger.debug(f"Streaming response completed: {len(response)} chars")
         return response
     
+    def _api_call_with_retry(self, user_prompt: str) -> str:
+        """Make non-streaming API call with retry logic"""
+        last_error_details = None
+        
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1500,
+                    system=self.system_prompt,
+                    messages=self.messages
+                )
+                result = response.content[0].text
+                logger.debug(f"Non-streaming response: {len(result)} chars")
+                return result
+                
+            except anthropic.RateLimitError as e:
+                last_error_details = log_rate_limit_error(e, f"non-streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                retry_after = last_error_details.get('retry_after')
+                delay = float(retry_after) if retry_after else self.BASE_RETRY_DELAY * (2 ** attempt)
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    logger.info(f"Rate limited - waiting {delay}s before retry")
+                    time.sleep(delay)
+                    continue
+                    
+            except anthropic.APIConnectionError as e:
+                last_error_details = log_api_connection_error(e, f"non-streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                    
+            except anthropic.APIStatusError as e:
+                last_error_details = log_api_status_error(e, f"non-streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                if 400 <= e.status_code < 500:
+                    break
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+                    
+            except Exception as e:
+                last_error_details = log_generic_error(e, f"non-streaming attempt {attempt + 1}")
+                self.last_error = last_error_details
+                
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.BASE_RETRY_DELAY * (2 ** attempt)
+                    time.sleep(delay)
+                    continue
+        
+        # All retries exhausted
+        logger.error(f"All {self.MAX_RETRIES} non-streaming API attempts failed")
+        return self._contextual_fallback_response(user_prompt)
+    
     def _api_call(self) -> str:
-        """Make non-streaming API call"""
-        try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1500,
-                system=self.system_prompt,
-                messages=self.messages
-            )
-            return response.content[0].text
-        except Exception as e:
-            return self._demo_response("")
+        """Make non-streaming API call (legacy method - now uses retry wrapper)"""
+        return self._api_call_with_retry("")
+    
+    def _contextual_fallback_response(self, prompt: str) -> str:
+        """
+        Generate a contextual fallback response when API fails.
+        Uses game state to create a more relevant placeholder.
+        """
+        logger.warning(f"Using contextual fallback response (prompt hint: {prompt[:50] if prompt else 'none'}...)")
+        
+        # Check game state for context
+        era_name = "this era"
+        character_name = "you"
+        turn_count = 0
+        window_open = False
+        
+        if self.game_state:
+            if self.game_state.current_era:
+                era_name = self.game_state.current_era.era_name or "this era"
+                character_name = self.game_state.current_era.character_name or "you"
+                turn_count = self.game_state.current_era.turns_in_era
+            if hasattr(self.game_state, 'time_machine'):
+                window_open = self.game_state.time_machine.window_active
+        
+        # Check if this is an arrival
+        is_arrival = "arrival" in prompt.lower() or turn_count == 0 or len(self.messages) <= 2
+        
+        if is_arrival:
+            return f"""The world shifts and settles around you. Your senses slowly adjust to {era_name}.
+
+The air is different here—carrying unfamiliar scents and sounds. People nearby regard you with curiosity, uncertainty written in their expressions.
+
+You'll need to find your footing in this place. The device at your wrist is silent for now.
+
+[A] Look for a place to gather information
+[B] Seek out someone who might offer guidance  
+[C] Find a quiet spot to observe and plan
+
+<character_name>Stranger</character_name>
+<anchors>belonging[0] legacy[0] freedom[0]</anchors>"""
+        
+        elif window_open:
+            return f"""Time passes in {era_name}. The familiar routines of life here continue.
+
+The device at your wrist pulses with energy—the window is open. You feel the pull of possibility, the chance to move on or the weight of what you've built here.
+
+[A] Activate the time machine and leave this era behind
+[B] Continue building your life here - the window will remain open a while longer
+[C] Take time to reflect on your journey before deciding
+
+<anchors>belonging[+1] legacy[+1] freedom[+1]</anchors>"""
+        
+        else:
+            return f"""Time passes in {era_name}. Your presence here has become part of the rhythm of daily life.
+
+Some faces are familiar now. Some doors open more easily than before. The future remains uncertain, but you've made a place for yourself, however small.
+
+[A] Pursue the path you've been building
+[B] Seek out connections you've made before
+[C] Explore new possibilities in {era_name}
+
+<anchors>belonging[+2] legacy[+1] freedom[+1]</anchors>"""
     
     def _demo_response(self, prompt: str) -> str:
-        """Demo response when API unavailable"""
-        if "arrival" in prompt.lower() or len(self.messages) <= 2:
-            return """You stumble forward, catching yourself against rough stone. The air hits you first—woodsmoke, animal dung, something cooking. Your ears ring from the transition.
-
-When your vision clears, you see a narrow street of packed earth. Wooden buildings lean against each other, their upper floors jutting out. People in rough wool and leather stop to stare at your strange clothing.
-
-A woman carrying a basket of bread crosses herself and hurries past. A dog barks. Somewhere nearby, a hammer rings against metal.
-
-You are Thomas the Stranger now—that's what they'll call you. Your device hangs cool against your chest, dormant. Your three items are hidden beneath your coat. You need shelter before dark, and you need to figure out when and where you are.
-
-A tavern sign creaks in the wind ahead. To your left, a church bell tower rises above the rooftops. To your right, a blacksmith's forge glows orange through an open door.
-
-[A] Head to the tavern - travelers gather there, and you need information
-[B] Make for the church - sanctuary and perhaps a sympathetic ear
-[C] Approach the blacksmith - honest work might earn trust faster than questions
-
-<anchors>belonging[0] legacy[0] freedom[0]</anchors>"""
-        else:
-            return """Your choice sets events in motion. The day unfolds with unexpected consequences.
-
-People are beginning to know your face now. Some nod in recognition. Others still eye you with suspicion. This place is becoming familiar, for better or worse.
-
-[A] Press forward with your current path
-[B] Seek out someone you've met before
-[C] Take time to observe and plan
-
-<anchors>belonging[+3] legacy[+1] freedom[+2]</anchors>"""
+        """Demo response when API unavailable - uses contextual fallback"""
+        return self._contextual_fallback_response(prompt)
 
 
 # =============================================================================
@@ -328,7 +657,7 @@ class GameSaveManager:
                 json.dump(save_data, f, indent=2, ensure_ascii=False)
             return True
         except Exception as e:
-            print(f"Save error: {e}")
+            logger.error(f"Save error: {e}")
             return False
     
     def load_game(self, user_id: str, game_id: str) -> Optional[GameState]:
@@ -346,7 +675,7 @@ class GameSaveManager:
             
             return GameState.from_save_dict(save_data)
         except Exception as e:
-            print(f"Load error: {e}")
+            logger.error(f"Load error: {e}")
             return None
     
     def delete_game(self, user_id: str, game_id: str) -> bool:
@@ -399,147 +728,269 @@ class GameAPI:
     """
     JSON-based game API for web/mobile frontends.
     
-    All methods yield or return structured message dicts.
-    The frontend renders these however it wants.
-    
-    Supports:
-    - User ID for multi-user deployments
-    - Save/load for session persistence
-    - Resume with full narrative restoration
-    - Intent-based choice resolution
+    All methods are generators that yield message dicts.
+    This allows streaming output to clients in real-time.
     """
     
     def __init__(self, user_id: str = "default"):
         self.user_id = user_id
+        self.game_id = None
         self.state = GameState()
         self.narrator = None
         self.current_era = None
-        self._selected_region = RegionPreference.WORLDWIDE
+        self.save_manager = DatabaseSaveManager()
         
-        # History tracking (database-backed)
+        # History tracking
         self.history = DatabaseGameHistory()
         self.current_game = None
         
-        # Save manager (database-backed)
-        self.save_manager = DatabaseSaveManager()
-        
-        # Game ID for this session
-        self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Ending narrative for stay-forever endings
-        self._ending_narrative = ""
+        logger.info(f"GameAPI initialized for user: {user_id}")
     
     # =========================================================================
-    # GAME FLOW
+    # GAME SETUP
     # =========================================================================
     
     def start_game(self) -> Generator[Dict, None, None]:
-        """Initialize a new game, yield setup messages"""
-        yield emit(MessageType.TITLE, {
-            "title": "ANACHRON",
-            "tagline": "How will you fare in another era?"
+        """Start a new game session"""
+        self.game_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.state = GameState()
+        
+        logger.info(f"Starting new game: {self.game_id} for user: {self.user_id}")
+        
+        yield emit(MessageType.GAME_START, {
+            "game_id": self.game_id,
+            "user_id": self.user_id
         })
         
         yield emit(MessageType.SETUP_NAME, {
-            "prompt": "Enter your name:",
-            "default": "Traveler"
+            "prompt": "What is your name, traveler?"
         })
     
     def set_player_name(self, name: str) -> Generator[Dict, None, None]:
-        """Set player name and move to region selection"""
-        self.state.player_name = name if name.strip() else "Traveler"
+        """Set the player's name"""
+        self.state.player_name = name
+        logger.debug(f"Player name set: {name}")
         
-        yield emit(MessageType.SETUP_REGION, {
-            "prompt": "Where in history?",
-            "options": [
-                {
-                    "id": "european",
-                    "name": "European Focus",
-                    "description": "Ancient Greece, Vikings, Medieval Europe, Colonial America, Industrial Britain, World Wars"
-                },
-                {
-                    "id": "worldwide",
-                    "name": "World Explorer", 
-                    "description": "All eras: Egypt, China, Aztec Empire, Mughal India, plus European eras"
-                }
-            ]
+        yield emit(MessageType.INTRO_STORY, {
+            "name": name,
+            "story": self._get_intro_story(name)
         })
     
     def set_region(self, region: str) -> Generator[Dict, None, None]:
-        """Set region preference and show intro"""
-        self._selected_region = RegionPreference.EUROPEAN if region == "european" else RegionPreference.WORLDWIDE
+        """Set region preference and show items"""
+        region_map = {
+            'european': RegionPreference.EUROPEAN,
+            'worldwide': RegionPreference.WORLDWIDE,
+            'asian': RegionPreference.ASIAN,
+            'african': RegionPreference.AFRICAN,
+            'americas': RegionPreference.AMERICAS
+        }
+        self.state.region_preference = region_map.get(region.lower(), RegionPreference.WORLDWIDE)
+        logger.debug(f"Region preference set: {self.state.region_preference}")
         
-        # Initialize game state
-        self.state.start_game(self.state.player_name, GameMode.MATURE, self._selected_region)
-        self.narrator = NarrativeEngine(self.state)
-        self.current_game = self.history.start_new_game(self.state.player_name, self.user_id)
-        
-        # Intro story
-        yield emit(MessageType.INTRO_STORY, {
-            "paragraphs": [
-                "Twenty-four. Stanford. Six figures. A life that looks perfect and feels like nothing.",
-                "So when the lab needed a volunteer for the time machine's first human trial, you stepped up without thinking. Thirty seconds into the past. What could go wrong?",
-                "Everything, it turns out.",
-                "The machine is broken. You can't go home. All you have is what was in your pockets:"
+        yield emit(MessageType.INTRO_ITEMS, {
+            "items": [
+                {
+                    "id": item.item_id,
+                    "name": item.name,
+                    "description": item.description
+                }
+                for item in self.state.inventory.items.values()
             ]
         })
         
-        # Show items
-        items = []
-        for item in self.state.inventory.modern_items:
-            items.append({
-                "id": item.id,
-                "name": item.name,
-                "description": item.description,
-                "uses": item.uses,
-                "utility": item.utility,
-                "risk": item.risk
-            })
-        
-        yield emit(MessageType.INTRO_ITEMS, {"items": items})
-        
-        # Device explanation
         yield emit(MessageType.INTRO_DEVICE, {
-            "title": "THE DEVICE",
-            "description": "The time machine is small—about the size of a chunky wristwatch. You wear it on your wrist, hidden under your sleeve.",
-            "mechanics": [
-                "The window to use the machine won't open immediately when you arrive somewhere new",
-                "You'll have time to settle in first—typically most of a year",
-                "When the window opens, you have a short time to decide",
-                "Choose to activate it, or let the window close and stay"
-            ],
-            "catch": [
-                "You can't choose where or when you go—it's random",
-                "Your three items always come with you",
-                "Your relationships do NOT come with you",
-                "Each jump means starting over"
-            ],
-            "goal": "Find a time and place where you want to stay. Build something worth staying for—people, purpose, freedom. When the window opens and you choose not to leave... that's when you've found happiness."
+            "description": "A small device is strapped to your wrist. Its surface is smooth, almost organic. A faint pulse of light suggests it's active, but you don't understand its controls."
         })
+    
+    def select_mode(self, mode: str) -> Generator[Dict, None, None]:
+        """Set game mode (kid/mature)"""
+        if mode.lower() == 'mature':
+            self.state.mode = GameMode.MATURE
+        else:
+            self.state.mode = GameMode.KID
         
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_era"})
+        logger.debug(f"Game mode set: {self.state.mode}")
+        yield emit(MessageType.LOADING, {"message": "Preparing your journey..."})
     
     def enter_first_era(self) -> Generator[Dict, None, None]:
-        """Enter the first random era"""
+        """Enter the first era"""
+        # Start history tracking
+        self.current_game = self.history.start_game(
+            user_id=self.user_id,
+            game_id=self.game_id,
+            player_name=self.state.player_name
+        )
+        
+        logger.info(f"Entering first era for game: {self.game_id}")
         yield from self._enter_random_era()
     
+    def _get_intro_story(self, name: str) -> str:
+        """Get the intro story text"""
+        return f"""You are {name}, 24 years old, living in the Bay Area.
+
+Last week, you found something impossible: a device that manipulates time. You've tested it carefully—it works, but only backward. Only to the past.
+
+Today, you planned a simple test. Go back three days. Verify the stock prices you wrote down. Return with proof.
+
+But as you activate the device, something goes wrong. The readings spike. The numbers don't make sense. You try to abort, but—
+
+The world tears apart around you.
+
+When you can see again, nothing is familiar. The air smells wrong. The sky is the wrong color. And your device—your only way home—is dark and silent.
+
+You are lost in time. The only way out is through."""
+    
     # =========================================================================
-    # SAVE/LOAD/RESUME
+    # ERA HANDLING
+    # =========================================================================
+    
+    def _enter_random_era(self) -> Generator[Dict, None, None]:
+        """Enter a randomly selected era"""
+        # Select era based on region preference
+        if self.state.region_preference == RegionPreference.EUROPEAN:
+            available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+        else:
+            available_eras = ERAS
+        
+        # Filter out already visited eras if possible
+        visited_ids = self.state.time_machine.eras_visited
+        unvisited = [e for e in available_eras if e['id'] not in visited_ids]
+        
+        if unvisited:
+            self.current_era = random.choice(unvisited)
+        else:
+            self.current_era = random.choice(available_eras)
+        
+        logger.info(f"Selected era: {self.current_era['name']}")
+        
+        # Debug override
+        debug_era_id = get_debug_era_id()
+        if debug_era_id:
+            debug_era = get_era_by_id(debug_era_id)
+            if debug_era:
+                self.current_era = debug_era
+                logger.info(f"DEBUG: Overriding to era {debug_era_id}")
+        
+        yield from self._enter_era(self.current_era)
+    
+    def _enter_era(self, era: dict) -> Generator[Dict, None, None]:
+        """Enter a specific era"""
+        # Update state
+        self.state.enter_era(era)
+        
+        # Set up narrator for this era
+        self.narrator = NarrativeEngine(self.state)
+        self.narrator.set_era(era)
+        
+        # Record era in history
+        if self.current_game:
+            self.history.add_era(self.current_game, era['id'], era['name'])
+        
+        # Format year display
+        year = era['year']
+        if year < 0:
+            year_str = f"{abs(year)} BCE"
+        else:
+            year_str = f"{year} CE"
+        
+        yield emit(MessageType.ERA_ARRIVAL, {
+            "era_id": era['id'],
+            "era_name": era['name'],
+            "year": year,
+            "year_display": year_str,
+            "location": era['location'],
+            "era_number": self.state.eras_count,
+            "turn_in_era": (self.state.current_era.turns_in_era + 1) if self.state.current_era else 1,
+            "time_in_era": self.state.current_era.time_in_era_description if self.state.current_era else "just arrived"
+        })
+        
+        # Era summary for every era arrival
+        yield emit(MessageType.ERA_SUMMARY, {
+            "location": self.current_era['location'],
+            "year_display": year_str,
+            "key_events": self.current_era.get('key_events', [])[:5]
+        })
+        
+        yield emit(MessageType.LOADING, {"message": "Arriving..."})
+        
+        # Generate arrival narrative
+        prompt = get_arrival_prompt(self.state, self.current_era)
+        response = ""
+        
+        # Stream the narrative - capture full response from generator
+        generator = self.narrator.generate_streaming(prompt)
+        try:
+            while True:
+                msg = next(generator)
+                yield msg
+        except StopIteration as e:
+            response = e.value if e.value else ""
+        
+        if not response:
+            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+        
+        # Record narrative
+        if self.current_game:
+            self.history.add_narrative(self.current_game, response)
+        
+        # Process response (with is_arrival=True to capture character name)
+        self._process_response(response, is_arrival=True)
+        
+        # Log era arrival event
+        self.state.log_event(
+            "era_arrival",
+            era_id=self.current_era['id'],
+            era_name=self.current_era['name']
+        )
+        
+        # Parse choices and filter (window is always closed on arrival)
+        raw_choices = self._parse_choices(response)
+        filtered_choices = filter_choices(
+            raw_choices,
+            window_open=False,
+            can_stay_meaningfully=self.state.can_stay_meaningfully
+        )
+        
+        # Store for session resume
+        self.state.set_last_turn(response, filtered_choices)
+        
+        yield emit(MessageType.CHOICES, {
+            "choices": filtered_choices,
+            "can_quit": True
+        })
+        
+        # Set phase
+        self.state.phase = GamePhase.LIVING
+        
+        # Emit device status
+        yield self._get_device_status()
+        
+        # Auto-save after era entry
+        self.state.conversation_history = self.narrator.get_conversation_history()
+        self.save_manager.save_game(self.user_id, self.game_id, self.state)
+    
+    # =========================================================================
+    # SAVE/LOAD FUNCTIONALITY
     # =========================================================================
     
     def save_game(self) -> Generator[Dict, None, None]:
         """Save current game state"""
-        # Store conversation history in state
         if self.narrator:
             self.state.conversation_history = self.narrator.get_conversation_history()
         
         success = self.save_manager.save_game(self.user_id, self.game_id, self.state)
         
-        yield emit(MessageType.GAME_SAVED, {
-            "success": success,
-            "game_id": self.game_id,
-            "message": "Game saved successfully" if success else "Failed to save game"
-        })
+        if success:
+            logger.info(f"Game saved: {self.game_id}")
+            yield emit(MessageType.GAME_SAVED, {
+                "game_id": self.game_id,
+                "message": "Game saved successfully"
+            })
+        else:
+            yield emit(MessageType.ERROR, {
+                "message": "Failed to save game"
+            })
     
     def load_game(self, game_id: str) -> Generator[Dict, None, None]:
         """Load a saved game"""
@@ -554,199 +1005,145 @@ class GameAPI:
         self.state = loaded_state
         self.game_id = game_id
         
-        # Restore current era reference
+        # Restore era
         if self.state.current_era:
             self.current_era = get_era_by_id(self.state.current_era.era_id)
+            
+            # Restore narrator
+            self.narrator = NarrativeEngine(self.state)
+            if self.current_era:
+                self.narrator.set_era(self.current_era)
+            
+            # Restore conversation history
+            if self.state.conversation_history:
+                self.narrator.restore_conversation(self.state.conversation_history)
         
-        # Restore narrator with conversation history
-        self.narrator = NarrativeEngine(self.state)
-        if self.current_era:
-            self.narrator.set_era(self.current_era)
-            self.narrator.restore_conversation(self.state.conversation_history)
-        
+        logger.info(f"Game loaded: {game_id}")
         yield emit(MessageType.GAME_LOADED, {
-            "success": True,
             "game_id": game_id,
             "player_name": self.state.player_name,
             "phase": self.state.phase.value,
-            "current_era": self.state.current_era.era_name if self.state.current_era else None
+            "era": self.current_era['name'] if self.current_era else None,
+            "total_turns": self.state.total_turns
         })
     
     def resume_game(self) -> Generator[Dict, None, None]:
-        """
-        Resume a loaded game, providing full context for the player to pick up.
-        Emits the last narrative and choices so the player can continue.
-        """
-        if self.state.phase == GamePhase.ENDED:
-            yield emit(MessageType.ERROR, {
-                "message": "This game has already ended"
-            })
+        """Resume a loaded game with full context"""
+        if not self.current_era:
+            yield emit(MessageType.ERROR, {"message": "No game loaded to resume"})
             return
         
-        # Build resume context
-        resume_data = {
-            "player_name": self.state.player_name,
-            "phase": self.state.phase.value,
-            "total_turns": self.state.total_turns,
-            "eras_visited": len(self.state.time_machine.eras_visited)
-        }
+        # Format year display
+        year = self.current_era['year']
+        year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
         
-        # Current era info
-        if self.state.current_era and self.current_era:
-            year = self.current_era['year']
-            year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
-            
-            resume_data["era"] = {
-                "name": self.current_era['name'],
-                "year": year,
-                "year_display": year_str,
-                "location": self.current_era['location'],
-                "time_in_era": self.state.current_era.time_in_era_description,
-                "turns_in_era": self.state.current_era.turns_in_era + 1,
-                "era_number": self.state.eras_count
-            }
+        yield emit(MessageType.GAME_RESUMED, {
+            "game_id": self.game_id,
+            "player_name": self.state.player_name
+        })
         
-        # Device status
-        resume_data["device"] = {
-            "status": self.state.time_machine.indicator.value,
-            "window_active": self.state.time_machine.window_active,
-            "window_turns_remaining": self.state.time_machine.window_turns_remaining
-        }
+        yield emit(MessageType.ERA_ARRIVAL, {
+            "era_id": self.current_era['id'],
+            "era_name": self.current_era['name'],
+            "year": self.current_era['year'],
+            "year_display": year_str,
+            "location": self.current_era['location'],
+            "era_number": self.state.eras_count,
+            "turn_in_era": (self.state.current_era.turns_in_era + 1) if self.state.current_era else 1,
+            "time_in_era": self.state.current_era.time_in_era_description if self.state.current_era else "just arrived"
+        })
         
-        # Can stay meaningfully
-        resume_data["can_stay_meaningfully"] = self.state.can_stay_meaningfully
-        
-        yield emit(MessageType.GAME_RESUMED, resume_data)
-        
-        # Emit the last narrative if available
+        # Re-emit the last narrative if available
         if self.state.last_narrative:
-            # Strip anchor tags before sending
             clean_narrative = strip_anchor_tags(self.state.last_narrative)
+            clean_narrative = strip_event_tags(clean_narrative)
+            
+            # Remove choices from narrative for display
+            lines = clean_narrative.split('\n')
+            narrative_lines = []
+            for line in lines:
+                if not re.match(r'^\[([A-C])\]', line.strip()):
+                    narrative_lines.append(line)
+            
             yield emit(MessageType.NARRATIVE, {
-                "text": clean_narrative,
-                "is_resume": True
+                "text": '\n'.join(narrative_lines).strip()
             })
         
-        # Re-filter choices for safety (in case save is from old version)
+        # Re-emit choices
         if self.state.last_choices:
-            window_active = self.state.time_machine.window_active
-            filtered_choices = filter_choices(
-                self.state.last_choices,
-                window_active,
-                self.state.can_stay_meaningfully
-            )
-            self.state.last_choices = filtered_choices
-            
-            can_stay_forever = self.state.can_stay_meaningfully and window_active
+            window_open = self.state.time_machine.window_active
+            can_stay_forever = self.state.can_stay_meaningfully and window_open
             
             yield emit(MessageType.CHOICES, {
-                "choices": filtered_choices,
+                "choices": self.state.last_choices,
                 "can_quit": not can_stay_forever,
-                "window_open": window_active,
-                "can_stay_forever": can_stay_forever,
-                "is_resume": True
+                "window_open": window_open,
+                "can_stay_forever": can_stay_forever
             })
         
-        # Emit device status
         yield self._get_device_status()
     
     def list_saved_games(self) -> Generator[Dict, None, None]:
         """List all saved games for current user"""
         games = self.save_manager.list_user_games(self.user_id)
-        
-        yield emit(MessageType.USER_GAMES, {
-            "user_id": self.user_id,
-            "games": games
-        })
+        yield emit(MessageType.USER_GAMES, {"games": games})
     
-    def get_leaderboard(self, global_board: bool = True, limit: int = 10) -> Generator[Dict, None, None]:
-        """Get leaderboard data"""
-        leaderboard = Leaderboard(storage=DatabaseLeaderboardStorage())
+    def get_leaderboard(self, global_board: bool = True) -> Generator[Dict, None, None]:
+        """Get leaderboard entries"""
+        storage = DatabaseLeaderboardStorage()
+        leaderboard = Leaderboard(storage)
         
         if global_board:
-            scores = leaderboard.get_top_scores(limit)
+            entries = leaderboard.get_top(limit=20)
         else:
-            scores = leaderboard.get_user_scores(self.user_id, limit)
+            entries = leaderboard.get_user_scores(self.user_id, limit=10)
         
         yield emit(MessageType.LEADERBOARD, {
-            "global": global_board,
-            "user_id": self.user_id if not global_board else None,
-            "scores": scores
+            "entries": entries,
+            "is_global": global_board
         })
     
     def get_annals(self, user_only: bool = False, limit: int = 20, offset: int = 0) -> Generator[Dict, None, None]:
-        """
-        Get Annals of Anachron entries with pagination.
-        
-        Args:
-            user_only: If True, only return entries for current user
-            limit: Number of entries per page (max 20)
-            offset: Pagination offset
-        """
+        """Get Annals of Anachron entries"""
         annals = AnnalsOfAnachron()
         
         if user_only:
-            result = annals.get_user_archive(self.user_id, limit=min(limit, 20), offset=offset)
+            entries = annals.get_user_entries(self.user_id, limit=limit)
         else:
-            result = annals.get_public_feed(limit=min(limit, 20), offset=offset)
-        
-        # Convert entries to dicts for JSON serialization
-        entries_data = []
-        for entry in result['entries']:
-            entries_data.append({
-                "entry_id": entry.entry_id,
-                "player_name": entry.player_name,
-                "character_name": entry.character_name,
-                "final_era": entry.final_era,
-                "final_era_year": entry.final_era_year,
-                "ending_type": entry.ending_type,
-                "total_score": entry.total_score,
-                "share_text": entry.get_share_text(),
-                "created_at": entry.created_at
-            })
+            entries = annals.get_recent_entries(limit=limit, offset=offset)
         
         yield emit(MessageType.ANNALS, {
-            "user_only": user_only,
-            "user_id": self.user_id if user_only else None,
-            "entries": entries_data,
-            "total": result['total'],
-            "limit": result['limit'],
-            "offset": result['offset'],
-            "has_more": result['has_more']
+            "entries": [
+                {
+                    "entry_id": e.entry_id,
+                    "player_name": e.player_name,
+                    "character_name": e.character_name,
+                    "title": e.title,
+                    "final_era": e.final_era,
+                    "final_era_year": e.final_era_year,
+                    "ending_type": e.ending_type,
+                    "score": e.score,
+                    "created_at": e.created_at
+                }
+                for e in entries
+            ],
+            "user_only": user_only
         })
     
     def get_annals_entry(self, entry_id: str) -> Generator[Dict, None, None]:
-        """
-        Get a single Annals entry by ID (for detail view / sharing).
-        """
+        """Get a single Annals entry by ID"""
         annals = AnnalsOfAnachron()
         entry = annals.get_entry(entry_id)
         
         if not entry:
-            yield emit(MessageType.ERROR, {
-                "message": "Entry not found",
-                "entry_id": entry_id
-            })
+            yield emit(MessageType.ERROR, {"message": "Entry not found"})
             return
         
         yield emit(MessageType.ANNALS_ENTRY, {
             "entry_id": entry.entry_id,
             "player_name": entry.player_name,
             "character_name": entry.character_name,
-            "final_era": entry.final_era,
-            "final_era_year": entry.final_era_year,
-            "eras_visited": entry.eras_visited,
-            "turns_survived": entry.turns_survived,
-            "ending_type": entry.ending_type,
-            "belonging_score": entry.belonging_score,
-            "legacy_score": entry.legacy_score,
-            "freedom_score": entry.freedom_score,
-            "total_score": entry.total_score,
-            "key_npcs": entry.key_npcs,
-            "defining_moments": entry.defining_moments,
-            "wisdom_moments": entry.wisdom_moments,
-            "items_used": entry.items_used,
-            "player_narrative": entry.player_narrative,
+            "title": entry.title,
             "historian_narrative": entry.historian_narrative,
             "share_text": entry.get_share_text(),
             "og_description": entry.get_og_description(),
@@ -766,6 +1163,7 @@ class GameAPI:
         choices in any order.
         """
         choice = choice.upper()
+        logger.debug(f"Processing choice: {choice}")
         
         # Handle quit
         if choice == 'Q':
@@ -788,6 +1186,8 @@ class GameAPI:
         if intent is None:
             yield emit(MessageType.ERROR, {"message": f"Choice {choice} not found"})
             return
+        
+        logger.debug(f"Choice intent: {intent}, text: {choice_text[:50] if choice_text else 'none'}...")
         
         # Route based on intent
         if intent == ChoiceIntent.LEAVE_ERA:
@@ -861,6 +1261,7 @@ class GameAPI:
         # Fallback if response is empty
         if not response:
             response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
+            logger.warning("Empty response from generator - using last message fallback")
         
         # Record narrative
         if self.current_game:
@@ -879,6 +1280,11 @@ class GameAPI:
             window_active_after_turn,
             self.state.can_stay_meaningfully
         )
+        
+        # Log if we got no valid choices (indicates a problem)
+        if not filtered_choices:
+            logger.error(f"No valid choices parsed from response. Response length: {len(response)}")
+            logger.debug(f"Raw response: {response[:500]}...")
         
         # Store filtered choices for next submission
         self.state.set_last_turn(response, filtered_choices)
@@ -948,176 +1354,44 @@ class GameAPI:
             },
             "can_stay_meaningfully": self.state.can_stay_meaningfully,
             "total_turns": self.state.total_turns,
-            "eras_visited": len(self.state.time_machine.eras_visited)
+            "eras_visited": self.state.eras_count,
+            "fulfillment": {
+                "belonging": self.state.fulfillment.belonging.value,
+                "legacy": self.state.fulfillment.legacy.value,
+                "freedom": self.state.fulfillment.freedom.value
+            },
+            "last_api_error": self.narrator.last_error if self.narrator else None
         }
     
     # =========================================================================
-    # INTERNAL HELPERS
+    # SPECIAL ACTIONS
     # =========================================================================
     
-    def _enter_random_era(self) -> Generator[Dict, None, None]:
-        """Enter a random era"""
-        visited_ids = self.state.time_machine.eras_visited
-        
-        # Debug override: force specific era if DEBUG_MODE=true and DEBUG_ERA is set
-        debug_era_id = get_debug_era_id()
-        if debug_era_id:
-            debug_era = get_era_by_id(debug_era_id)
-            if debug_era:
-                print(f"[DEBUG] Forcing era: {debug_era_id}")
-                self.current_era = debug_era
-            else:
-                # Fallback to random if debug era not found
-                if self.state.region_preference == RegionPreference.EUROPEAN:
-                    available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
-                else:
-                    available_eras = ERAS
-                self.current_era = select_random_era(available_eras, visited_ids)
-        else:
-            # Normal random era selection
-            if self.state.region_preference == RegionPreference.EUROPEAN:
-                available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
-            else:
-                available_eras = ERAS
-            
-            self.current_era = select_random_era(available_eras, visited_ids)
-        self.state.enter_era(self.current_era)
-        
-        # Update time machine display
-        self.state.time_machine.update_display(
-            year=self.current_era['year'],
-            location=self.current_era['location'],
-            era_name=self.current_era['name']
-        )
-        
-        # Reset inventory revealed status
-        self.state.inventory.reset_for_new_era()
-        
-        # Set up narrator for this era
-        self.narrator.set_era(self.current_era)
-        
-        # Record era in history
-        if self.current_game:
-            self.history.start_era(
-                self.current_game,
-                self.current_era['name'],
-                self.current_era['year'],
-                self.current_era['location']
-            )
-        
-        # Emit era arrival
-        year = self.current_era['year']
-        year_str = f"{abs(year)} BCE" if year < 0 else f"{year} CE"
-        
-        yield emit(MessageType.ERA_ARRIVAL, {
-            "era_name": self.current_era['name'],
-            "year": year,
-            "year_display": year_str,
-            "location": self.current_era['location'],
-            "device_display": self.state.time_machine.display.get_display_text(),
-            "era_number": self.state.eras_count,
-            "turn_in_era": (self.state.current_era.turns_in_era + 1) if self.state.current_era else 1,
-            "time_in_era": self.state.current_era.time_in_era_description if self.state.current_era else "just arrived"
-        })
-        
-        # Era summary for every era arrival
-        yield emit(MessageType.ERA_SUMMARY, {
-            "location": self.current_era['location'],
-            "year_display": year_str,
-            "key_events": self.current_era.get('key_events', [])[:5]
-        })
-        
-        yield emit(MessageType.LOADING, {"message": "Arriving..."})
-        
-        # Generate arrival narrative
-        prompt = get_arrival_prompt(self.state, self.current_era)
-        response = ""
-        
-        # Stream the narrative - capture full response from generator
-        generator = self.narrator.generate_streaming(prompt)
-        try:
-            while True:
-                msg = next(generator)
-                yield msg
-        except StopIteration as e:
-            response = e.value if e.value else ""
-        
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record narrative
-        if self.current_game:
-            self.history.add_narrative(self.current_game, response)
-        
-        # Process response (with is_arrival=True to capture character name)
-        self._process_response(response, is_arrival=True)
-        
-        # Log era arrival event
-        self.state.log_event(
-            "era_arrival",
-            era_id=self.current_era['id'],
-            era_name=self.current_era['name']
-        )
-        
-        # Parse choices and filter (window is always closed on arrival)
-        raw_choices = self._parse_choices(response)
-        filtered_choices = filter_choices(
-            raw_choices,
-            window_open=False,
-            can_stay_meaningfully=self.state.can_stay_meaningfully
-        )
-        
-        # Store for session resume
-        self.state.set_last_turn(response, filtered_choices)
-        
-        yield emit(MessageType.CHOICES, {
-            "choices": filtered_choices,
-            "can_quit": True
-        })
-        
-        # Set phase
-        self.state.phase = GamePhase.LIVING
-        
-        # Emit device status
-        yield self._get_device_status()
-        
-        # Auto-save
-        if self.narrator:
-            self.state.conversation_history = self.narrator.get_conversation_history()
-        self.save_manager.save_game(self.user_id, self.game_id, self.state)
-    
     def _handle_leaving(self) -> Generator[Dict, None, None]:
-        """Handle player choosing to leave"""
+        """Handle player choosing to leave the era"""
         self.state.choose_to_travel()
         
-        yield emit(MessageType.DEPARTURE, {
-            "title": "DEPARTURE",
-            "message": "You activate the time machine..."
-        })
+        logger.info(f"Player leaving era: {self.current_era['name'] if self.current_era else 'unknown'}")
         
-        yield emit(MessageType.LOADING, {"message": "Reality shifts..."})
+        yield emit(MessageType.DEPARTURE, {
+            "message": "You activate the device...",
+            "from_era": self.current_era['name'] if self.current_era else None
+        })
         
         # Generate departure narrative
         prompt = get_leaving_prompt(self.state)
-        response = ""
+        response = self.narrator.generate(prompt)
         
-        # Stream the narrative - capture full response from generator
-        generator = self.narrator.generate_streaming(prompt)
-        try:
-            while True:
-                msg = next(generator)
-                yield msg
-        except StopIteration as e:
-            response = e.value if e.value else ""
-        
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record departure
+        # Record in history
         if self.current_game:
             self.history.add_narrative(self.current_game, "[You activate the time machine]\n" + response)
         
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_next_era"})
+        yield emit(MessageType.NARRATIVE, {"text": response})
+        
+        yield emit(MessageType.WAITING_INPUT, {
+            "prompt": "continue",
+            "message": "Press continue to see where you land..."
+        })
     
     def continue_to_next_era(self) -> Generator[Dict, None, None]:
         """Continue to the next era after departure"""
@@ -1125,270 +1399,144 @@ class GameAPI:
     
     def _handle_stay_forever(self) -> Generator[Dict, None, None]:
         """Handle player choosing to stay forever"""
-        # =====================================================================
-        # DEBUG: Verify data flow to ending prompt
-        # =====================================================================
-        print("=" * 60)
-        print("DEBUG: ENDING DATA FLOW CHECK")
-        print("=" * 60)
+        self.state.choose_to_stay(is_final=True)
         
-        # 1. Anchor values (should be non-zero after real gameplay)
-        print(f"Belonging: {self.state.fulfillment.belonging.value}")
-        print(f"Legacy: {self.state.fulfillment.legacy.value}")
-        print(f"Freedom: {self.state.fulfillment.freedom.value}")
-        print(f"Ending type: {self.state.fulfillment.get_ending_type()}")
-        print("-" * 40)
-        
-        # 2. Event log (should have entries)
-        print(f"Total events logged: {len(self.state.game_events)}")
-        print(f"Event types: {set(e['type'] for e in self.state.game_events)}")
-        print("-" * 40)
-        
-        # 3. Key NPCs (should have names if <key_npc> tags were parsed)
-        relationship_events = self.state.get_events_by_type("relationship")
-        print(f"Relationship events: {len(relationship_events)}")
-        npc_names = [e.get('name') for e in relationship_events[:5]]
-        print(f"NPC names: {npc_names}")
-        print("-" * 40)
-        
-        # 4. Wisdom moments (should have IDs if <wisdom> tags were parsed)
-        wisdom_events = self.state.get_events_by_type("wisdom")
-        print(f"Wisdom events: {len(wisdom_events)}")
-        wisdom_ids = [e.get('id') for e in wisdom_events[:5]]
-        print(f"Wisdom IDs: {wisdom_ids}")
-        print("-" * 40)
-        
-        # 5. Character name (should be set from arrival)
-        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
-        print(f"Character name: {char_name}")
-        print("-" * 40)
-        
-        # 6. Era info
-        if self.current_era:
-            print(f"Current era: {self.current_era.get('name', 'Unknown')}")
-            print(f"Time in era: {self.state.current_era.time_in_era_description if self.state.current_era else 'Unknown'}")
-            print(f"Turns in era: {self.state.current_era.turns_in_era if self.state.current_era else 0}")
-        print("-" * 40)
-        
-        # 7. Era history (for "previous lives" context in prompt)
-        print(f"Era history count: {len(self.state.era_history)}")
-        for h in self.state.era_history[-3:]:
-            print(f"  - {h['era_name']}: {h.get('character_name', 'unnamed')}, {h['turns']} turns")
-        print("-" * 40)
-        
-        # 8. Conversation history (verify AI has full context)
-        print(f"Conversation messages: {len(self.narrator.messages) if self.narrator else 0}")
-        print("-" * 40)
-        
-        # 9. Ripple conditions (special content when belonging/legacy >= 40)
-        belonging_val = self.state.fulfillment.belonging.value
-        legacy_val = self.state.fulfillment.legacy.value
-        print(f"Ripple enabled: {belonging_val >= 40 or legacy_val >= 40}")
-        print("=" * 60)
-        # END DEBUG
+        logger.info(f"Player staying forever in: {self.current_era['name'] if self.current_era else 'unknown'}")
         
         yield emit(MessageType.STAYING_FOREVER, {
-            "title": "A NEW HOME",
-            "messages": [
-                "You reach for the device on your wrist...",
-                "And then you stop.",
-                "This is your home now."
-            ]
+            "message": "You've chosen to make this your home...",
+            "era": self.current_era['name'] if self.current_era else None
         })
         
-        yield emit(MessageType.LOADING, {"message": "Your story concludes..."})
-        
-        # Generate ending narrative
+        # Generate staying ending
         prompt = get_staying_ending_prompt(self.state, self.current_era)
-        response = ""
+        response = self.narrator.generate(prompt)
         
-        # Stream the narrative - capture full response from generator
-        generator = self.narrator.generate_streaming(prompt)
-        try:
-            while True:
-                msg = next(generator)
-                yield msg
-        except StopIteration as e:
-            response = e.value if e.value else ""
-        
-        if not response:
-            response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-        
-        # Record ending
+        # Record in history
         if self.current_game:
             self.history.add_narrative(self.current_game, "[You choose to stay forever]\n" + response)
         
-        # Store the ending narrative for the score
-        self._ending_narrative = response
+        # Store the ending narrative
+        self.state.ending_narrative = response
         
-        # End the game
-        self.state.choose_to_stay(is_final=True)
+        yield emit(MessageType.ENDING_NARRATIVE, {"text": response})
+        
+        # End game
         self.state.end_game()
         
-        # Wait for user to click continue before showing score
-        yield emit(MessageType.WAITING_INPUT, {"action": "continue_to_score"})
+        yield emit(MessageType.WAITING_INPUT, {
+            "prompt": "continue",
+            "message": "Press continue to see your final score..."
+        })
     
     def continue_to_score(self) -> Generator[Dict, None, None]:
-        """Continue to show the final score after the narrative"""
-        # Calculate and emit score, passing the stored ending narrative
-        ending_narrative = getattr(self, '_ending_narrative', '')
-        yield from self._emit_final_score(ending_narrative=ending_narrative)
-        
-        # Delete save file (game is complete)
-        self.save_manager.delete_game(self.user_id, self.game_id)
+        """Show the final score after viewing the ending narrative"""
+        yield from self._show_final_score()
     
     def _handle_quit(self) -> Generator[Dict, None, None]:
-        """Handle player choosing to quit"""
-        yield emit(MessageType.GAME_END, {
-            "title": "YOUR JOURNEY ENDS",
-            "messages": [
-                "You set down the device.",
-                "Some journeys end before the destination is found."
-            ]
+        """Handle player quitting the game"""
+        logger.info(f"Player quitting game: {self.game_id}")
+        
+        yield emit(MessageType.NARRATIVE, {
+            "text": "You set down the device.\nSome journeys end before the destination is found."
         })
         
-        # Generate quit narrative with historical context
-        if self.current_era and self.narrator:
-            yield emit(MessageType.LOADING, {"message": "Preparing your debrief..."})
-            
-            prompt = get_quit_ending_prompt(self.state, self.current_era)
-            response = ""
-            
-            # Stream the narrative
-            generator = self.narrator.generate_streaming(prompt)
-            try:
-                while True:
-                    msg = next(generator)
-                    yield msg
-            except StopIteration as e:
-                response = e.value if e.value else ""
-            
-            if not response:
-                response = self.narrator.messages[-1]["content"] if self.narrator.messages else ""
-            
-            # Store ending narrative (raw - tags stripped before display)
-            self._ending_narrative = response
-            
-            # Record in history
-            if self.current_game:
-                self.history.add_narrative(self.current_game, "[Journey abandoned]\n" + response)
-        else:
-            self._ending_narrative = ""
-            if self.current_game:
-                self.history.add_narrative(self.current_game, "[Journey abandoned]")
+        # Generate quit ending narrative
+        prompt = get_quit_ending_prompt(self.state, self.current_era)
+        response = self.narrator.generate(prompt)
+        
+        # Store the ending narrative
+        self.state.ending_narrative = response
+        
+        # Record in history
+        if self.current_game:
+            self.history.add_narrative(self.current_game, "[Journey abandoned]\n" + response)
+        
+        yield emit(MessageType.ENDING_NARRATIVE, {"text": response})
         
         # End the game
         self.state.end_game()
         
-        # Calculate and emit score
-        ending_narrative = getattr(self, '_ending_narrative', '')
-        yield from self._emit_final_score(ending_type_override="abandoned", ending_narrative=ending_narrative)
-        
-        # Delete save file (game is complete)
-        self.save_manager.delete_game(self.user_id, self.game_id)
+        yield emit(MessageType.WAITING_INPUT, {
+            "prompt": "continue",
+            "message": "Press continue to see your final score..."
+        })
     
-    def _emit_final_score(self, ending_type_override: str = None, ending_narrative: str = "") -> Generator[Dict, None, None]:
-        """Calculate and emit final score, and create Annals of Anachron entry if qualified"""
+    def _show_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
+        """Calculate and display final score"""
+        # Calculate score
         score = calculate_score(
-            self.state, 
-            ending_type_override=ending_type_override,
-            user_id=self.user_id,
-            game_id=self.game_id,
-            ending_narrative=ending_narrative
+            self.state,
+            ending_type_override or self.state.ending_type
         )
         
-        # Save to history
+        # Add ending narrative to score if available
+        score.ending_narrative = self.state.ending_narrative
+        
+        # Save to leaderboard
+        storage = DatabaseLeaderboardStorage()
+        leaderboard = Leaderboard(storage)
+        
+        leaderboard.add_score(
+            user_id=self.user_id,
+            player_name=self.state.player_name,
+            score=score.total,
+            ending_type=score.ending_type,
+            eras_visited=score.eras_visited,
+            final_era=self.current_era['name'] if self.current_era else None
+        )
+        
+        # Get rank
+        rank = leaderboard.get_rank(score.total)
+        
+        # Record final game stats in history
         if self.current_game:
-            self.history.end_game(self.current_game, score)
+            self.history.end_game(
+                self.current_game,
+                score=score.total,
+                ending_type=score.ending_type,
+                final_era=self.current_era['name'] if self.current_era else None
+            )
         
-        # Add to leaderboard (database-backed)
-        leaderboard = Leaderboard(storage=DatabaseLeaderboardStorage())
-        rank = leaderboard.add_score(score)
-        
-        # Create Annals of Anachron entry if qualified
-        aoa_entry = None
+        # Try to create Annals of Anachron entry
         aoa_data = None
-        annals = AnnalsOfAnachron()
-        
-        # =====================================================================
-        # DEBUG: AoA Entry Creation Check
-        # =====================================================================
-        print("=" * 60)
-        print("DEBUG: AOA ENTRY DATA CHECK")
-        print("=" * 60)
-        
-        # 1. Score data that feeds into AoA
-        print(f"Score - turns_survived: {score.turns_survived}")
-        print(f"Score - eras_visited: {score.eras_visited}")
-        print(f"Score - ending_type: {score.ending_type}")
-        print(f"Score - total: {score.total}")
-        print(f"Score - fulfillment: {score.belonging_score + score.legacy_score + score.freedom_score}")
-        print(f"Score - ending_narrative length: {len(score.ending_narrative) if score.ending_narrative else 0}")
-        print("-" * 40)
-        
-        # 2. Qualification check (thresholds)
-        from scoring import AOA_THRESHOLDS
-        total_fulfillment = score.belonging_score + score.legacy_score + score.freedom_score
-        print(f"Qualification thresholds:")
-        print(f"  min_turns: {AOA_THRESHOLDS['min_turns']} (have: {score.turns_survived})")
-        print(f"  min_eras: {AOA_THRESHOLDS['min_eras']} (have: {score.eras_visited})")
-        print(f"  min_fulfillment: {AOA_THRESHOLDS['min_fulfillment']} (have: {total_fulfillment})")
-        print(f"  excluded_endings: {AOA_THRESHOLDS['excluded_endings']} (have: {score.ending_type})")
-        print("-" * 40)
-        
-        # 3. Character name from current era
-        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
-        era_year = self.state.current_era.era_year if self.state.current_era else 0
-        print(f"Character name: {char_name}")
-        print(f"Era year: {era_year}")
-        print("-" * 40)
-        
-        # 4. Key events for AoA
-        relationship_events = self.state.get_events_by_type("relationship")
-        wisdom_events = self.state.get_events_by_type("wisdom")
-        item_events = self.state.get_events_by_type("item_use")
-        defining_events = self.state.get_events_by_type("defining_moment")
-        print(f"Relationship events: {len(relationship_events)}")
-        print(f"Wisdom events: {len(wisdom_events)}")
-        print(f"Item use events: {len(item_events)}")
-        print(f"Defining moment events: {len(defining_events)}")
-        print("=" * 60)
-        # END DEBUG
-        
         try:
-            aoa_entry = annals.create_entry(self.state, score)
+            annals = AnnalsOfAnachron()
+            can_add, reason = annals.can_add_entry(self.state, score)
             
-            # DEBUG: AoA entry result
-            if aoa_entry:
-                print("DEBUG: AoA entry CREATED successfully")
-                print(f"  entry_id: {aoa_entry.entry_id}")
-                print(f"  character_name: {aoa_entry.character_name}")
-                print(f"  key_npcs: {aoa_entry.key_npcs}")
-                print(f"  wisdom_moments: {aoa_entry.wisdom_moments}")
-            else:
-                print("DEBUG: AoA entry NOT created (did not qualify)")
-            
-            if aoa_entry:
-                # Generate historian narrative using AI
-                historian_prompt = get_historian_narrative_prompt(aoa_entry)
+            if can_add:
+                # Generate historian narrative for the entry
+                historian_prompt = get_historian_narrative_prompt(self.state, self.current_era, score)
                 historian_narrative = self.narrator.generate(historian_prompt)
-                aoa_entry.historian_narrative = historian_narrative
                 
-                # Save to annals
-                annals.save_entry(aoa_entry)
+                # Create entry
+                aoa_entry = annals.create_entry(
+                    user_id=self.user_id,
+                    game_state=self.state,
+                    score=score,
+                    era=self.current_era,
+                    historian_narrative=historian_narrative
+                )
                 
-                # Prepare AoA data for response
+                if aoa_entry:
+                    aoa_data = {
+                        "qualified": True,
+                        "entry_id": aoa_entry.entry_id,
+                        "title": aoa_entry.title,
+                        "share_text": aoa_entry.get_share_text(),
+                        "historian_narrative": aoa_entry.historian_narrative,
+                        "character_name": aoa_entry.character_name,
+                        "final_era": aoa_entry.final_era,
+                        "final_era_year": aoa_entry.final_era_year
+                    }
+            else:
                 aoa_data = {
-                    "entry_id": aoa_entry.entry_id,
-                    "qualified": True,
-                    "share_text": aoa_entry.get_share_text(),
-                    "historian_narrative": aoa_entry.historian_narrative,
-                    "character_name": aoa_entry.character_name,
-                    "final_era": aoa_entry.final_era,
-                    "final_era_year": aoa_entry.final_era_year
+                    "qualified": False,
+                    "reason": reason
                 }
         except Exception as e:
             # Don't fail the whole score display if AoA fails
+            logger.error(f"AoA entry creation failed: {e}")
             aoa_data = {
                 "qualified": False,
                 "reason": "Error creating entry"
