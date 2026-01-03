@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { useSearch } from "wouter";
 import heroImage from "@assets/banner3_1767202989616.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,11 +92,13 @@ interface LeaderboardEntry {
 
 export default function GamePage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
+  const searchString = useSearch();
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
   const [connected, setConnected] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("connecting");
+  const [urlActionProcessed, setUrlActionProcessed] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -324,6 +327,31 @@ export default function GamePage() {
       socket.disconnect();
     };
   }, [handleMessage, authLoading, isAuthenticated, user?.id]);
+
+  // Handle URL action parameters (from /v2 home page)
+  useEffect(() => {
+    if (!initialized || urlActionProcessed || !socketRef.current) return;
+    
+    const params = new URLSearchParams(searchString);
+    const action = params.get('action');
+    const gameId = params.get('game_id');
+    
+    if (action) {
+      setUrlActionProcessed(true);
+      
+      if (action === 'new') {
+        socketRef.current.emit('new_game');
+      } else if (action === 'load' && gameId) {
+        socketRef.current.emit('load', { game_id: gameId });
+      } else if (action === 'leaderboard') {
+        setShowGlobalLeaderboard(true);
+        socketRef.current.emit('leaderboard', { global: true });
+      }
+      
+      // Clean up URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [initialized, urlActionProcessed, searchString]);
 
   const startNewGame = () => {
     socketRef.current?.emit('new_game');
