@@ -29,7 +29,7 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 # Local imports
-from config import EUROPEAN_ERA_IDS
+from config import EUROPEAN_ERA_IDS, get_debug_era_id
 from game_state import GameState, GameMode, GamePhase, RegionPreference
 from time_machine import select_random_era, IndicatorState
 from fulfillment import parse_anchor_adjustments, strip_anchor_tags
@@ -883,13 +883,28 @@ class GameAPI:
         """Enter a random era"""
         visited_ids = self.state.time_machine.eras_visited
         
-        # Filter eras based on region preference
-        if self.state.region_preference == RegionPreference.EUROPEAN:
-            available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+        # Debug override: force specific era if DEBUG_MODE=true and DEBUG_ERA is set
+        debug_era_id = get_debug_era_id()
+        if debug_era_id:
+            debug_era = get_era_by_id(debug_era_id)
+            if debug_era:
+                print(f"[DEBUG] Forcing era: {debug_era_id}")
+                self.current_era = debug_era
+            else:
+                # Fallback to random if debug era not found
+                if self.state.region_preference == RegionPreference.EUROPEAN:
+                    available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+                else:
+                    available_eras = ERAS
+                self.current_era = select_random_era(available_eras, visited_ids)
         else:
-            available_eras = ERAS
-        
-        self.current_era = select_random_era(available_eras, visited_ids)
+            # Normal random era selection
+            if self.state.region_preference == RegionPreference.EUROPEAN:
+                available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+            else:
+                available_eras = ERAS
+            
+            self.current_era = select_random_era(available_eras, visited_ids)
         self.state.enter_era(self.current_era)
         
         # Update time machine display
