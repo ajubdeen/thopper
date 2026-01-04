@@ -1099,7 +1099,7 @@ You are lost in time. The only way out is through."""
             entries = leaderboard.get_user_scores(self.user_id, 10)
         
         yield emit(MessageType.LEADERBOARD, {
-            "entries": entries,
+            "scores": entries,
             "is_global": global_board
         })
     
