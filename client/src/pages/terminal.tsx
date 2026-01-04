@@ -474,6 +474,10 @@ export default function GamePage() {
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 -mt-16">
+          <p className="text-gray-400 text-center max-w-md">
+            A time-travel survival adventure.
+          </p>
+          
           <div className="flex flex-col gap-3 w-full max-w-xs">
             <Button 
               onClick={() => window.location.href = "/api/login"}
