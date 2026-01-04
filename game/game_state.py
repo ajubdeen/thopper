@@ -29,6 +29,9 @@ class GameMode(Enum):
 class RegionPreference(Enum):
     EUROPEAN = "european"      # European/Western eras only
     WORLDWIDE = "worldwide"    # All eras
+    ASIAN = "asian"            # Asian eras
+    AFRICAN = "african"        # African eras
+    AMERICAS = "americas"      # Americas eras
 
 
 class GamePhase(Enum):
