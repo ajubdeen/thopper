@@ -474,12 +474,7 @@ export default function GamePage() {
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 -mt-16">
-          <h1 className="text-4xl sm:text-5xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
-          <p className="text-gray-400 text-center max-w-md">
-            A time-travel survival adventure. Sign in to save your progress and compete on the leaderboard.
-          </p>
-          
-          <div className="flex flex-col gap-3 w-full max-w-xs mt-4">
+          <div className="flex flex-col gap-3 w-full max-w-xs">
             <Button 
               onClick={() => window.location.href = "/api/login"}
               className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg"
