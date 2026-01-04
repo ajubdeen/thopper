@@ -767,6 +767,21 @@ class GameAPI:
         """
         choice = choice.upper()
         
+        # =====================================================================
+        # DEBUG: Choice handling diagnosis
+        # =====================================================================
+        print("=" * 60)
+        print("DEBUG make_choice() ENTRY")
+        print("=" * 60)
+        print(f"  choice input: {choice}")
+        print(f"  window_active: {self.state.time_machine.window_active}")
+        print(f"  window_turns_remaining: {self.state.time_machine.window_turns_remaining}")
+        print(f"  current_era: {self.current_era['name'] if self.current_era else 'None'}")
+        print(f"  phase: {self.state.phase.value}")
+        print(f"  last_choices: {self.state.last_choices}")
+        print("-" * 60)
+        # =====================================================================
+        
         # Handle quit
         if choice == 'Q':
             yield from self._handle_quit()
@@ -785,16 +800,27 @@ class GameAPI:
             window_open
         )
         
+        # =====================================================================
+        # DEBUG: Intent detection result
+        # =====================================================================
+        print(f"  window_open passed to intent: {window_open}")
+        print(f"  detected intent: {intent}")
+        print(f"  choice_text: {choice_text}")
+        print("=" * 60)
+        # =====================================================================
+        
         if intent is None:
             yield emit(MessageType.ERROR, {"message": f"Choice {choice} not found"})
             return
         
         # Route based on intent
         if intent == ChoiceIntent.LEAVE_ERA:
+            print("DEBUG: Routing to _handle_leaving()")
             yield from self._handle_leaving()
             return
         
         if intent == ChoiceIntent.STAY_FOREVER:
+            print("DEBUG: Routing to _handle_stay_forever()")
             # Double-check eligibility (should always pass if filter worked)
             if not self.state.can_stay_meaningfully:
                 yield emit(MessageType.ERROR, {
@@ -806,6 +832,7 @@ class GameAPI:
             return
         
         # Intent is CONTINUE_STORY - process as normal turn
+        print("DEBUG: Routing to _process_story_turn()")
         yield from self._process_story_turn(choice)
     
     def _process_story_turn(self, choice: str) -> Generator[Dict, None, None]:
