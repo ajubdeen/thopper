@@ -269,7 +269,11 @@ export default function GamePage() {
         break;
         
       case "staying_forever":
-        // Don't clear narrative - we want to show the ending story
+        // Clear choices so the continue button can render
+        // Clear narrative to show fresh ending story
+        setChoices([]);
+        setWindowOpen(false);
+        setNarrative("");
         break;
         
       case "final_score":
