@@ -1464,38 +1464,32 @@ You are lost in time. The only way out is through."""
     
     def _show_final_score(self, ending_type_override: str = None) -> Generator[Dict, None, None]:
         """Calculate and display final score"""
-        # Calculate score
+        # Calculate score - pass user_id and game_id so they're included in the Score object
         score = calculate_score(
             self.state,
-            ending_type_override or self.state.ending_type
+            ending_type_override or self.state.ending_type,
+            user_id=self.user_id,
+            game_id=self.game_id
         )
         
         # Add ending narrative to score if available
         score.ending_narrative = self.state.ending_narrative
         
-        # Save to leaderboard
+        # Update final_era in score object
+        if self.current_era:
+            score.final_era = self.current_era['name']
+        
+        # Save to leaderboard - pass the Score object, not keyword arguments
         storage = DatabaseLeaderboardStorage()
         leaderboard = Leaderboard(storage)
         
-        leaderboard.add_score(
-            user_id=self.user_id,
-            player_name=self.state.player_name,
-            score=score.total,
-            ending_type=score.ending_type,
-            eras_visited=score.eras_visited,
-            final_era=self.current_era['name'] if self.current_era else None
-        )
-        
-        # Get rank
-        rank = leaderboard.get_rank(score.total)
+        rank = leaderboard.add_score(score)
         
         # Record final game stats in history
         if self.current_game:
             self.history.end_game(
                 self.current_game,
-                score=score.total,
-                ending_type=score.ending_type,
-                final_era=self.current_era['name'] if self.current_era else None
+                score=score
             )
         
         # Try to create Annals of Anachron entry
