@@ -484,7 +484,7 @@ export default function GamePage() {
               className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg"
               data-testid="button-login"
             >
-              Sign In to Play
+              Sign up or sign in to play
             </Button>
           </div>
         </div>
