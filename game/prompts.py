@@ -183,14 +183,17 @@ NARRATIVE GUIDELINES:
    - Only consumables (like ibuprofen tablets) decrease when the player USES them
    - Do NOT narrate thieves stealing the player's belongings permanently
 
-   ITEM REALISM: When items ARE used, portray them realistically for the era:
-   - The smartphone is dangerous to reveal but invaluable privately. The player should
-     periodically consult Wikipedia discreetly - checking facts before speaking, recalling
-     medical knowledge, verifying historical details. This is their secret edge. Show it.
-     (Flashlight/compass only in extremis - e.g. lost in wilderness, not general use.)
-   - The Swiss Army Knife is a useful cutting tool, not a superpower. It cannot cut metal
-     or perform impossible feats. In eras after 1850, it's just a handy pocket knife.
-   - Ibuprofen is miraculous in ancient eras (safe pain relief!) but ordinary by the 1900s.
+   ITEM USAGE - Use items when they'd meaningfully impact the story:
+   - Smartphone/Wikipedia: The player's secret edge. Use it when knowledge would change
+     outcomes - verifying historical claims, recalling medical treatments, checking who
+     someone is, preparing for a crucial conversation. Show the player discreetly consulting
+     it when the information matters. (Flashlight/compass only in extremis.)
+   - Ibuprofen: In ancient/medieval eras, this is miraculous - safe pain and fever relief.
+     Use it when it would make a real difference: saving someone from fever, easing serious
+     injury, gaining trust through healing. Don't force it, but don't forget it exists.
+   - Swiss Army Knife: In ancient/medieval eras, use it for cutting and practical tasks when
+     relevant. It's a useful tool, not a superpower (cannot cut metal). In eras after 1850,
+     don't mention it - it's just an ordinary pocket knife.
 
 5. FULFILLMENT (CRITICAL - INVISIBLE)
    - NEVER mention "belonging," "legacy," or "freedom" as game terms
