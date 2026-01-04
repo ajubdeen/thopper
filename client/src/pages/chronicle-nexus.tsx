@@ -80,14 +80,65 @@ interface AoaEntry {
 
 interface EraHistory {
   era_name?: string;
-  year?: number;
-  location?: string;
-  turns?: Array<{
-    turn_number?: number;
-    player_input?: string;
-    narrative?: string;
-  }>;
-  narratives?: string[];
+  era_year?: number;
+  era_location?: string;
+  narrative?: string;
+}
+
+interface ParsedChoice {
+  letter: string;
+  text: string;
+}
+
+interface ParsedTurn {
+  narrative: string;
+  choices: ParsedChoice[];
+  anchors: string | null;
+}
+
+function parseNarrative(fullNarrative: string): ParsedTurn[] {
+  const turns: ParsedTurn[] = [];
+  
+  const anchorSplit = fullNarrative.split(/<anchors>[^<]*<\/anchors>/);
+  const anchorMatches = fullNarrative.match(/<anchors>([^<]+)<\/anchors>/g) || [];
+  
+  for (let i = 0; i < anchorSplit.length; i++) {
+    const part = anchorSplit[i];
+    if (!part.trim()) continue;
+    
+    const choices: ParsedChoice[] = [];
+    let narrativeText = part;
+    
+    const choiceBlockMatch = part.match(/\[A\][\s\S]*$/);
+    if (choiceBlockMatch) {
+      const choiceBlock = choiceBlockMatch[0];
+      narrativeText = part.slice(0, part.indexOf('[A]'));
+      
+      const choicePattern = /\[([A-C])\]\s*([^\[]*?)(?=\n\n\[([A-C])\]|\n\[([A-C])\]|$)/g;
+      let match;
+      while ((match = choicePattern.exec(choiceBlock)) !== null) {
+        choices.push({ letter: match[1], text: match[2].trim() });
+      }
+    }
+    
+    const anchors = anchorMatches[i] 
+      ? anchorMatches[i].replace(/<\/?anchors>/g, '') 
+      : null;
+    
+    if (narrativeText.trim() || choices.length > 0) {
+      turns.push({
+        narrative: narrativeText.trim(),
+        choices,
+        anchors
+      });
+    }
+  }
+  
+  if (turns.length === 0 && fullNarrative.trim()) {
+    turns.push({ narrative: fullNarrative, choices: [], anchors: null });
+  }
+  
+  return turns;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -183,57 +234,56 @@ function EraHistoryViewer({ eras }: { eras: unknown[] }) {
 
   return (
     <div className="space-y-2">
-      {eraList.map((era, index) => (
-        <Collapsible key={index} open={openEras.has(index)} onOpenChange={() => toggleEra(index)}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full text-left p-2 bg-muted/30 rounded hover-elevate">
-            {openEras.has(index) ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <span className="font-medium text-sm">{era.era_name || `Era ${index + 1}`}</span>
-            {era.year && <Badge variant="secondary" className="text-xs">{era.year}</Badge>}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2 ml-6 space-y-2">
-            {era.location && (
-              <div className="text-xs text-muted-foreground">Location: {era.location}</div>
-            )}
-            {era.turns && era.turns.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium">Turns ({era.turns.length}):</div>
-                {era.turns.map((turn, turnIdx) => (
-                  <div key={turnIdx} className="text-xs bg-muted/20 p-2 rounded border-l-2 border-primary/30">
-                    <div className="font-medium text-primary/80">Turn {turn.turn_number || turnIdx + 1}</div>
-                    {turn.player_input && (
-                      <div className="mt-1">
-                        <span className="text-muted-foreground">Player: </span>
-                        <span className="italic">{turn.player_input}</span>
-                      </div>
-                    )}
-                    {turn.narrative && (
-                      <div className="mt-1 text-muted-foreground whitespace-pre-wrap">
-                        {turn.narrative.slice(0, 500)}
-                        {turn.narrative.length > 500 && "..."}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {era.narratives && era.narratives.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-xs font-medium">Narratives:</div>
-                {era.narratives.map((narrative, nIdx) => (
-                  <div key={nIdx} className="text-xs text-muted-foreground bg-muted/20 p-2 rounded">
-                    {String(narrative).slice(0, 300)}
-                    {String(narrative).length > 300 && "..."}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CollapsibleContent>
-        </Collapsible>
-      ))}
+      {eraList.map((era, index) => {
+        const turns = era.narrative ? parseNarrative(era.narrative) : [];
+        
+        return (
+          <Collapsible key={index} open={openEras.has(index)} onOpenChange={() => toggleEra(index)}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-left p-2 bg-muted/30 rounded hover-elevate">
+              {openEras.has(index) ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span className="font-medium text-sm">{era.era_name || `Era ${index + 1}`}</span>
+              {era.era_year && <Badge variant="secondary" className="text-xs">{era.era_year}</Badge>}
+              {era.era_location && <Badge variant="outline" className="text-xs">{era.era_location}</Badge>}
+              <Badge variant="outline" className="text-xs">{turns.length} turns</Badge>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 ml-6 space-y-3">
+              {turns.map((turn, turnIdx) => (
+                <div key={turnIdx} className="space-y-2 border-l-2 border-primary/20 pl-3">
+                  <div className="text-xs font-medium text-primary/80">Turn {turnIdx + 1}</div>
+                  {turn.narrative && (
+                    <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/20 p-2 rounded">
+                      {turn.narrative.slice(0, 1000)}
+                      {turn.narrative.length > 1000 && "..."}
+                    </div>
+                  )}
+                  {turn.choices.length > 0 && (
+                    <div className="space-y-1 pl-2 bg-accent/30 p-2 rounded">
+                      <div className="text-xs font-medium">Choices Offered:</div>
+                      {turn.choices.map((choice, cIdx) => (
+                        <div key={cIdx} className="text-xs text-muted-foreground">
+                          <span className="font-medium text-primary/70">[{choice.letter}]</span> {choice.text.slice(0, 200)}{choice.text.length > 200 && "..."}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {turn.anchors && (
+                    <div className="text-xs text-muted-foreground/70 italic bg-muted/10 p-1 rounded">
+                      Anchor changes: {turn.anchors}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!era.narrative && (
+                <div className="text-xs text-muted-foreground italic">No narrative recorded</div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
     </div>
   );
 }
