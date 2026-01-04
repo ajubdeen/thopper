@@ -791,11 +791,11 @@ class GameAPI:
         yield emit(MessageType.INTRO_ITEMS, {
             "items": [
                 {
-                    "id": item.item_id,
+                    "id": item.id,
                     "name": item.name,
                     "description": item.description
                 }
-                for item in self.state.inventory.items.values()
+                for item in self.state.inventory.modern_items
             ]
         })
         
