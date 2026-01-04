@@ -11,6 +11,7 @@ Features:
 - User ID support for multi-user deployments
 - Save/load game state for session persistence
 - Resume functionality with full narrative/choice restoration
+- Intent-based choice resolution (not position-based)
 """
 
 import json
@@ -29,7 +30,7 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 # Local imports
-from config import EUROPEAN_ERA_IDS
+from config import EUROPEAN_ERA_IDS, get_debug_era_id
 from game_state import GameState, GameMode, GamePhase, RegionPreference
 from time_machine import select_random_era, IndicatorState
 from fulfillment import parse_anchor_adjustments, strip_anchor_tags
@@ -46,6 +47,10 @@ from prompts import (
 )
 from scoring import calculate_score, Leaderboard, AoAEntry, AnnalsOfAnachron
 from db_storage import DatabaseSaveManager, DatabaseLeaderboardStorage, DatabaseGameHistory
+from choice_intent import (
+    ChoiceIntent, detect_choice_intent, filter_choices, 
+    get_choice_intent_for_submission
+)
 
 
 # =============================================================================
@@ -401,6 +406,7 @@ class GameAPI:
     - User ID for multi-user deployments
     - Save/load for session persistence
     - Resume with full narrative restoration
+    - Intent-based choice resolution
     """
     
     def __init__(self, user_id: str = "default"):
@@ -621,13 +627,23 @@ class GameAPI:
                 "is_resume": True
             })
         
-        # Emit the last choices if available
+        # Re-filter choices for safety (in case save is from old version)
         if self.state.last_choices:
+            window_active = self.state.time_machine.window_active
+            filtered_choices = filter_choices(
+                self.state.last_choices,
+                window_active,
+                self.state.can_stay_meaningfully
+            )
+            self.state.last_choices = filtered_choices
+            
+            can_stay_forever = self.state.can_stay_meaningfully and window_active
+            
             yield emit(MessageType.CHOICES, {
-                "choices": self.state.last_choices,
-                "can_quit": not (self.state.phase == GamePhase.WINDOW_OPEN and self.state.can_stay_meaningfully),
-                "window_open": self.state.time_machine.window_active,
-                "can_stay_forever": self.state.can_stay_meaningfully and self.state.time_machine.window_active,
+                "choices": filtered_choices,
+                "can_quit": not can_stay_forever,
+                "window_open": window_active,
+                "can_stay_forever": can_stay_forever,
                 "is_resume": True
             })
         
@@ -738,11 +754,17 @@ class GameAPI:
         })
     
     # =========================================================================
-    # GAMEPLAY
+    # GAMEPLAY - CHOICE HANDLING
     # =========================================================================
     
     def make_choice(self, choice: str) -> Generator[Dict, None, None]:
-        """Process a player choice (A, B, C, or Q)"""
+        """
+        Process a player choice (A, B, C, or Q).
+        
+        Uses intent-based resolution - the choice text determines what happens,
+        not the position (A/B/C). This makes the system robust to AI generating
+        choices in any order.
+        """
         choice = choice.upper()
         
         # Handle quit
@@ -750,33 +772,67 @@ class GameAPI:
             yield from self._handle_quit()
             return
         
-        # Check for special window choices (when window is already open)
-        if self.state.phase == GamePhase.WINDOW_OPEN:
-            if choice == 'A':  # Leave this era (A is always leave when window is open)
-                yield from self._handle_leaving()
-                return
-            # Use the snapshot from when window opened to prevent race condition
-            # This ensures choice B matches what was displayed to the player
-            can_stay_at_window_open = self.state.window_can_stay_snapshot
-            if can_stay_at_window_open is None:
-                # Fallback for old saves without snapshot
-                can_stay_at_window_open = self.state.can_stay_meaningfully
-            if choice == 'B' and can_stay_at_window_open:  # Stay forever
-                yield from self._handle_stay_forever()
-                return
-            # Otherwise B and C are continue options - fall through to normal turn
+        # Validate choice ID
+        if choice not in ('A', 'B', 'C'):
+            yield emit(MessageType.ERROR, {"message": f"Invalid choice: {choice}"})
+            return
         
+        # Get intent from the stored choice text
+        window_open = self.state.time_machine.window_active
+        intent, choice_text = get_choice_intent_for_submission(
+            choice, 
+            self.state.last_choices,
+            window_open
+        )
+        
+        if intent is None:
+            yield emit(MessageType.ERROR, {"message": f"Choice {choice} not found"})
+            return
+        
+        # Route based on intent
+        if intent == ChoiceIntent.LEAVE_ERA:
+            yield from self._handle_leaving()
+            return
+        
+        if intent == ChoiceIntent.STAY_FOREVER:
+            # Double-check eligibility (should always pass if filter worked)
+            if not self.state.can_stay_meaningfully:
+                yield emit(MessageType.ERROR, {
+                    "message": "You haven't built enough to stay permanently."
+                })
+                yield from self._re_emit_choices()
+                return
+            yield from self._handle_stay_forever()
+            return
+        
+        # Intent is CONTINUE_STORY - process as normal turn
+        yield from self._process_story_turn(choice)
+    
+    def _process_story_turn(self, choice: str) -> Generator[Dict, None, None]:
+        """
+        Process a normal story turn (not leave/stay-forever).
+        
+        This handles:
+        - Rolling dice
+        - Advancing the turn (which may open/close window)
+        - Generating narrative
+        - Processing response (anchors, items)
+        - Filtering and emitting choices
+        """
         # Roll dice for this turn
         roll = random.randint(1, 20)
         
-        # ADVANCE TURN FIRST - then generate appropriate narrative
+        # Advance turn - this may open or close the window
         events = self.state.advance_turn()
         
         yield emit(MessageType.LOADING, {"message": "The story unfolds..."})
         
-        # Generate ONE narrative based on what happened
-        if events["window_opened"]:
-            # Window just opened - use window prompt (includes choice outcome)
+        # Determine which prompt to use based on what happened
+        window_just_opened = events["window_opened"]
+        window_active_after_turn = events["window_active_after_turn"]
+        
+        if window_just_opened:
+            # Window just opened - use window prompt
             self.state.phase = GamePhase.WINDOW_OPEN
             
             yield emit(MessageType.WINDOW_OPEN, {
@@ -787,25 +843,19 @@ class GameAPI:
             
             prompt = get_window_prompt(self.state, choice, roll)
             history_prefix = "[The time machine window opens]\n"
-            can_quit = not self.state.can_stay_meaningfully
-            window_open = True
         else:
             # Normal turn - use turn prompt
             prompt = get_turn_prompt(self.state, choice, roll)
             history_prefix = ""
-            can_quit = True
-            window_open = False
         
+        # Generate narrative
         response = ""
-        
-        # Stream the narrative - capture full response from generator
         generator = self.narrator.generate_streaming(prompt)
         try:
             while True:
                 msg = next(generator)
                 yield msg
         except StopIteration as e:
-            # Generator's return value contains the full response including anchor tags
             response = e.value if e.value else ""
         
         # Fallback if response is empty
@@ -816,24 +866,38 @@ class GameAPI:
         if self.current_game:
             self.history.add_narrative(self.current_game, history_prefix + response)
         
-        # Process response (anchors, items)
+        # Process response (anchors, items) - this may change can_stay_meaningfully
         self._process_response(response)
         
-        # Parse and emit choices
-        choices = self._parse_choices(response)
+        # Parse choices from AI response
+        raw_choices = self._parse_choices(response)
         
-        # Store for session resume
-        self.state.set_last_turn(response, choices)
+        # Filter choices - remove stay_forever if not eligible
+        # This is the safety layer in case AI generated invalid options
+        filtered_choices = filter_choices(
+            raw_choices,
+            window_active_after_turn,
+            self.state.can_stay_meaningfully
+        )
         
+        # Store filtered choices for next submission
+        self.state.set_last_turn(response, filtered_choices)
+        
+        # Determine if quit should be available
+        # Hide quit when stay_forever is an option (to avoid confusion)
+        can_stay_forever = self.state.can_stay_meaningfully and window_active_after_turn
+        can_quit = not can_stay_forever
+        
+        # Emit choices to frontend
         yield emit(MessageType.CHOICES, {
-            "choices": choices,
+            "choices": filtered_choices,
             "can_quit": can_quit,
-            "window_open": window_open,
-            "can_stay_forever": self.state.can_stay_meaningfully if window_open else False
+            "window_open": window_active_after_turn,
+            "can_stay_forever": can_stay_forever
         })
         
-        # Handle window closing/closed messages (for turns where window was already open)
-        if not events["window_opened"]:
+        # Emit window status messages
+        if not window_just_opened:
             if events["window_closing"]:
                 yield emit(MessageType.WINDOW_CLOSING, {
                     "message": "The device pulses urgently. The window is closing..."
@@ -851,6 +915,18 @@ class GameAPI:
         if self.narrator:
             self.state.conversation_history = self.narrator.get_conversation_history()
         self.save_manager.save_game(self.user_id, self.game_id, self.state)
+    
+    def _re_emit_choices(self) -> Generator[Dict, None, None]:
+        """Re-emit the current choices after an error."""
+        window_open = self.state.time_machine.window_active
+        can_stay_forever = self.state.can_stay_meaningfully and window_open
+        
+        yield emit(MessageType.CHOICES, {
+            "choices": self.state.last_choices,
+            "can_quit": not can_stay_forever,
+            "window_open": window_open,
+            "can_stay_forever": can_stay_forever
+        })
     
     def get_current_state(self) -> Dict:
         """Get the current game state for frontend rendering"""
@@ -883,13 +959,28 @@ class GameAPI:
         """Enter a random era"""
         visited_ids = self.state.time_machine.eras_visited
         
-        # Filter eras based on region preference
-        if self.state.region_preference == RegionPreference.EUROPEAN:
-            available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+        # Debug override: force specific era if DEBUG_MODE=true and DEBUG_ERA is set
+        debug_era_id = get_debug_era_id()
+        if debug_era_id:
+            debug_era = get_era_by_id(debug_era_id)
+            if debug_era:
+                print(f"[DEBUG] Forcing era: {debug_era_id}")
+                self.current_era = debug_era
+            else:
+                # Fallback to random if debug era not found
+                if self.state.region_preference == RegionPreference.EUROPEAN:
+                    available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+                else:
+                    available_eras = ERAS
+                self.current_era = select_random_era(available_eras, visited_ids)
         else:
-            available_eras = ERAS
-        
-        self.current_era = select_random_era(available_eras, visited_ids)
+            # Normal random era selection
+            if self.state.region_preference == RegionPreference.EUROPEAN:
+                available_eras = [e for e in ERAS if e['id'] in EUROPEAN_ERA_IDS]
+            else:
+                available_eras = ERAS
+            
+            self.current_era = select_random_era(available_eras, visited_ids)
         self.state.enter_era(self.current_era)
         
         # Update time machine display
@@ -968,14 +1059,19 @@ class GameAPI:
             era_name=self.current_era['name']
         )
         
-        # Parse and emit choices
-        choices = self._parse_choices(response)
+        # Parse choices and filter (window is always closed on arrival)
+        raw_choices = self._parse_choices(response)
+        filtered_choices = filter_choices(
+            raw_choices,
+            window_open=False,
+            can_stay_meaningfully=self.state.can_stay_meaningfully
+        )
         
         # Store for session resume
-        self.state.set_last_turn(response, choices)
+        self.state.set_last_turn(response, filtered_choices)
         
         yield emit(MessageType.CHOICES, {
-            "choices": choices,
+            "choices": filtered_choices,
             "can_quit": True
         })
         
@@ -1029,13 +1125,67 @@ class GameAPI:
     
     def _handle_stay_forever(self) -> Generator[Dict, None, None]:
         """Handle player choosing to stay forever"""
-        # Debug logging for ending data flow verification
-        print(f"DEBUG ENDING - Anchors: B={self.state.fulfillment.belonging.value}, L={self.state.fulfillment.legacy.value}, F={self.state.fulfillment.freedom.value}")
-        print(f"DEBUG ENDING - Ending type: {self.state.fulfillment.get_ending_type()}")
-        print(f"DEBUG ENDING - Total events: {len(self.state.game_events)}")
-        print(f"DEBUG ENDING - Event types: {set(e['type'] for e in self.state.game_events)}")
-        print(f"DEBUG ENDING - Relationships: {self.state.get_events_by_type('relationship')}")
-        print(f"DEBUG ENDING - Wisdom: {self.state.get_events_by_type('wisdom')}")
+        # =====================================================================
+        # DEBUG: Verify data flow to ending prompt
+        # =====================================================================
+        print("=" * 60)
+        print("DEBUG: ENDING DATA FLOW CHECK")
+        print("=" * 60)
+        
+        # 1. Anchor values (should be non-zero after real gameplay)
+        print(f"Belonging: {self.state.fulfillment.belonging.value}")
+        print(f"Legacy: {self.state.fulfillment.legacy.value}")
+        print(f"Freedom: {self.state.fulfillment.freedom.value}")
+        print(f"Ending type: {self.state.fulfillment.get_ending_type()}")
+        print("-" * 40)
+        
+        # 2. Event log (should have entries)
+        print(f"Total events logged: {len(self.state.game_events)}")
+        print(f"Event types: {set(e['type'] for e in self.state.game_events)}")
+        print("-" * 40)
+        
+        # 3. Key NPCs (should have names if <key_npc> tags were parsed)
+        relationship_events = self.state.get_events_by_type("relationship")
+        print(f"Relationship events: {len(relationship_events)}")
+        npc_names = [e.get('name') for e in relationship_events[:5]]
+        print(f"NPC names: {npc_names}")
+        print("-" * 40)
+        
+        # 4. Wisdom moments (should have IDs if <wisdom> tags were parsed)
+        wisdom_events = self.state.get_events_by_type("wisdom")
+        print(f"Wisdom events: {len(wisdom_events)}")
+        wisdom_ids = [e.get('id') for e in wisdom_events[:5]]
+        print(f"Wisdom IDs: {wisdom_ids}")
+        print("-" * 40)
+        
+        # 5. Character name (should be set from arrival)
+        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
+        print(f"Character name: {char_name}")
+        print("-" * 40)
+        
+        # 6. Era info
+        if self.current_era:
+            print(f"Current era: {self.current_era.get('name', 'Unknown')}")
+            print(f"Time in era: {self.state.current_era.time_in_era_description if self.state.current_era else 'Unknown'}")
+            print(f"Turns in era: {self.state.current_era.turns_in_era if self.state.current_era else 0}")
+        print("-" * 40)
+        
+        # 7. Era history (for "previous lives" context in prompt)
+        print(f"Era history count: {len(self.state.era_history)}")
+        for h in self.state.era_history[-3:]:
+            print(f"  - {h['era_name']}: {h.get('character_name', 'unnamed')}, {h['turns']} turns")
+        print("-" * 40)
+        
+        # 8. Conversation history (verify AI has full context)
+        print(f"Conversation messages: {len(self.narrator.messages) if self.narrator else 0}")
+        print("-" * 40)
+        
+        # 9. Ripple conditions (special content when belonging/legacy >= 40)
+        belonging_val = self.state.fulfillment.belonging.value
+        legacy_val = self.state.fulfillment.legacy.value
+        print(f"Ripple enabled: {belonging_val >= 40 or legacy_val >= 40}")
+        print("=" * 60)
+        # END DEBUG
         
         yield emit(MessageType.STAYING_FOREVER, {
             "title": "A NEW HOME",
@@ -1160,8 +1310,63 @@ class GameAPI:
         aoa_data = None
         annals = AnnalsOfAnachron()
         
+        # =====================================================================
+        # DEBUG: AoA Entry Creation Check
+        # =====================================================================
+        print("=" * 60)
+        print("DEBUG: AOA ENTRY DATA CHECK")
+        print("=" * 60)
+        
+        # 1. Score data that feeds into AoA
+        print(f"Score - turns_survived: {score.turns_survived}")
+        print(f"Score - eras_visited: {score.eras_visited}")
+        print(f"Score - ending_type: {score.ending_type}")
+        print(f"Score - total: {score.total}")
+        print(f"Score - fulfillment: {score.belonging_score + score.legacy_score + score.freedom_score}")
+        print(f"Score - ending_narrative length: {len(score.ending_narrative) if score.ending_narrative else 0}")
+        print("-" * 40)
+        
+        # 2. Qualification check (thresholds)
+        from scoring import AOA_THRESHOLDS
+        total_fulfillment = score.belonging_score + score.legacy_score + score.freedom_score
+        print(f"Qualification thresholds:")
+        print(f"  min_turns: {AOA_THRESHOLDS['min_turns']} (have: {score.turns_survived})")
+        print(f"  min_eras: {AOA_THRESHOLDS['min_eras']} (have: {score.eras_visited})")
+        print(f"  min_fulfillment: {AOA_THRESHOLDS['min_fulfillment']} (have: {total_fulfillment})")
+        print(f"  excluded_endings: {AOA_THRESHOLDS['excluded_endings']} (have: {score.ending_type})")
+        print("-" * 40)
+        
+        # 3. Character name from current era
+        char_name = self.state.current_era.character_name if self.state.current_era else 'NO ERA'
+        era_year = self.state.current_era.era_year if self.state.current_era else 0
+        print(f"Character name: {char_name}")
+        print(f"Era year: {era_year}")
+        print("-" * 40)
+        
+        # 4. Key events for AoA
+        relationship_events = self.state.get_events_by_type("relationship")
+        wisdom_events = self.state.get_events_by_type("wisdom")
+        item_events = self.state.get_events_by_type("item_use")
+        defining_events = self.state.get_events_by_type("defining_moment")
+        print(f"Relationship events: {len(relationship_events)}")
+        print(f"Wisdom events: {len(wisdom_events)}")
+        print(f"Item use events: {len(item_events)}")
+        print(f"Defining moment events: {len(defining_events)}")
+        print("=" * 60)
+        # END DEBUG
+        
         try:
             aoa_entry = annals.create_entry(self.state, score)
+            
+            # DEBUG: AoA entry result
+            if aoa_entry:
+                print("DEBUG: AoA entry CREATED successfully")
+                print(f"  entry_id: {aoa_entry.entry_id}")
+                print(f"  character_name: {aoa_entry.character_name}")
+                print(f"  key_npcs: {aoa_entry.key_npcs}")
+                print(f"  wisdom_moments: {aoa_entry.wisdom_moments}")
+            else:
+                print("DEBUG: AoA entry NOT created (did not qualify)")
             
             if aoa_entry:
                 # Generate historian narrative using AI
