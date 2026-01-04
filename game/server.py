@@ -178,11 +178,15 @@ def handle_choose(data):
     if not session_data:
         return
     
-    session = session_data['session']
-    choice = data.get('choice', 'A')
-    messages = session.choose(choice)
-    for msg in messages:
-        emit('message', msg)
+    try:
+        session = session_data['session']
+        choice = data.get('choice', 'A')
+        messages = session.choose(choice)
+        for msg in messages:
+            emit('message', msg)
+    except Exception as e:
+        logger.error(f"Error in handle_choose: {e}", exc_info=True)
+        emit('message', {'type': 'error', 'data': {'message': f'Choice error: {str(e)}'}})
 
 
 @socketio.on('continue_to_next_era')
@@ -207,10 +211,14 @@ def handle_continue_to_score():
     if not session_data:
         return
     
-    session = session_data['session']
-    messages = session.continue_to_score()
-    for msg in messages:
-        emit('message', msg)
+    try:
+        session = session_data['session']
+        messages = session.continue_to_score()
+        for msg in messages:
+            emit('message', msg)
+    except Exception as e:
+        logger.error(f"Error in handle_continue_to_score: {e}", exc_info=True)
+        emit('message', {'type': 'error', 'data': {'message': f'Score error: {str(e)}'}})
 
 
 @socketio.on('get_state')
