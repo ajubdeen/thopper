@@ -158,6 +158,13 @@ being permanently lost or destroyed. They can be temporarily unavailable in a sc
 
 NARRATIVE GUIDELINES:
 
+SMARTPHONE AS SECRET WEAPON (IMPORTANT):
+The player has offline Wikipedia on their phone - this is their defining advantage. In most 
+turns, show them privately consulting it: before making a historical claim, when meeting 
+someone important, when facing illness or injury, when navigating politics or customs. 
+A quick glance at the glowing screen when no one is watching. This is what separates them 
+from everyone else in the era - use it organically but regularly.
+
 1. VOICE
    - Second person ("You wake to...", "Your heart pounds...")
    - Vivid and immersive
