@@ -177,43 +177,104 @@ function UserCard({ user, isSelected, onClick }: { user: UserData; isSelected: b
 
 function GameStateViewer({ state }: { state: Record<string, unknown> }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showNarratives, setShowNarratives] = useState(false);
 
   const timeMachine = state.time_machine as Record<string, unknown> | undefined;
   const fulfillment = state.fulfillment as Record<string, unknown> | undefined;
   const inventory = state.inventory as Record<string, unknown> | undefined;
+  const conversationHistory = state.conversation_history as Array<{ role: string; content: string }> | undefined;
+  const currentEra = state.current_era as Record<string, unknown> | undefined;
+
+  const narratives = conversationHistory
+    ?.filter(msg => msg.role === "assistant")
+    .map(msg => msg.content) || [];
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        View State Details
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2 space-y-2">
-        {timeMachine && (
-          <div className="text-xs bg-muted/50 p-2 rounded">
-            <div className="font-medium mb-1">Time Machine</div>
-            <div>Total Turns: {String(timeMachine.total_turns || 0)}</div>
-            <div>Eras Visited: {(timeMachine.eras_visited as string[] || []).length}</div>
-          </div>
-        )}
-        {fulfillment && (
-          <div className="text-xs bg-muted/50 p-2 rounded">
-            <div className="font-medium mb-1">Fulfillment</div>
-            <div>Belonging: {String(fulfillment.belonging || 0)}</div>
-            <div>Legacy: {String(fulfillment.legacy || 0)}</div>
-            <div>Freedom: {String(fulfillment.freedom || 0)}</div>
-          </div>
-        )}
-        {inventory && (
-          <div className="text-xs bg-muted/50 p-2 rounded">
-            <div className="font-medium mb-1">Items</div>
-            {((inventory.items as Array<{ name?: string }>) || []).map((item, i) => (
-              <div key={i}>{item.name || "Unknown item"}</div>
-            ))}
-          </div>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
+    <div className="space-y-2">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          View State Details
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 space-y-2">
+          {currentEra && (
+            <div className="text-xs bg-muted/50 p-2 rounded">
+              <div className="font-medium mb-1">Current Era</div>
+              <div>{String(currentEra.era_name || "Unknown")} ({String(currentEra.era_year || "?")})</div>
+              <div>Character: {String(currentEra.character_name || "Unknown")}</div>
+              <div>Turns in era: {String(currentEra.turns_in_era || 0)}</div>
+            </div>
+          )}
+          {timeMachine && (
+            <div className="text-xs bg-muted/50 p-2 rounded">
+              <div className="font-medium mb-1">Time Machine</div>
+              <div>Total Turns: {String(timeMachine.total_turns || 0)}</div>
+              <div>Eras Visited: {(timeMachine.eras_visited as string[] || []).length}</div>
+            </div>
+          )}
+          {fulfillment && (
+            <div className="text-xs bg-muted/50 p-2 rounded">
+              <div className="font-medium mb-1">Fulfillment</div>
+              <div>Belonging: {String((fulfillment.belonging as Record<string, unknown>)?.value || 0)}</div>
+              <div>Legacy: {String((fulfillment.legacy as Record<string, unknown>)?.value || 0)}</div>
+              <div>Freedom: {String((fulfillment.freedom as Record<string, unknown>)?.value || 0)}</div>
+            </div>
+          )}
+          {inventory && (
+            <div className="text-xs bg-muted/50 p-2 rounded">
+              <div className="font-medium mb-1">Items</div>
+              {((inventory.items as Array<{ id?: string; name?: string }>) || []).map((item, i) => (
+                <div key={i}>{item.id || item.name || "Unknown item"}</div>
+              ))}
+            </div>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+      
+      {narratives.length > 0 && (
+        <Collapsible open={showNarratives} onOpenChange={setShowNarratives}>
+          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            {showNarratives ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            View Narratives ({narratives.length} turns)
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-3">
+            {narratives.map((narrative, idx) => {
+              const parsed = parseNarrative(narrative);
+              return (
+                <div key={idx} className="space-y-2 border-l-2 border-primary/20 pl-3">
+                  <div className="text-xs font-medium text-primary/80">Turn {idx + 1}</div>
+                  {parsed.map((turn, turnIdx) => (
+                    <div key={turnIdx} className="space-y-1">
+                      {turn.narrative && (
+                        <div className="text-xs text-muted-foreground whitespace-pre-wrap bg-muted/20 p-2 rounded">
+                          {turn.narrative.slice(0, 800)}
+                          {turn.narrative.length > 800 && "..."}
+                        </div>
+                      )}
+                      {turn.choices.length > 0 && (
+                        <div className="space-y-1 pl-2 bg-accent/30 p-2 rounded">
+                          <div className="text-xs font-medium">Choices:</div>
+                          {turn.choices.map((choice, cIdx) => (
+                            <div key={cIdx} className="text-xs text-muted-foreground">
+                              <span className="font-medium text-primary/70">[{choice.letter}]</span> {choice.text.slice(0, 150)}{choice.text.length > 150 && "..."}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {turn.anchors && (
+                        <div className="text-xs text-muted-foreground/70 italic">
+                          Anchors: {turn.anchors}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
   );
 }
 
