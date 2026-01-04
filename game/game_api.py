@@ -1094,9 +1094,9 @@ You are lost in time. The only way out is through."""
         leaderboard = Leaderboard(storage)
         
         if global_board:
-            entries = leaderboard.get_top(limit=20)
+            entries = leaderboard.get_top_scores(20)
         else:
-            entries = leaderboard.get_user_scores(self.user_id, limit=10)
+            entries = leaderboard.get_user_scores(self.user_id, 10)
         
         yield emit(MessageType.LEADERBOARD, {
             "entries": entries,
