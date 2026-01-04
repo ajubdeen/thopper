@@ -5,11 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import TerminalPage from "@/pages/terminal";
+import ChronicleNexus from "@/pages/chronicle-nexus";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={TerminalPage} />
+      <Route path="/chronicle/nexus" component={ChronicleNexus} />
       <Route component={NotFound} />
     </Switch>
   );

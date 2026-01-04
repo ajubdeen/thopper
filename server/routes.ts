@@ -3,6 +3,7 @@ import { type Server } from "http";
 import { setupPtyWebSocket } from "./pty";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { storage } from "./storage";
+import { registerAdminRoutes } from "./admin-routes";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -10,6 +11,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   await setupAuth(app);
   registerAuthRoutes(app);
+  registerAdminRoutes(app);
 
   setupPtyWebSocket(httpServer);
 
