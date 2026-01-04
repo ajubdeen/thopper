@@ -45,9 +45,3 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
-
-[userenv]
-
-[userenv.development]
-DEBUG_MODE = "false"
-DEBUG_ERA = "cold_war_germany"

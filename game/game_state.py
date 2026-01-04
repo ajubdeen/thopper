@@ -29,9 +29,6 @@ class GameMode(Enum):
 class RegionPreference(Enum):
     EUROPEAN = "european"      # European/Western eras only
     WORLDWIDE = "worldwide"    # All eras
-    ASIAN = "asian"            # Asian eras
-    AFRICAN = "african"        # African eras
-    AMERICAS = "americas"      # Americas eras
 
 
 class GamePhase(Enum):
@@ -169,6 +166,10 @@ class GameState:
     # Unified event log for ending generation (persists across eras)
     game_events: List[Dict] = field(default_factory=list)
     
+    # Snapshot of can_stay_meaningfully when window opened (prevents race condition)
+    # This ensures choice B behavior matches what was displayed to the player
+    window_can_stay_snapshot: Optional[bool] = None
+    
     def start_game(self, player_name: str, mode: GameMode, region: RegionPreference = RegionPreference.WORLDWIDE):
         """Initialize a new game"""
         self.player_name = player_name
@@ -202,6 +203,9 @@ class GameState:
         self.time_machine.window_turns_remaining = 0
         self.time_machine.turns_since_last_window = 0
         self.time_machine._accumulated_probability = 0.0
+        
+        # Clear can_stay snapshot - ensures next window gets fresh value
+        self.window_can_stay_snapshot = None
         
         # Track era if not already tracked (travel() may have added it)
         if era["id"] not in self.time_machine.eras_visited:
@@ -264,25 +268,30 @@ class GameState:
     # TURN AND PHASE MANAGEMENT
     # =========================================================================
     
-    def advance_turn(self) -> Dict[str, Any]:
+    def check_and_advance_turn(self) -> Dict[str, Any]:
         """
-        Advance one turn and return events that occurred.
+        Check if window will open, advance turn, and return events.
+        
+        This is the primary method to call - it handles everything in one pass
+        so callers can decide which prompt to generate BEFORE streaming narrative.
         
         Returns dict with:
         - window_opened: bool - Window just opened THIS turn
         - window_closing: bool - Window is on its last turn
         - window_closed: bool - Window just closed (player let it expire)
-        - window_active_after_turn: bool - Window is active after this turn
+        - window_already_open: bool - Window was already open before this turn
         """
         events = {
             "window_opened": False,
             "window_closing": False,
             "window_closed": False,
-            "window_active_after_turn": False
+            "window_already_open": False
         }
         
         # Track if window was already open
         was_active = self.time_machine.window_active
+        if was_active:
+            events["window_already_open"] = True
         
         # Advance era turn counter
         if self.current_era:
@@ -296,16 +305,32 @@ class GameState:
         if window_opened:
             events["window_opened"] = True
             self.phase = GamePhase.WINDOW_OPEN
+            # Snapshot can_stay at window open time to prevent race condition
+            # This ensures choice B matches what the AI generated
+            self.window_can_stay_snapshot = self.can_stay_meaningfully
         elif was_active and not self.time_machine.window_active:
             events["window_closed"] = True
             self.phase = GamePhase.LIVING
+            # Clear snapshot when window closes
+            self.window_can_stay_snapshot = None
         elif self.time_machine.window_active and self.time_machine.window_turns_remaining == 1:
             events["window_closing"] = True
         
-        # Set authoritative post-turn window state
-        events["window_active_after_turn"] = self.time_machine.window_active
-        
         return events
+    
+    def advance_turn(self) -> Dict[str, Any]:
+        """
+        Advance one turn and return events that occurred.
+        
+        DEPRECATED: Use check_and_advance_turn() instead for new code.
+        Kept for backward compatibility.
+        
+        Returns dict with:
+        - window_opened: bool
+        - window_closing: bool (last turn of window)
+        - window_closed: bool
+        """
+        return self.check_and_advance_turn()
     
     def choose_to_stay(self, is_final: bool = False):
         """Player chooses to stay in current era"""
@@ -322,6 +347,8 @@ class GameState:
     def choose_to_travel(self):
         """Player chooses to use the window"""
         self.phase = GamePhase.TRAVELING
+        # Clear snapshot when leaving - ensures next window gets fresh value
+        self.window_can_stay_snapshot = None
     
     def complete_travel(self, new_era: Dict):
         """Complete travel to new era"""
@@ -406,7 +433,7 @@ class GameState:
     def to_save_dict(self) -> Dict:
         """Serialize complete game state for saving"""
         return {
-            "version": "1.1",  # Bumped version - removed snapshot
+            "version": "1.0",
             "saved_at": datetime.now().isoformat(),
             
             # Player info
@@ -428,6 +455,9 @@ class GameState:
             
             # Era history
             "era_history": self.era_history,
+            
+            # Window can_stay snapshot (for race condition prevention)
+            "window_can_stay_snapshot": self.window_can_stay_snapshot,
             
             # Time machine state
             "time_machine": {
@@ -511,6 +541,9 @@ class GameState:
         
         # Era history
         state.era_history = data.get("era_history", [])
+        
+        # Window can_stay snapshot (for race condition prevention)
+        state.window_can_stay_snapshot = data.get("window_can_stay_snapshot")
         
         # Time machine state
         tm_data = data.get("time_machine", {})

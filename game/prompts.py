@@ -7,7 +7,6 @@ AI prompts for the narrative system, updated for:
 - Modern items
 - Multi-era journeys
 - Event tracking for enhanced endings
-- Intent-based choice resolution (order-agnostic)
 """
 
 from game_state import GameState, GameMode, GamePhase
@@ -329,85 +328,94 @@ TIME PACING: Each turn represents roughly 6-8 WEEKS passing. Show time progressi
 - "Weeks later..."
 Don't compress everything into a single day."""
 
-    # Window note and choice format
+    # Time machine status and choice format
+    window_note = ""
+    choice_format = ""
+    
     if game_state.time_machine.window_active:
         window_turns = game_state.time_machine.window_turns_remaining
         can_stay = game_state.can_stay_meaningfully
-        window_turn_number = 4 - window_turns  # 3->1, 2->2, 1->3
+        
+        # Determine which window turn this is (3 = first turn, 2 = second, 1 = last)
+        window_turn_number = 4 - window_turns  # Converts 3->1, 2->2, 1->3
         
         if window_turns == 1:
-            # LAST TURN - urgent
-            urgency = "This is the LAST chance to leave. The next window won't open for approximately another year."
-            
-            window_note = f"""
-THE WINDOW IS CLOSING - FINAL TURN.
-{urgency}
+            # LAST TURN - urgent, mention next window is ~1 year away
+            window_note = """
+THE WINDOW IS CLOSING. This is the LAST chance to leave. The device pulses urgently.
+If the player doesn't leave now, the next window won't open for approximately another year.
+
 CRITICAL: Keep the time machine choice CLEAN. No obstacles to leaving."""
             
             if can_stay:
-                choice_format = f"""
-Generate 3 choices. Include these options (order may vary):
-- One choice to activate the time machine and leave this era (mention it's the last chance)
-- One choice to stay here forever, making this their permanent home (this ENDS THE GAME)
-- One choice to let the window close and continue here (mention next window is ~1 year away)
+                choice_format = """
+CHOICE ORDER (FINAL window turn - last chance!):
 
-Example phrasings (adapt to narrative context):
-- "Activate the time machine and leave this era behind - last chance"
-- "This is my home now. I choose to stay here forever."
-- "Let the window close and continue building your life here"
-"""
+[A] Activate the time machine and leave this era behind. This is your last chance - the next window won't open for about another year.
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME)
+[C] Let the window close and continue here - but know the next window won't open for approximately another year
+
+Note: [A] leaves, [B] ends the game (permanent stay), [C] continues but window closes for ~1 year."""
             else:
-                choice_format = f"""
-Generate 3 choices. Include:
-- One choice to activate the time machine and leave (mention it's the last chance)
-- Two choices to continue the story (mention the window will close)
+                choice_format = """
+CHOICE ORDER (FINAL window turn - last chance!):
 
-Do NOT include a "stay forever" option - the player hasn't built enough here yet.
-"""
+[A] Activate the time machine and leave this era behind. This is your last chance - the next window won't open for about another year.
+[B] First continuation option - mention this is the last chance to leave and next window is ~1 year away
+[C] Second continuation option - mention this is the last chance to leave and next window is ~1 year away
+
+Note: [A] leaves. Both [B] and [C] mean staying - the window will close and won't reopen for ~1 year."""
+        
         else:
-            # TURNS 1 or 2 - window stays open
-            remaining_text = "a little while longer" if window_turns == 3 else "one more turn"
+            # TURNS 1 or 2 - window stays open a bit longer
+            remaining_text = "a little while longer" if window_turns == 3 else "one more moment"
             
             window_note = f"""
-THE WINDOW IS OPEN (turn {window_turn_number} of 3).
+THE WINDOW IS OPEN (turn {window_turn_number} of 3). The device pulses steadily.
 The window will remain open for {remaining_text}.
+
 CRITICAL: Keep the time machine choice CLEAN. No obstacles to leaving."""
             
             if can_stay:
                 choice_format = f"""
-Generate 3 choices. Include these options (order may vary):
-- One choice to activate the time machine and leave this era
-- One choice to stay here forever, making this their permanent home (this ENDS THE GAME)
-- One choice to continue the current situation (mention window remains open)
+CHOICE ORDER (window turn {window_turn_number} of 3 - player has time to decide):
 
-Example phrasings (adapt to narrative context):
-- "Activate the time machine and leave this era behind"
-- "This is my home now. I choose to stay here forever."
-- "Continue exploring - the window will remain open"
-"""
+[A] Activate the time machine and leave this era behind
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME)
+[C] Continue with current situation - the window will remain open for {remaining_text}
+
+Note: [A] leaves, [B] ends the game (permanent stay), [C] continues while window stays open."""
             else:
                 choice_format = f"""
-Generate 3 choices. Include:
-- One choice to activate the time machine and leave this era
-- Two choices to continue the story (can mention the window is open)
+CHOICE ORDER (window turn {window_turn_number} of 3 - player has time to decide):
 
-Do NOT include a "stay forever" option - the player hasn't built enough here yet.
-"""
+[A] Activate the time machine and leave this era behind
+[B] First continuation option - mention the window will remain open for {remaining_text}
+[C] Second continuation option - mention the window will remain open for {remaining_text}
+
+Note: [A] leaves. Both [B] and [C] continue the game while window stays open."""
+
     else:
         # Window NOT open - standard choice format
+        # IMPORTANT: Explicitly tell AI NOT to mention time machine
         window_note = """
 TIME MACHINE STATUS: The device is SILENT. The window is NOT open.
-DO NOT mention the time machine, leaving this era, or traveling to another time in any choices.
-All three choices must be about the current narrative situation."""
+DO NOT mention the time machine, device, leaving this era, departing, or traveling to another time in ANY of the choices.
+The player cannot use the time machine right now - it is completely irrelevant to this turn.
+All three choices must focus ONLY on the player's current situation in this era."""
         
         choice_format = """
-Generate 3 story choices focused on the player's current situation.
+CHOICE DESIGN (CRITICAL):
+- ALL choices must be viable paths forward - no "give up" or "accept death" options
+- At least ONE choice should reward HISTORICAL KNOWLEDGE of this era
+- Historically clever choices should feel like: "If you know this era, here's your angle"
+- Examples: Appeal to local customs, leverage social structures, reference religion/prophecy
+- DO NOT include any choices about the time machine, leaving, or traveling to another time - THE WINDOW IS CLOSED
 
-CHOICE DESIGN:
-- All choices must be viable paths forward
-- At least ONE choice should reward historical knowledge of this era
-- No "give up" or "accept fate" options
-"""
+STRUCTURE:
+[A] Choice A (about current situation ONLY)
+[B] Choice B (about current situation ONLY)
+[C] Choice C (about current situation ONLY)"""
 
     return f"""The player chose: [{choice}]
 Dice roll: {roll}/20 - {luck}
@@ -417,27 +425,37 @@ Dice roll: {roll}/20 - {luck}
 {time_pacing}
 
 LUCK GUIDELINES:
-- Luck affects EXECUTION, not opportunity
-- Unlucky = complications, NOT catastrophic disasters
-- Never narrate the player being killed or captured with no escape
+- Luck affects EXECUTION, not opportunity. Even unlucky outcomes should leave doors open.
+- Unlucky = complications and setbacks, NOT catastrophic disasters
+- Bad luck makes the path harder, it doesn't close all paths
+- Never narrate the player being killed, captured with no escape, or totally defeated
 
-Narrate the outcome of their choice, then present 3 new choices.
+Narrate the outcome of their choice, incorporating the luck factor. Be specific about consequences.
+
+Then continue the story and present 3 new choices.
 
 EVENT TRACKING:
-- If any NPC becomes significant: <key_npc>NPCName</key_npc>
-- If player demonstrates historical understanding: <wisdom>brief_description</wisdom>
+- If any NPC becomes significant this turn (named, interacted with meaningfully), include: <key_npc>NPCName</key_npc>
+- If the player's choice demonstrates historical understanding, include: <wisdom>brief_description</wisdom>
 
 {choice_format}
 
 <anchors>belonging[+/-X] legacy[+/-X] freedom[+/-X]</anchors>
 
-IMPORTANT: Put all tags on their own lines AFTER the choices.
+IMPORTANT: Put all event tags and the <anchors> tag on their own lines AFTER all three choices.
 
-Maintain continuity. Reference what came before."""
+Maintain continuity. Reference what came before. Build relationships and consequences."""
 
 
 def get_window_prompt(game_state: GameState, choice: str = None, roll: int = None) -> str:
-    """Prompt for when the travel window opens."""
+    """
+    Prompt for when the travel window opens.
+    
+    Args:
+        game_state: Current game state
+        choice: The player's choice that triggered this turn (A/B/C)
+        roll: The dice roll for luck (1-20)
+    """
     
     can_stay = game_state.can_stay_meaningfully
     fulfillment = game_state.fulfillment.get_narrative_state()
@@ -462,7 +480,6 @@ First, briefly narrate the outcome of their choice (1-2 paragraphs), then transi
     else:
         choice_outcome = ""
     
-    # Emotional weight based on fulfillment
     if can_stay:
         emotional_weight = """
 The player has BUILT something here. They have:"""
@@ -474,34 +491,33 @@ The player has BUILT something here. They have:"""
             emotional_weight += "\n- A life on their own terms, hard-won independence"
         emotional_weight += """
 
-Leaving now means LOSING much of this. Make the cost FELT.
-But staying means never knowing what else might have been."""
+Leaving now means LOSING much of this. The narrative should make this cost FELT.
+But staying means never knowing what else might have been. Never going home."""
         
         choice_format = """
-Generate 3 choices. Include these options (order may vary):
-- One choice to activate the time machine and leave this era behind
-- One choice to stay here forever, making this their permanent home (this ENDS THE GAME)
-- One choice to continue with the current situation while the window remains open
+CRITICAL - CHOICE ORDER WHEN PLAYER CAN STAY MEANINGFULLY:
 
-The player has built something meaningful here. Make the weight of the decision felt.
+[A] Activate the time machine and leave this era behind
+[B] This is my home now. I choose to stay here forever. (ENDS THE GAME - player accepts this as permanent home)
+[C] Continue with current situation - the window will remain open for a little while longer
 
-Example phrasings (adapt to narrative context):
-- "Activate the time machine and leave this era behind"
-- "This is my home now. I choose to stay here forever."
-- "Continue with your current path - the window will remain open for now"
-"""
+IMPORTANT: You MUST use this exact choice structure. [A] = leave, [B] = stay forever (game ends), [C] = continue.
+The code expects this order. Do NOT deviate from this structure."""
     else:
         emotional_weight = """
-The player hasn't built deep roots here yet. Leaving is easier.
-But they could stay and build more."""
+The player hasn't built deep roots here yet. Leaving is easier, less costly.
+But they could stay and build more. The choice is still significant."""
         
         choice_format = """
-Generate 3 choices. Include:
-- One choice to activate the time machine and leave this era
-- Two choices to continue the story while the window remains open
+CRITICAL - CHOICE ORDER WHEN PLAYER CANNOT STAY MEANINGFULLY:
 
-The player hasn't built deep roots here yet. Do NOT include a "stay forever" option.
-"""
+[A] Activate the time machine and leave this era behind
+[B] First continuation option - mention the window will remain open a little longer
+[C] Second continuation option - mention the window will remain open a little longer
+
+IMPORTANT: You MUST use this exact choice structure. [A] = leave, [B] and [C] = continue options.
+There is NO "stay forever" option because the player hasn't built enough here yet.
+The code expects this order. Do NOT deviate from this structure."""
 
     return f"""THE TIME MACHINE WINDOW HAS OPENED.
 
@@ -509,14 +525,21 @@ The player hasn't built deep roots here yet. Do NOT include a "stay forever" opt
 
 {emotional_weight}
 
-TIME COMPRESSION: When the window is open, time moves faster - DAYS not weeks.
+TIME COMPRESSION: When the window is open, time moves faster. The next few turns represent
+DAYS not weeks - the urgency of the decision compresses everything.
 
-Narrate this moment. The device pulses warmly. They know what it means.
+Narrate this moment. The device pulses warmly against the player's wrist. The small display
+shows the current date and location. They know what the pulsing means - the window is open.
 
 CRITICAL - CLEAN CHOICE:
-The player must be able to simply activate the device.
-No combat, imprisonment, or obstacles to leaving.
-The drama is in the DECISION, not the MECHANISM.
+The player must be in a situation where they can SIMPLY CHOOSE to activate the device.
+Do NOT put them in combat, imprisonment, or any situation that complicates leaving.
+The drama is in the DECISION (what they leave behind), not the MECHANISM (can they reach the device?).
+The player can always activate the device cleanly if they choose to.
+
+Do NOT ask them directly "do you want to leave?" - this isn't a game menu.
+Instead, show the moment: the device warming, the awareness of the choice, the life they've
+built here versus the unknown that awaits.
 
 {choice_format}
 

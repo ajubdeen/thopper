@@ -210,10 +210,6 @@ import os
 DEBUG_MODE = os.environ.get("DEBUG_MODE", "").lower() == "true"
 DEBUG_ERA = os.environ.get("DEBUG_ERA", "")
 
-# Log debug status at startup
-if DEBUG_MODE:
-    print(f"[CONFIG] DEBUG_MODE enabled, DEBUG_ERA={DEBUG_ERA}")
-
 # Valid era IDs for validation (prevents arbitrary input)
 VALID_ERA_IDS = [
     "ancient_egypt",

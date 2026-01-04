@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
-import { useSearch } from "wouter";
 import heroImage from "@assets/banner3_1767202989616.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,13 +91,11 @@ interface LeaderboardEntry {
 
 export default function GamePage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
-  const searchString = useSearch();
   const socketRef = useRef<Socket | null>(null);
   const narrativeEndRef = useRef<HTMLDivElement>(null);
   const [connected, setConnected] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [phase, setPhase] = useState<GamePhase>("connecting");
-  const [urlActionProcessed, setUrlActionProcessed] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [narrative, setNarrative] = useState("");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -200,22 +197,7 @@ export default function GamePage() {
         break;
         
       case "waiting_input":
-        // Backend may send 'action' or 'prompt' field depending on version
-        const waitAction = msg.data.action || msg.data.prompt;
-        // Map 'continue' to the appropriate action based on game state
-        if (waitAction === "continue") {
-          // Could be continue_to_score or continue_to_next_era
-          // Check the message hint or default to score for endings
-          if (msg.data.message?.includes("score")) {
-            setWaitingAction("continue_to_score");
-          } else if (msg.data.message?.includes("land")) {
-            setWaitingAction("continue_to_next_era");
-          } else {
-            setWaitingAction("continue_to_score");
-          }
-        } else {
-          setWaitingAction(waitAction);
-        }
+        setWaitingAction(msg.data.action);
         setIsLoading(false);
         break;
         
@@ -284,17 +266,7 @@ export default function GamePage() {
         break;
         
       case "staying_forever":
-        // Clear choices so the continue button can render
-        // Clear narrative to show fresh ending story
-        setChoices([]);
-        setWindowOpen(false);
-        setNarrative("");
-        break;
-        
-      case "ending_narrative":
-        // Handle the ending narrative (from stay_forever or quit)
-        setNarrative(msg.data.text || "");
-        setIsLoading(false);
+        // Don't clear narrative - we want to show the ending story
         break;
         
       case "final_score":
@@ -352,31 +324,6 @@ export default function GamePage() {
       socket.disconnect();
     };
   }, [handleMessage, authLoading, isAuthenticated, user?.id]);
-
-  // Handle URL action parameters (from /v2 home page)
-  useEffect(() => {
-    if (!initialized || urlActionProcessed || !socketRef.current) return;
-    
-    const params = new URLSearchParams(searchString);
-    const action = params.get('action');
-    const gameId = params.get('game_id');
-    
-    if (action) {
-      setUrlActionProcessed(true);
-      
-      if (action === 'new') {
-        socketRef.current.emit('new_game');
-      } else if (action === 'load' && gameId) {
-        socketRef.current.emit('load', { game_id: gameId });
-      } else if (action === 'leaderboard') {
-        setShowGlobalLeaderboard(true);
-        socketRef.current.emit('leaderboard', { global: true });
-      }
-      
-      // Clean up URL without reloading
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [initialized, urlActionProcessed, searchString]);
 
   const startNewGame = () => {
     socketRef.current?.emit('new_game');
@@ -474,17 +421,18 @@ export default function GamePage() {
         </div>
         
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 -mt-16">
+          <h1 className="text-4xl sm:text-5xl font-bold text-amber-400 tracking-wider">ANACHRON</h1>
           <p className="text-gray-400 text-center max-w-md">
-            A time-travel survival adventure.
+            A time-travel survival adventure. Sign in to save your progress and compete on the leaderboard.
           </p>
           
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          <div className="flex flex-col gap-3 w-full max-w-xs mt-4">
             <Button 
               onClick={() => window.location.href = "/api/login"}
               className="bg-amber-600 hover:bg-amber-700 text-white py-6 text-lg"
               data-testid="button-login"
             >
-              Sign up or sign in to play
+              Sign In to Play
             </Button>
           </div>
         </div>
