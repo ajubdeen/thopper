@@ -200,7 +200,22 @@ export default function GamePage() {
         break;
         
       case "waiting_input":
-        setWaitingAction(msg.data.action);
+        // Backend may send 'action' or 'prompt' field depending on version
+        const waitAction = msg.data.action || msg.data.prompt;
+        // Map 'continue' to the appropriate action based on game state
+        if (waitAction === "continue") {
+          // Could be continue_to_score or continue_to_next_era
+          // Check the message hint or default to score for endings
+          if (msg.data.message?.includes("score")) {
+            setWaitingAction("continue_to_score");
+          } else if (msg.data.message?.includes("land")) {
+            setWaitingAction("continue_to_next_era");
+          } else {
+            setWaitingAction("continue_to_score");
+          }
+        } else {
+          setWaitingAction(waitAction);
+        }
         setIsLoading(false);
         break;
         
@@ -274,6 +289,12 @@ export default function GamePage() {
         setChoices([]);
         setWindowOpen(false);
         setNarrative("");
+        break;
+        
+      case "ending_narrative":
+        // Handle the ending narrative (from stay_forever or quit)
+        setNarrative(msg.data.text || "");
+        setIsLoading(false);
         break;
         
       case "final_score":
