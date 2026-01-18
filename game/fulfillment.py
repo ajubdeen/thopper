@@ -98,6 +98,11 @@ class FulfillmentState:
     
     current_turn: int = 0
     
+    # Track last milestone levels to detect crossings (new field, additive)
+    _last_belonging_level: str = field(default="none", repr=False)
+    _last_legacy_level: str = field(default="none", repr=False)
+    _last_freedom_level: str = field(default="none", repr=False)
+    
     def get_anchor(self, name: str) -> Anchor:
         """Get anchor by name"""
         return getattr(self, name.lower())
@@ -166,6 +171,11 @@ class FulfillmentState:
         self.belonging.reset_for_new_era(retention_rate=0.2)  # Lose most belonging
         self.legacy.reset_for_new_era(retention_rate=0.5)     # Keep half of legacy
         self.freedom.reset_for_new_era(retention_rate=0.6)    # Keep most freedom
+        
+        # Reset milestone tracking for new era
+        self._last_belonging_level = self.belonging.level.value
+        self._last_legacy_level = self.legacy.level.value
+        self._last_freedom_level = self.freedom.level.value
     
     def get_narrative_state(self) -> Dict:
         """
@@ -221,6 +231,195 @@ class FulfillmentState:
             return arrived[0]  # Single anchor ending
         else:
             return "searching"  # Chose to stay without real fulfillment
+
+    # =========================================================================
+    # NEW: PROGRESS TRACKING FOR FRONTEND (additive - does not change existing)
+    # =========================================================================
+    
+    def get_progress_for_frontend(self) -> Dict:
+        """
+        Get progress state for frontend display.
+        
+        Returns qualitative levels and trends that can be shown to players
+        without exposing raw numbers. This enables progress feedback while
+        maintaining narrative immersion.
+        
+        Returns:
+            Dict with structure:
+            {
+                "belonging": {"level": "emerging", "trend": "rising"},
+                "legacy": {"level": "none", "trend": "stable"},
+                "freedom": {"level": "growing", "trend": "stable"},
+                "dominant": "belonging" | None,
+                "journey_phase": "wandering" | "finding_footing" | "building_roots" | "approaching_home" | "home",
+                "can_stay": False,
+                "arrived_anchors": []
+            }
+        """
+        return {
+            "belonging": {
+                "level": self.belonging.level.value,
+                "trend": self._get_trend(self.belonging)
+            },
+            "legacy": {
+                "level": self.legacy.level.value,
+                "trend": self._get_trend(self.legacy)
+            },
+            "freedom": {
+                "level": self.freedom.level.value,
+                "trend": self._get_trend(self.freedom)
+            },
+            "dominant": self.dominant_anchor,
+            "journey_phase": self._get_journey_phase(),
+            "can_stay": self.can_stay,
+            "arrived_anchors": self.arrival_anchors
+        }
+    
+    def _get_journey_phase(self) -> str:
+        """
+        Determine the narrative phase of the player's journey.
+        
+        This provides a high-level "how am I doing" indicator without
+        exposing the underlying numbers.
+        
+        Returns one of:
+        - "wandering": No real progress yet (all anchors < 20)
+        - "finding_footing": Starting to build something (highest anchor 20-39)
+        - "building_roots": Making real progress (highest anchor 40-59)
+        - "approaching_home": Close to being able to stay (highest anchor 60-79)
+        - "home": Can meaningfully stay (any anchor >= 80)
+        """
+        if self.can_stay:
+            return "home"
+        
+        highest_value = max(
+            self.belonging.value,
+            self.legacy.value,
+            self.freedom.value
+        )
+        
+        if highest_value >= 60:
+            return "approaching_home"
+        elif highest_value >= 40:
+            return "building_roots"
+        elif highest_value >= 20:
+            return "finding_footing"
+        else:
+            return "wandering"
+    
+    def check_milestone_crossed(self) -> Optional[Dict]:
+        """
+        Check if any anchor just crossed a milestone threshold.
+        
+        Call this AFTER adjusting anchors to detect level-ups.
+        Returns milestone info if one was crossed, None otherwise.
+        
+        Milestones are crossed when an anchor moves from one level to a higher one.
+        We track the last known level and compare to current.
+        
+        Returns:
+            None if no milestone crossed, or Dict:
+            {
+                "anchor": "belonging" | "legacy" | "freedom",
+                "old_level": "none",
+                "new_level": "emerging",
+                "message": "Narrative hint about the progress"
+            }
+        """
+        milestones_crossed = []
+        
+        # Check each anchor
+        current_belonging = self.belonging.level.value
+        if self._level_increased(self._last_belonging_level, current_belonging):
+            milestones_crossed.append({
+                "anchor": "belonging",
+                "old_level": self._last_belonging_level,
+                "new_level": current_belonging,
+                "message": self._get_milestone_message("belonging", current_belonging)
+            })
+        self._last_belonging_level = current_belonging
+        
+        current_legacy = self.legacy.level.value
+        if self._level_increased(self._last_legacy_level, current_legacy):
+            milestones_crossed.append({
+                "anchor": "legacy",
+                "old_level": self._last_legacy_level,
+                "new_level": current_legacy,
+                "message": self._get_milestone_message("legacy", current_legacy)
+            })
+        self._last_legacy_level = current_legacy
+        
+        current_freedom = self.freedom.level.value
+        if self._level_increased(self._last_freedom_level, current_freedom):
+            milestones_crossed.append({
+                "anchor": "freedom",
+                "old_level": self._last_freedom_level,
+                "new_level": current_freedom,
+                "message": self._get_milestone_message("freedom", current_freedom)
+            })
+        self._last_freedom_level = current_freedom
+        
+        # Return the most significant milestone (highest new level)
+        if milestones_crossed:
+            level_order = ["none", "emerging", "growing", "strong", "arrived", "mastery"]
+            milestones_crossed.sort(
+                key=lambda m: level_order.index(m["new_level"]),
+                reverse=True
+            )
+            return milestones_crossed[0]
+        
+        return None
+    
+    def _level_increased(self, old_level: str, new_level: str) -> bool:
+        """Check if level increased (not just changed)"""
+        level_order = ["none", "emerging", "growing", "strong", "arrived", "mastery"]
+        try:
+            old_idx = level_order.index(old_level)
+            new_idx = level_order.index(new_level)
+            return new_idx > old_idx
+        except ValueError:
+            return False
+    
+    def _get_milestone_message(self, anchor: str, level: str) -> str:
+        """
+        Get a narrative-appropriate message for reaching a milestone.
+        
+        These messages hint at progress without being gamey or breaking immersion.
+        """
+        messages = {
+            "belonging": {
+                "emerging": "You sense the first threads of connection forming.",
+                "growing": "Familiar faces greet you now. This place knows you.",
+                "strong": "You matter to people here. They would miss you.",
+                "arrived": "This could be home. These could be your people.",
+                "mastery": "You belong here, completely and without doubt."
+            },
+            "legacy": {
+                "emerging": "Your actions are beginning to ripple outward.",
+                "growing": "What you've started here will outlast this moment.",
+                "strong": "Your mark on this place is becoming permanent.",
+                "arrived": "You've built something that will endure.",
+                "mastery": "Your legacy here is complete and lasting."
+            },
+            "freedom": {
+                "emerging": "You're learning to move through this world unbound.",
+                "growing": "The constraints of this era cannot hold you.",
+                "strong": "You've carved out true independence here.",
+                "arrived": "You are free here, on your own terms.",
+                "mastery": "Complete freedom is yours in this time."
+            }
+        }
+        
+        return messages.get(anchor, {}).get(level, "Something has shifted.")
+    
+    def initialize_milestone_tracking(self):
+        """
+        Initialize milestone tracking with current levels.
+        Call this when starting a new game or entering a new era.
+        """
+        self._last_belonging_level = self.belonging.level.value
+        self._last_legacy_level = self.legacy.level.value
+        self._last_freedom_level = self.freedom.level.value
 
 
 # =============================================================================

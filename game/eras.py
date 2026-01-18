@@ -2110,3 +2110,35 @@ def get_era_events(era, include_adult=False):
         events.extend(era['adult_events'])
     
     return events
+
+
+def get_wisdom_path_by_id(era, wisdom_id):
+    """
+    Look up a wisdom path by its ID within an era.
+    
+    Args:
+        era: Era dictionary
+        wisdom_id: The wisdom path ID (e.g., 'approached_priests_first')
+    
+    Returns:
+        Dict with 'id', 'insight', 'narrative_hook' if found, None otherwise.
+    """
+    wisdom_paths = era.get('wisdom_paths', [])
+    for path in wisdom_paths:
+        if path.get('id') == wisdom_id:
+            return path
+    return None
+
+
+def get_all_wisdom_ids_for_era(era):
+    """
+    Get all wisdom path IDs for an era.
+    
+    Args:
+        era: Era dictionary
+    
+    Returns:
+        List of wisdom IDs available in this era.
+    """
+    wisdom_paths = era.get('wisdom_paths', [])
+    return [path.get('id') for path in wisdom_paths if path.get('id')]

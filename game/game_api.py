@@ -39,7 +39,7 @@ from event_parsing import (
     parse_character_name, parse_key_npcs, parse_wisdom_moment,
     strip_event_tags, check_defining_moment
 )
-from eras import ERAS, get_era_by_id
+from eras import ERAS, get_era_by_id, get_wisdom_path_by_id
 from prompts import (
     get_system_prompt, get_arrival_prompt, get_turn_prompt,
     get_window_prompt, get_staying_ending_prompt, get_leaving_prompt,
@@ -101,6 +101,10 @@ class MessageType:
     LEADERBOARD = "leaderboard"
     ANNALS = "annals"
     ANNALS_ENTRY = "annals_entry"
+    
+    # Progress feedback (new - for player engagement)
+    PROGRESS_MILESTONE = "progress_milestone"
+    HISTORICAL_WISDOM = "historical_wisdom"
 
 
 def emit(msg_type: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -894,7 +898,15 @@ class GameAPI:
             self.history.add_narrative(self.current_game, history_prefix + response)
         
         # Process response (anchors, items) - this may change can_stay_meaningfully
-        self._process_response(response)
+        feedback = self._process_response(response)
+        
+        # Emit milestone if a level threshold was crossed (progress feedback)
+        if feedback.get("milestone"):
+            yield emit(MessageType.PROGRESS_MILESTONE, feedback["milestone"])
+        
+        # Emit historical wisdom if player made a historically prudent choice
+        if feedback.get("wisdom"):
+            yield emit(MessageType.HISTORICAL_WISDOM, feedback["wisdom"])
         
         # Parse choices from AI response
         raw_choices = self._parse_choices(response)
@@ -975,7 +987,9 @@ class GameAPI:
             },
             "can_stay_meaningfully": self.state.can_stay_meaningfully,
             "total_turns": self.state.total_turns,
-            "eras_visited": len(self.state.time_machine.eras_visited)
+            "eras_visited": len(self.state.time_machine.eras_visited),
+            # NEW: Progress feedback for frontend display
+            "progress": self.state.fulfillment.get_progress_for_frontend()
         }
     
     # =========================================================================
@@ -1009,6 +1023,9 @@ class GameAPI:
             
             self.current_era = select_random_era(available_eras, visited_ids)
         self.state.enter_era(self.current_era)
+        
+        # Initialize milestone tracking for the new era (new - progress feedback)
+        self.state.fulfillment.initialize_milestone_tracking()
         
         # Update time machine display
         self.state.time_machine.update_display(
@@ -1077,7 +1094,15 @@ class GameAPI:
             self.history.add_narrative(self.current_game, response)
         
         # Process response (with is_arrival=True to capture character name)
-        self._process_response(response, is_arrival=True)
+        feedback = self._process_response(response, is_arrival=True)
+        
+        # Emit milestone if a level threshold was crossed (progress feedback)
+        if feedback.get("milestone"):
+            yield emit(MessageType.PROGRESS_MILESTONE, feedback["milestone"])
+        
+        # Emit historical wisdom if player made a historically prudent choice
+        if feedback.get("wisdom"):
+            yield emit(MessageType.HISTORICAL_WISDOM, feedback["wisdom"])
         
         # Log era arrival event
         self.state.log_event(
@@ -1479,8 +1504,16 @@ class GameAPI:
         
         return emit(MessageType.DEVICE_STATUS, status_data)
     
-    def _process_response(self, response: str, is_arrival: bool = False):
-        """Process AI response - extract anchors, items, and log events"""
+    def _process_response(self, response: str, is_arrival: bool = False) -> Dict:
+        """
+        Process AI response - extract anchors, items, and log events.
+        
+        Returns:
+            Dict with optional 'milestone' and 'wisdom' keys for caller to emit.
+            This is additive - callers that ignore the return value continue to work.
+        """
+        result = {"milestone": None, "wisdom": None}
+        
         # Parse anchor adjustments
         adjustments = parse_anchor_adjustments(response)
         for anchor, delta in adjustments.items():
@@ -1496,6 +1529,9 @@ class GameAPI:
                 anchor=anchor_name,
                 delta=delta
             )
+        
+        # NEW: Check for milestone crossing (level-up)
+        result["milestone"] = self.state.fulfillment.check_milestone_crossed()
         
         # Parse item usage
         used_items = parse_item_usage(response, self.state.inventory)
@@ -1516,14 +1552,22 @@ class GameAPI:
         for npc_name in npcs:
             self.state.log_event("relationship", name=npc_name)
         
-        # Parse wisdom moments
+        # Parse wisdom moments and look up full data
         wisdom_id = parse_wisdom_moment(response)
         if wisdom_id:
             self.state.log_event("wisdom", id=wisdom_id)
+            # Look up full wisdom data from current era
+            if self.current_era:
+                wisdom_data = get_wisdom_path_by_id(self.current_era, wisdom_id)
+                if wisdom_data:
+                    result["wisdom"] = wisdom_data
         
         # Store turn event in era state
         if self.state.current_era:
             self.state.current_era.events.append(f"Turn {self.state.current_era.turns_in_era}")
+        
+        # Return feedback data for caller to optionally emit
+        return result
     
     def _parse_choices(self, response: str) -> List[Dict]:
         """Extract choices from response"""
